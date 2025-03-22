@@ -2,7 +2,7 @@ class GoGame {
     constructor() {
         this.canvas = document.getElementById('goBoard');
         this.ctx = this.canvas.getContext('2d');
-        this.boardSize = 9;
+        this.boardSize = 19;
         this.cellSize = 50;
         this.gridOffset = 25;
         this.currentPlayer = 'black';
@@ -14,10 +14,10 @@ class GoGame {
         this.isTopologicMode = true;
         this.tiledView = false;
         this.tileCount = 3;
-        this.spacing = 0; // Remove spacing between boards
+        this.spacing = 0; // Keep spacing at 0
         
         // Calculate total size needed for one board
-        this.singleBoardSize = (this.boardSize - 1) * this.cellSize + (this.gridOffset * 2);
+        this.singleBoardSize = (this.boardSize - 1) * this.cellSize + this.gridOffset;
         // Calculate canvas size needed for 3x3 grid with no spacing
         const totalSize = (this.singleBoardSize * this.tileCount);
         this.canvas.width = totalSize;
@@ -53,6 +53,75 @@ class GoGame {
         document.getElementById('tessellatedView').addEventListener('click', () => this.setView(false));
         document.getElementById('torusView').addEventListener('click', () => this.setView(true));
 
+        // Add pan and zoom tracking
+        this.viewportX = 0;  // Tracks horizontal pan position
+        this.viewportY = 0;  // Tracks vertical pan position
+        this.zoomLevel = 1;  // Tracks zoom level
+        this.isDragging = false;
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        
+        // Add event listeners for pan and zoom
+        this.canvas.addEventListener('mousedown', this.startDrag.bind(this));
+        this.canvas.addEventListener('mousemove', this.handleDragAndHover.bind(this));
+        this.canvas.addEventListener('mouseup', this.stopDrag.bind(this));
+        this.canvas.addEventListener('wheel', this.handleZoom.bind(this));
+
+        this.hasMoved = false;  // Add this new property
+
+        // Make canvas fill the screen
+        const updateCanvasSize = () => {
+            const sidebarWidth = 310;
+            const availableWidth = window.innerWidth - sidebarWidth;
+            
+            // Use the full available width
+            this.cellSize = Math.floor((availableWidth / this.tileCount) / (this.boardSize - 1));
+            this.gridOffset = this.cellSize;
+            
+            // Calculate board dimensions
+            this.singleBoardSize = (this.boardSize - 1) * this.cellSize + this.gridOffset;
+            const totalSize = this.singleBoardSize * this.tileCount;
+            
+            // Set canvas size
+            this.canvas.width = totalSize;
+            this.canvas.height = totalSize;
+            
+            // Position the canvas
+            this.canvas.style.position = 'absolute';
+            this.canvas.style.left = `${sidebarWidth}px`;
+            this.canvas.style.top = '0';
+            this.canvas.style.width = `${totalSize}px`;
+            this.canvas.style.height = `${totalSize}px`;
+            
+            if (this.renderer) {
+                this.renderer.setSize(totalSize, totalSize);
+                this.camera.aspect = 1;
+                this.camera.updateProjectionMatrix();
+            }
+            
+            this.drawBoard();
+        };
+
+        // Initial size
+        updateCanvasSize();
+
+        // Update size when window is resized
+        window.addEventListener('resize', updateCanvasSize);
+
+        // Add new property for board edge visibility
+        this.showBoardEdges = false;
+        
+        // Add event listener for the checkbox
+        document.getElementById('showBoardEdges').addEventListener('change', (e) => {
+            this.showBoardEdges = e.target.checked;
+            this.drawBoard();
+        });
+
+        // Add board size change listener
+        document.getElementById('boardSize').addEventListener('change', (e) => {
+            this.changeBoardSize(parseInt(e.target.value));
+        });
+
         this.drawBoard();
     }
 
@@ -86,7 +155,7 @@ class GoGame {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
         
-        // Create torus geometry
+        // Create torus geometry using current board size
         this.torusGeometry = new THREE.TorusGeometry(10, 5, 100, 100);
         this.torusMaterial = new THREE.MeshPhongMaterial({
             color: 0xDEB887,
@@ -117,6 +186,9 @@ class GoGame {
         
         // Start animation loop
         this.animate();
+
+        // Update renderer size to match window
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     updateLightPosition() {
@@ -140,24 +212,28 @@ class GoGame {
     }
 
     drawBoard() {
-        // Clear the canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Clear the entire canvas with the background color
+        this.ctx.fillStyle = '#f0f0f0';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        if (this.isTopologicMode) {
+        if (!this.isTopologicMode || this.isTorusView) {
             if (this.isTorusView) {
                 // Draw single board for torus view
                 this.ctx.fillStyle = '#DEB887';
                 this.ctx.fillRect(0, 0, this.singleBoardSize, this.singleBoardSize);
-                this.ctx.strokeStyle = '#8B4513';
-                this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                if (this.showBoardEdges) {
+                    this.ctx.strokeStyle = '#FF0000'; // Bright red
+                    this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                    this.ctx.lineWidth = 1; // Reset line width
+                }
                 this.drawSingleBoard(0, 0);
             } else {
                 // Draw tessellated view (3x3 grid)
                 // Draw background for all tiles
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
                     for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        const offsetX = tileCol * (this.singleBoardSize + this.spacing);
-                        const offsetY = tileRow * (this.singleBoardSize + this.spacing);
+                        const offsetX = tileCol * this.singleBoardSize;
+                        const offsetY = tileRow * this.singleBoardSize;
                         
                         // Draw board background
                         this.ctx.fillStyle = '#DEB887';
@@ -167,85 +243,210 @@ class GoGame {
                             this.singleBoardSize, 
                             this.singleBoardSize
                         );
-                        
-                        // Draw board border
-                        this.ctx.strokeStyle = '#8B4513';
-                        this.ctx.strokeRect(
-                            offsetX,
-                            offsetY,
-                            this.singleBoardSize,
-                            this.singleBoardSize
-                        );
                     }
                 }
 
-                // Draw all boards
+                // Draw continuous grid lines across all boards
+                this.ctx.strokeStyle = 'black';
+                
+                // Draw vertical lines
+                for (let i = 0; i < this.boardSize * this.tileCount; i++) {
+                    const x = this.gridOffset + (i * this.cellSize);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, this.gridOffset);
+                    this.ctx.lineTo(x, this.canvas.height - this.gridOffset);
+                    this.ctx.stroke();
+                }
+
+                // Draw horizontal lines
+                for (let i = 0; i < this.boardSize * this.tileCount; i++) {
+                    const y = this.gridOffset + (i * this.cellSize);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.gridOffset, y);
+                    this.ctx.lineTo(this.canvas.width - this.gridOffset, y);
+                    this.ctx.stroke();
+                }
+
+                // Draw stones
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
                     for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        const offsetX = tileCol * (this.singleBoardSize + this.spacing);
-                        const offsetY = tileRow * (this.singleBoardSize + this.spacing);
+                        const offsetX = tileCol * this.singleBoardSize;
+                        const offsetY = tileRow * this.singleBoardSize;
                         this.drawSingleBoard(offsetX, offsetY);
                     }
                 }
+
+                // Draw board edges if enabled
+                if (this.showBoardEdges) {
+                    for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
+                        for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
+                            const offsetX = tileCol * this.singleBoardSize;
+                            const offsetY = tileRow * this.singleBoardSize;
+                            
+                            this.ctx.strokeStyle = '#FF0000'; // Bright red
+                            this.ctx.strokeRect(
+                                offsetX,
+                                offsetY,
+                                this.singleBoardSize,
+                                this.singleBoardSize
+                            );
+                        }
+                    }
+                    this.ctx.lineWidth = 1; // Reset line width
+                }
             }
-        } else {
-            // Draw single board for classic mode
-            this.ctx.fillStyle = '#DEB887';
-            this.ctx.fillRect(0, 0, this.singleBoardSize, this.singleBoardSize);
-            this.ctx.strokeStyle = '#8B4513';
-            this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
-            this.drawSingleBoard(0, 0);
+            return;
         }
 
-        // Draw hover preview if valid
-        if (this.hoverPos && this.isValidMove(this.hoverPos.row, this.hoverPos.col)) {
-            if (this.isTopologicMode && !this.isTorusView) {
-                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        const offsetX = tileCol * (this.singleBoardSize + this.spacing);
-                        const offsetY = tileRow * (this.singleBoardSize + this.spacing);
-                        this.drawPreviewStone(this.hoverPos.row, this.hoverPos.col, this.currentPlayer, offsetX, offsetY);
-                    }
+        // Calculate visible area
+        const visibleLeft = -this.viewportX / this.zoomLevel;
+        const visibleTop = -this.viewportY / this.zoomLevel;
+        const visibleRight = (this.canvas.width / this.zoomLevel) - this.viewportX / this.zoomLevel;
+        const visibleBottom = (this.canvas.height / this.zoomLevel) - this.viewportY / this.zoomLevel;
+        
+        // Calculate range of tiles to draw
+        const startTileCol = Math.floor(visibleLeft / this.singleBoardSize);
+        const endTileCol = Math.ceil(visibleRight / this.singleBoardSize);
+        const startTileRow = Math.floor(visibleTop / this.singleBoardSize);
+        const endTileRow = Math.ceil(visibleBottom / this.singleBoardSize);
+        
+        // Apply zoom and pan transformation
+        this.ctx.save();
+        this.ctx.translate(this.viewportX, this.viewportY);
+        this.ctx.scale(this.zoomLevel, this.zoomLevel);
+        
+        // Draw visible boards backgrounds first
+        for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+            for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                const offsetX = tileCol * this.singleBoardSize;
+                const offsetY = tileRow * this.singleBoardSize;
+                
+                // Draw board background
+                this.ctx.fillStyle = '#DEB887';
+                this.ctx.fillRect(
+                    offsetX,
+                    offsetY,
+                    this.singleBoardSize,
+                    this.singleBoardSize
+                );
+                
+                // Draw board border if enabled
+                if (this.showBoardEdges) {
+                    this.ctx.strokeStyle = '#FF0000'; // Bright red
+                    this.ctx.strokeRect(
+                        offsetX,
+                        offsetY,
+                        this.singleBoardSize,
+                        this.singleBoardSize
+                    );
                 }
-            } else {
-                this.drawPreviewStone(this.hoverPos.row, this.hoverPos.col, this.currentPlayer, 0, 0);
             }
         }
+        
+        // Draw continuous grid lines across all visible boards
+        this.ctx.strokeStyle = 'black';
+        
+        // Calculate the total visible area in board coordinates
+        const totalStartX = startTileCol * this.singleBoardSize + this.gridOffset;
+        const totalEndX = (endTileCol + 1) * this.singleBoardSize - this.gridOffset;
+        const totalStartY = startTileRow * this.singleBoardSize + this.gridOffset;
+        const totalEndY = (endTileRow + 1) * this.singleBoardSize - this.gridOffset;
+        
+        // Draw vertical lines
+        for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
+            for (let i = 0; i < this.boardSize; i++) {
+                const x = tileCol * this.singleBoardSize + this.gridOffset + i * this.cellSize;
+                if (x >= totalStartX && x <= totalEndX) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, totalStartY);
+                    this.ctx.lineTo(x, totalEndY);
+                    this.ctx.stroke();
+                }
+            }
+        }
+        
+        // Draw horizontal lines
+        for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
+            for (let i = 0; i < this.boardSize; i++) {
+                const y = tileRow * this.singleBoardSize + this.gridOffset + i * this.cellSize;
+                if (y >= totalStartY && y <= totalEndY) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(totalStartX, y);
+                    this.ctx.lineTo(totalEndX, y);
+                    this.ctx.stroke();
+                }
+            }
+        }
+        
+        // Draw stones on all visible boards
+        for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+            for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                const offsetX = tileCol * this.singleBoardSize;
+                const offsetY = tileRow * this.singleBoardSize;
+                
+                // Draw stones only (grid lines are already drawn)
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        if (this.board[i][j]) {
+                            this.drawStone(i, j, this.board[i][j], offsetX, offsetY);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Draw hover preview if valid and not dragging/moving
+        if (this.hoverPos && !this.isDragging && !this.hasMoved && this.isValidMove(this.hoverPos.row, this.hoverPos.col)) {
+            // Calculate range of tiles to draw hover on
+            const visibleLeft = -this.viewportX / this.zoomLevel;
+            const visibleTop = -this.viewportY / this.zoomLevel;
+            const visibleRight = (this.canvas.width / this.zoomLevel) - this.viewportX / this.zoomLevel;
+            const visibleBottom = (this.canvas.height / this.zoomLevel) - this.viewportY / this.zoomLevel;
+            
+            const startTileCol = Math.floor(visibleLeft / this.singleBoardSize);
+            const endTileCol = Math.ceil(visibleRight / this.singleBoardSize);
+            const startTileRow = Math.floor(visibleTop / this.singleBoardSize);
+            const endTileRow = Math.ceil(visibleBottom / this.singleBoardSize);
+            
+            // Draw hover preview on all visible boards
+            for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+                for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                    const offsetX = tileCol * this.singleBoardSize;
+                    const offsetY = tileRow * this.singleBoardSize;
+                    this.drawPreviewStone(
+                        this.hoverPos.row,
+                        this.hoverPos.col,
+                        this.currentPlayer,
+                        offsetX,
+                        offsetY
+                    );
+                }
+            }
+        }
+        
+        // Update the board edges in the panning/zooming section
+        if (this.showBoardEdges) {
+            this.ctx.strokeStyle = '#FF0000'; // Bright red
+            for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+                for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                    const offsetX = tileCol * this.singleBoardSize;
+                    const offsetY = tileRow * this.singleBoardSize;
+                    this.ctx.strokeRect(
+                        offsetX,
+                        offsetY,
+                        this.singleBoardSize,
+                        this.singleBoardSize
+                    );
+                }
+            }
+            this.ctx.lineWidth = 1; // Reset line width
+        }
+        
+        this.ctx.restore();
     }
 
     drawSingleBoard(offsetX, offsetY) {
-        // Draw the grid lines
-        this.ctx.strokeStyle = 'black';
-        
-        // Draw vertical lines
-        for (let i = 0; i < this.boardSize; i++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(
-                this.gridOffset + i * this.cellSize + offsetX,
-                this.gridOffset + offsetY
-            );
-            this.ctx.lineTo(
-                this.gridOffset + i * this.cellSize + offsetX,
-                this.gridOffset + (this.boardSize - 1) * this.cellSize + offsetY
-            );
-            this.ctx.stroke();
-        }
-
-        // Draw horizontal lines
-        for (let i = 0; i < this.boardSize; i++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(
-                this.gridOffset + offsetX,
-                this.gridOffset + i * this.cellSize + offsetY
-            );
-            this.ctx.lineTo(
-                this.gridOffset + (this.boardSize - 1) * this.cellSize + offsetX,
-                this.gridOffset + i * this.cellSize + offsetY
-            );
-            this.ctx.stroke();
-        }
-
-        // Draw stones
+        // Draw stones only
         for (let i = 0; i < this.boardSize; i++) {
             for (let j = 0; j < this.boardSize; j++) {
                 if (this.board[i][j]) {
@@ -260,7 +461,7 @@ class GoGame {
         this.ctx.arc(
             this.gridOffset + col * this.cellSize + offsetX,
             this.gridOffset + row * this.cellSize + offsetY,
-            this.cellSize / 2 - 2,
+            this.cellSize / 2,
             0,
             2 * Math.PI
         );
@@ -270,13 +471,29 @@ class GoGame {
     }
 
     handleClick(event) {
+        if (this.isDragging || this.hasMoved) return;
+        
         const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        const col = Math.round((x - this.gridOffset) / this.cellSize);
-        const row = Math.round((y - this.gridOffset) / this.cellSize);
-
+        const screenX = event.clientX - rect.left;
+        const screenY = event.clientY - rect.top;
+        
+        // Convert screen coordinates to world coordinates
+        const worldX = (screenX - this.viewportX) / this.zoomLevel;
+        const worldY = (screenY - this.viewportY) / this.zoomLevel;
+        
+        // Calculate which board and position we're clicking
+        const tileSize = this.singleBoardSize;
+        const tileCol = Math.floor(worldX / tileSize);
+        const tileRow = Math.floor(worldY / tileSize);
+        
+        // Get position within the board
+        const localX = worldX - (tileCol * tileSize);
+        const localY = worldY - (tileRow * tileSize);
+        
+        // Convert to board coordinates
+        const col = Math.round((localX - this.gridOffset) / this.cellSize);
+        const row = Math.round((localY - this.gridOffset) / this.cellSize);
+        
         if (this.isValidMove(row, col)) {
             this.makeMove(row, col);
         }
@@ -459,7 +676,7 @@ class GoGame {
         this.ctx.arc(
             this.gridOffset + col * this.cellSize + offsetX,
             this.gridOffset + row * this.cellSize + offsetY,
-            this.cellSize / 2 - 2,
+            this.cellSize / 2,
             0,
             2 * Math.PI
         );
@@ -489,7 +706,18 @@ class GoGame {
             // Switch to 3D view
             this.canvas.style.display = 'none';
             document.body.appendChild(this.renderer.domElement);
-            this.renderer.domElement.classList.add('three-js'); // Add the three-js class
+            this.renderer.domElement.classList.add('three-js');
+            
+            const sidebarWidth = 310;
+            const totalSize = Math.min(window.innerHeight, window.innerWidth - sidebarWidth); // Use smaller dimension
+            
+            this.renderer.setSize(totalSize, totalSize);
+            
+            // Position the renderer's canvas - center it vertically
+            this.renderer.domElement.style.position = 'absolute';
+            this.renderer.domElement.style.left = `${sidebarWidth}px`;
+            this.renderer.domElement.style.top = `${(window.innerHeight - totalSize) / 2}px`; // Center vertically
+            
             this.updateTorusBoard();
             
             // Reset camera position for better view
@@ -526,11 +754,12 @@ class GoGame {
     }
 
     create3DStone(theta, phi, color) {
-        const R = 10; // major radius
-        const r = 5;  // minor radius
+        const R = 10;
+        const r = 5;
         
-        // Calculate stone radius - make it small enough to prevent overlap
-        const stoneRadius = (2 * Math.PI * r / this.boardSize) * 0.3; // Reduced to 0.3 for smaller stones
+        // Adjust stone size based on board size
+        const stoneScale = this.boardSize === 19 ? 0.2 : (this.boardSize === 13 ? 0.25 : 0.3);
+        const stoneRadius = (2 * Math.PI * r / this.boardSize) * stoneScale;
         
         // Create sphere geometry
         const geometry = new THREE.SphereGeometry(stoneRadius, 32, 32);
@@ -556,12 +785,21 @@ class GoGame {
     createTorusGrid() {
         const R = 10; // major radius
         const r = 5;  // minor radius
-        const segments = 50;
-
-        // Create lines material - making it much more visible
+        const segments = 100; // Increase segments for smoother lines
+        
+        // Calculate line properties based on board size
+        const lineWidth = this.boardSize <= 9 ? 3 : 
+                         this.boardSize <= 13 ? 2 : 1;
+        
+        // Adjust line color and opacity based on board size
+        const lineColor = this.boardSize <= 13 ? 0x000000 : 0x333333;
+        const lineOpacity = this.boardSize <= 13 ? 1.0 : 0.8;
+        
         const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x000000,
-            linewidth: 3  // Note: this may not work in WebGL
+            color: lineColor,
+            linewidth: lineWidth,
+            transparent: true,
+            opacity: lineOpacity
         });
 
         // Create vertical lines
@@ -572,8 +810,8 @@ class GoGame {
             // Create points along the torus surface
             for (let t = 0; t <= segments; t++) {
                 const phi = (t / segments) * Math.PI * 2;
-                // Slightly offset the lines outward from the surface
-                const offset = 0.1;
+                // Adjust offset based on board size
+                const offset = 0.1 * (19 / this.boardSize); // Larger offset for smaller boards
                 const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
                 const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
                 const z = (r + offset) * Math.sin(phi);
@@ -582,7 +820,7 @@ class GoGame {
 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const line = new THREE.Line(geometry, lineMaterial);
-            this.gameContainer.add(line);  // Add to container instead of scene
+            this.gameContainer.add(line);
         }
 
         // Create horizontal lines
@@ -592,8 +830,8 @@ class GoGame {
             
             for (let t = 0; t <= segments; t++) {
                 const theta = (t / segments) * Math.PI * 2;
-                // Slightly offset the lines outward from the surface
-                const offset = 0.1;
+                // Adjust offset based on board size
+                const offset = 0.1 * (19 / this.boardSize);
                 const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
                 const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
                 const z = (r + offset) * Math.sin(phi);
@@ -602,8 +840,189 @@ class GoGame {
 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const line = new THREE.Line(geometry, lineMaterial);
-            this.gameContainer.add(line);  // Add to container instead of scene
+            this.gameContainer.add(line);
         }
+    }
+
+    // Add these new methods for handling pan and zoom
+    startDrag(event) {
+        if (event.button === 0) { // Left mouse button
+            this.isDragging = true;
+            this.hasMoved = false;
+            this.lastMouseX = event.clientX;
+            this.lastMouseY = event.clientY;
+        }
+    }
+
+    stopDrag() {
+        this.isDragging = false;
+        
+        // If we moved, wait a bit before resetting hasMoved to prevent click
+        if (this.hasMoved) {
+            setTimeout(() => {
+                this.hasMoved = false;
+                this.drawBoard();
+            }, 100); // Short delay to prevent click from registering
+        } else {
+            this.hasMoved = false;
+            this.drawBoard();
+        }
+    }
+
+    handleDragAndHover(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        if (this.isDragging) {
+            // Handle panning
+            const deltaX = event.clientX - this.lastMouseX;
+            const deltaY = event.clientY - this.lastMouseY;
+            
+            if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+                this.hasMoved = true;
+                if (this.hoverPos) {
+                    this.hoverPos = null;
+                }
+            }
+            
+            this.viewportX += deltaX;
+            this.viewportY += deltaY;
+            
+            this.lastMouseX = event.clientX;
+            this.lastMouseY = event.clientY;
+            
+            this.drawBoard();
+        } else {
+            // Convert screen coordinates to world coordinates
+            const worldX = (x - this.viewportX) / this.zoomLevel;
+            const worldY = (y - this.viewportY) / this.zoomLevel;
+            
+            // Calculate which board and position we're hovering over
+            const tileSize = this.singleBoardSize;
+            const tileCol = Math.floor(worldX / tileSize);
+            const tileRow = Math.floor(worldY / tileSize);
+            
+            // Get position within the board
+            const localX = worldX - (tileCol * tileSize);
+            const localY = worldY - (tileRow * tileSize);
+            
+            // Convert to board coordinates
+            const col = Math.round((localX - this.gridOffset) / this.cellSize);
+            const row = Math.round((localY - this.gridOffset) / this.cellSize);
+            
+            // Clear hover when outside valid board positions
+            if (col < 0 || col >= this.boardSize || row < 0 || row >= this.boardSize) {
+                if (this.hoverPos) {
+                    this.hoverPos = null;
+                    this.drawBoard();
+                }
+            } else {
+                // Only update and redraw if the hover position has changed
+                if (!this.hoverPos || 
+                    this.hoverPos.row !== row || 
+                    this.hoverPos.col !== col ||
+                    this.hoverPos.tileRow !== tileRow ||
+                    this.hoverPos.tileCol !== tileCol) {
+                    this.hoverPos = { row, col, tileRow, tileCol };
+                    this.drawBoard();
+                }
+            }
+        }
+    }
+
+    handleZoom(event) {
+        event.preventDefault();
+        
+        const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+        const oldZoom = this.zoomLevel;
+        this.zoomLevel *= zoomFactor;
+        
+        // Limit zoom levels
+        this.zoomLevel = Math.max(0.5, Math.min(5, this.zoomLevel));
+        
+        // Adjust viewport to zoom toward mouse position
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        
+        this.viewportX = mouseX - (mouseX - this.viewportX) * (this.zoomLevel / oldZoom);
+        this.viewportY = mouseY - (mouseY - this.viewportY) * (this.zoomLevel / oldZoom);
+        
+        this.drawBoard();
+    }
+
+    // Add new method to handle board size changes
+    changeBoardSize(newSize) {
+        this.boardSize = newSize;
+        
+        // Reset the game with new size
+        this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(null));
+        this.currentPlayer = 'black';
+        this.passes = 0;
+        this.blackStones = 0;
+        this.whiteStones = 0;
+        
+        // Calculate dimensions based on current canvas size
+        const sidebarWidth = 310;
+        const availableSpace = Math.min(window.innerWidth - sidebarWidth, window.innerHeight);
+        this.adjustBoardDimensions(availableSpace);
+        
+        // Update 3D view if active
+        if (this.isTorusView) {
+            // Clear existing elements
+            while(this.gameContainer.children.length > 0) {
+                this.gameContainer.remove(this.gameContainer.children[0]);
+            }
+            
+            // Recreate torus with new size
+            this.torusGeometry = new THREE.TorusGeometry(10, 5, 100, 100);
+            this.torusMaterial = new THREE.MeshPhongMaterial({
+                color: 0xDEB887,
+                side: THREE.DoubleSide
+            });
+            this.torusMesh = new THREE.Mesh(this.torusGeometry, this.torusMaterial);
+            this.gameContainer.add(this.torusMesh);
+            
+            // Recreate grid and update board
+            this.createTorusGrid();
+            this.updateTorusBoard();
+        }
+        
+        // Reset view position and zoom
+        this.viewportX = 0;
+        this.viewportY = 0;
+        this.zoomLevel = 1;
+        
+        this.drawBoard();
+        this.updatePlayerDisplay();
+        this.updateStoneCount();
+    }
+
+    // Add new method to handle board dimension calculations
+    adjustBoardDimensions(canvasSize) {
+        const sidebarWidth = 310;
+        const availableWidth = window.innerWidth - sidebarWidth;
+        
+        // Calculate cell size based on available width
+        this.cellSize = Math.floor((availableWidth / this.tileCount) / (this.boardSize - 1));
+        this.gridOffset = this.cellSize;
+        
+        // Calculate board dimensions with only one gridOffset
+        this.singleBoardSize = (this.boardSize - 1) * this.cellSize + this.gridOffset;
+        const totalSize = this.singleBoardSize * this.tileCount;
+        
+        // Update canvas size
+        this.canvas.width = totalSize;
+        this.canvas.height = totalSize;
+        
+        // Update canvas style
+        this.canvas.style.width = `${totalSize}px`;
+        this.canvas.style.height = `${totalSize}px`;
+        
+        // Position canvas
+        this.canvas.style.left = `${sidebarWidth}px`;
+        this.canvas.style.top = '0';
     }
 }
 
