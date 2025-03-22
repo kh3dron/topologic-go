@@ -23,15 +23,20 @@
             background-color: #DEB887;
             border: 2px solid #8B4513;
         }
+        /* Add styles for 3D canvas */
+        canvas.three-js {
+            background: transparent;
+            border: none;
+        }
         button {
             margin: 10px;
             padding: 8px 16px;
             font-size: 16px;
         }
-        .mode-selector, .size-selector, .projection-selector {
+        .projection-selector {
             margin-bottom: 20px;
         }
-        .mode-selector button, .size-selector button, .projection-selector button {
+        .projection-selector button {
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -39,26 +44,19 @@
             cursor: pointer;
             margin: 0 5px;
         }
-        .mode-selector button.active, .size-selector button.active, .projection-selector button.active {
+        .projection-selector button.active {
             background-color: #45a049;
         }
         #goBoard, canvas {
             margin: 20px auto;
         }
         .projection-selector {
-            display: none;
-        }
-        .projection-selector.visible {
             display: block;
         }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <div class="mode-selector">
-            <button id="classicMode" class="active">Classic Go</button>
-            <button id="topologicMode">Topologic Go</button>
-        </div>
         <div class="projection-selector">
             <button id="tessellatedView" class="active">Tessellated View</button>
             <button id="torusView">Torus View</button>

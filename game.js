@@ -11,7 +11,7 @@ class GoGame {
         this.blackStones = 0;
         this.whiteStones = 0;
         this.hoverPos = null;
-        this.isTopologicMode = false;
+        this.isTopologicMode = true;
         this.tiledView = false;
         this.tileCount = 3;
         this.spacing = 0; // Remove spacing between boards
@@ -22,10 +22,6 @@ class GoGame {
         const totalSize = (this.singleBoardSize * this.tileCount);
         this.canvas.width = totalSize;
         this.canvas.height = totalSize;
-
-        // Add mode selection listeners
-        document.getElementById('classicMode').addEventListener('click', () => this.setGameMode(false));
-        document.getElementById('topologicMode').addEventListener('click', () => this.setGameMode(true));
 
         this.canvas.addEventListener('click', this.handleClick.bind(this));
         document.getElementById('passButton').addEventListener('click', this.pass.bind(this));
@@ -38,23 +34,109 @@ class GoGame {
             this.drawBoard();
         });
 
+        // Add view type tracking
+        this.isTorusView = false;
+        
+        // Add Three.js setup
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.torusGeometry = null;
+        this.torusMaterial = null;
+        this.torusMesh = null;
+        
+        // Initialize 3D view
+        this.init3D();
+
+        // Add view selection listeners
+        document.getElementById('tessellatedView').addEventListener('click', () => this.setView(false));
+        document.getElementById('torusView').addEventListener('click', () => this.setView(true));
+
         this.drawBoard();
     }
 
-    setGameMode(isTopologic) {
-        this.isTopologicMode = isTopologic;
-        document.getElementById('classicMode').classList.toggle('active', !isTopologic);
-        document.getElementById('topologicMode').classList.toggle('active', isTopologic);
-        this.resetGame();
+    init3D() {
+        // Create scene
+        this.scene = new THREE.Scene();
+        
+        // Create camera
+        this.camera = new THREE.PerspectiveCamera(
+            75,
+            this.canvas.width / this.canvas.height,
+            0.1,
+            1000
+        );
+        this.camera.position.set(0, -25, 20);
+        
+        // Create renderer with antialias
+        this.renderer = new THREE.WebGLRenderer({ 
+            alpha: true,
+            antialias: true
+        });
+        this.renderer.setSize(this.canvas.width, this.canvas.height);
+        this.renderer.setClearColor(0xffffff, 1);
+        
+        // Create a container for the game elements that will be controlled by OrbitControls
+        this.gameContainer = new THREE.Group();
+        this.scene.add(this.gameContainer);
+        
+        // Create orbit controls - now controlling only the game container
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        
+        // Create torus geometry
+        this.torusGeometry = new THREE.TorusGeometry(10, 5, 100, 100);
+        this.torusMaterial = new THREE.MeshPhongMaterial({
+            color: 0xDEB887,
+            side: THREE.DoubleSide
+        });
+        this.torusMesh = new THREE.Mesh(this.torusGeometry, this.torusMaterial);
+        this.gameContainer.add(this.torusMesh);
+        
+        // Add brighter lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);  // Increased from 0.3
+        this.scene.add(ambientLight);
+        
+        // Store light and light sphere as class properties
+        this.pointLight = new THREE.PointLight(0xffffff, 1.5, 100);  // Increased from 1.0
+        this.lightSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xffff00 })
+        );
+        
+        // Set initial positions
+        this.updateLightPosition();
+        
+        this.scene.add(this.pointLight);
+        this.scene.add(this.lightSphere);
+        
+        // Add grid lines to the container
+        this.createTorusGrid();
+        
+        // Start animation loop
+        this.animate();
     }
 
-    // Helper function to get torus-adjusted coordinates
-    getTorusCoords(row, col) {
-        if (!this.isTopologicMode) return { row, col };
-        return {
-            row: ((row % this.boardSize) + this.boardSize) % this.boardSize,
-            col: ((col % this.boardSize) + this.boardSize) % this.boardSize
-        };
+    updateLightPosition() {
+        // Position light relative to camera
+        const distance = 30;
+        const lightPos = new THREE.Vector3(20, 20, distance);
+        // Convert from camera space to world space
+        lightPos.applyMatrix4(this.camera.matrixWorld);
+        
+        this.pointLight.position.copy(lightPos);
+        this.lightSphere.position.copy(lightPos);
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        if (this.isTorusView) {
+            this.controls.update();
+            this.updateLightPosition(); // Update light position before rendering
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     drawBoard() {
@@ -62,38 +144,48 @@ class GoGame {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (this.isTopologicMode) {
-            // Draw background for all tiles
-            for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                    const offsetX = tileCol * (this.singleBoardSize + this.spacing);
-                    const offsetY = tileRow * (this.singleBoardSize + this.spacing);
-                    
-                    // Draw board background
-                    this.ctx.fillStyle = '#DEB887';
-                    this.ctx.fillRect(
-                        offsetX, 
-                        offsetY, 
-                        this.singleBoardSize, 
-                        this.singleBoardSize
-                    );
-                    
-                    // Draw board border
-                    this.ctx.strokeStyle = '#8B4513';
-                    this.ctx.strokeRect(
-                        offsetX,
-                        offsetY,
-                        this.singleBoardSize,
-                        this.singleBoardSize
-                    );
+            if (this.isTorusView) {
+                // Draw single board for torus view
+                this.ctx.fillStyle = '#DEB887';
+                this.ctx.fillRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                this.ctx.strokeStyle = '#8B4513';
+                this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                this.drawSingleBoard(0, 0);
+            } else {
+                // Draw tessellated view (3x3 grid)
+                // Draw background for all tiles
+                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
+                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
+                        const offsetX = tileCol * (this.singleBoardSize + this.spacing);
+                        const offsetY = tileRow * (this.singleBoardSize + this.spacing);
+                        
+                        // Draw board background
+                        this.ctx.fillStyle = '#DEB887';
+                        this.ctx.fillRect(
+                            offsetX, 
+                            offsetY, 
+                            this.singleBoardSize, 
+                            this.singleBoardSize
+                        );
+                        
+                        // Draw board border
+                        this.ctx.strokeStyle = '#8B4513';
+                        this.ctx.strokeRect(
+                            offsetX,
+                            offsetY,
+                            this.singleBoardSize,
+                            this.singleBoardSize
+                        );
+                    }
                 }
-            }
 
-            // Draw all boards
-            for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                    const offsetX = tileCol * (this.singleBoardSize + this.spacing);
-                    const offsetY = tileRow * (this.singleBoardSize + this.spacing);
-                    this.drawSingleBoard(offsetX, offsetY);
+                // Draw all boards
+                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
+                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
+                        const offsetX = tileCol * (this.singleBoardSize + this.spacing);
+                        const offsetY = tileRow * (this.singleBoardSize + this.spacing);
+                        this.drawSingleBoard(offsetX, offsetY);
+                    }
                 }
             }
         } else {
@@ -107,7 +199,7 @@ class GoGame {
 
         // Draw hover preview if valid
         if (this.hoverPos && this.isValidMove(this.hoverPos.row, this.hoverPos.col)) {
-            if (this.isTopologicMode) {
+            if (this.isTopologicMode && !this.isTorusView) {
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
                     for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
                         const offsetX = tileCol * (this.singleBoardSize + this.spacing);
@@ -189,6 +281,7 @@ class GoGame {
             this.makeMove(row, col);
         }
     }
+    
 
     isValidMove(row, col) {
         if (this.isTopologicMode) {
@@ -229,7 +322,11 @@ class GoGame {
         this.whiteStones -= capturedWhite;
         
         this.currentPlayer = this.getOppositeColor();
-        this.drawBoard();
+        if (this.isTorusView) {
+            this.updateTorusBoard();
+        } else {
+            this.drawBoard();
+        }
         this.updatePlayerDisplay();
         this.updateStoneCount();
     }
@@ -255,6 +352,12 @@ class GoGame {
         this.passes = 0;
         this.blackStones = 0;
         this.whiteStones = 0;
+        if (this.isTorusView) {
+            // Remove existing stones
+            while(this.torusMesh.children.length > 0) {
+                this.torusMesh.remove(this.torusMesh.children[0]);
+            }
+        }
         this.drawBoard();
         this.updatePlayerDisplay();
         this.updateStoneCount();
@@ -365,7 +468,144 @@ class GoGame {
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
         this.ctx.stroke();
         this.ctx.strokeStyle = 'black'; // Reset stroke style for next drawing
-    }}
+    }
+
+    // Helper function to get torus-adjusted coordinates
+    getTorusCoords(row, col) {
+        if (!this.isTopologicMode) return { row, col };
+        return {
+            row: ((row % this.boardSize) + this.boardSize) % this.boardSize,
+            col: ((col % this.boardSize) + this.boardSize) % this.boardSize
+        };
+    }
+
+    // Add new method to handle view changes
+    setView(isTorusView) {
+        this.isTorusView = isTorusView;
+        document.getElementById('tessellatedView').classList.toggle('active', !isTorusView);
+        document.getElementById('torusView').classList.toggle('active', isTorusView);
+        
+        if (isTorusView) {
+            // Switch to 3D view
+            this.canvas.style.display = 'none';
+            document.body.appendChild(this.renderer.domElement);
+            this.renderer.domElement.classList.add('three-js'); // Add the three-js class
+            this.updateTorusBoard();
+            
+            // Reset camera position for better view
+            this.camera.position.set(0, -30, 15);
+            this.camera.lookAt(0, 0, 0);
+            this.controls.update();
+        } else {
+            // Switch back to 2D view
+            this.renderer.domElement.remove();
+            this.canvas.style.display = 'block';
+            this.drawBoard();
+        }
+    }
+
+    updateTorusBoard() {
+        // Remove existing stones
+        while(this.torusMesh.children.length > 0) {
+            this.torusMesh.remove(this.torusMesh.children[0]);
+        }
+
+        // Add stones to the torus
+        for (let i = 0; i < this.boardSize; i++) {
+            for (let j = 0; j < this.boardSize; j++) {
+                if (this.board[i][j]) {
+                    const stone = this.create3DStone(
+                        i / this.boardSize * Math.PI * 2,
+                        j / this.boardSize * Math.PI * 2,
+                        this.board[i][j]
+                    );
+                    this.torusMesh.add(stone);
+                }
+            }
+        }
+    }
+
+    create3DStone(theta, phi, color) {
+        const R = 10; // major radius
+        const r = 5;  // minor radius
+        
+        // Calculate stone radius - make it small enough to prevent overlap
+        const stoneRadius = (2 * Math.PI * r / this.boardSize) * 0.3; // Reduced to 0.3 for smaller stones
+        
+        // Create sphere geometry
+        const geometry = new THREE.SphereGeometry(stoneRadius, 32, 32);
+        const material = new THREE.MeshPhongMaterial({
+            color: color === 'black' ? 0x000000 : 0xffffff
+        });
+        const stone = new THREE.Mesh(geometry, material);
+
+        // Calculate position with a small offset to prevent clipping
+        const surfaceOffset = 0.1;
+        const normalX = Math.cos(theta) * Math.cos(phi);
+        const normalY = Math.sin(theta) * Math.cos(phi);
+        const normalZ = Math.sin(phi);
+        
+        const localRadius = R + r * Math.cos(phi);
+        stone.position.x = (localRadius * Math.cos(theta)) + (normalX * surfaceOffset);
+        stone.position.y = (localRadius * Math.sin(theta)) + (normalY * surfaceOffset);
+        stone.position.z = (r * Math.sin(phi)) + (normalZ * surfaceOffset);
+
+        return stone;
+    }
+
+    createTorusGrid() {
+        const R = 10; // major radius
+        const r = 5;  // minor radius
+        const segments = 50;
+
+        // Create lines material - making it much more visible
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 3  // Note: this may not work in WebGL
+        });
+
+        // Create vertical lines
+        for (let i = 0; i < this.boardSize; i++) {
+            const theta = (i / this.boardSize) * Math.PI * 2;
+            const points = [];
+            
+            // Create points along the torus surface
+            for (let t = 0; t <= segments; t++) {
+                const phi = (t / segments) * Math.PI * 2;
+                // Slightly offset the lines outward from the surface
+                const offset = 0.1;
+                const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
+                const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
+                const z = (r + offset) * Math.sin(phi);
+                points.push(new THREE.Vector3(x, y, z));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, lineMaterial);
+            this.gameContainer.add(line);  // Add to container instead of scene
+        }
+
+        // Create horizontal lines
+        for (let i = 0; i < this.boardSize; i++) {
+            const phi = (i / this.boardSize) * Math.PI * 2;
+            const points = [];
+            
+            for (let t = 0; t <= segments; t++) {
+                const theta = (t / segments) * Math.PI * 2;
+                // Slightly offset the lines outward from the surface
+                const offset = 0.1;
+                const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
+                const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
+                const z = (r + offset) * Math.sin(phi);
+                points.push(new THREE.Vector3(x, y, z));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, lineMaterial);
+            this.gameContainer.add(line);  // Add to container instead of scene
+        }
+    }
+}
 
 // Start the game when the page loads
 window.onload = () => new GoGame();
