@@ -45,6 +45,9 @@ class GoGame {
         this.torusGeometry = null;
         this.torusMaterial = null;
         this.torusMesh = null;
+        this.raycaster = null;
+        this.mouse = null;
+        this.hoverMesh = null;  // Add this to store the preview stone
         
         // Initialize 3D view
         this.init3D();
@@ -71,8 +74,8 @@ class GoGame {
 
         // Make canvas fill the screen
         const updateCanvasSize = () => {
-            const sidebarWidth = 310;
-            const availableWidth = window.innerWidth - sidebarWidth;
+            // Use the full window width
+            const availableWidth = window.innerWidth;
             
             // Use the full available width
             this.cellSize = Math.floor((availableWidth / this.tileCount) / (this.boardSize - 1));
@@ -88,7 +91,7 @@ class GoGame {
             
             // Position the canvas
             this.canvas.style.position = 'absolute';
-            this.canvas.style.left = `${sidebarWidth}px`;
+            this.canvas.style.left = '0';
             this.canvas.style.top = '0';
             this.canvas.style.width = `${totalSize}px`;
             this.canvas.style.height = `${totalSize}px`;
@@ -123,6 +126,32 @@ class GoGame {
         });
 
         this.drawBoard();
+
+        // Add popup elements
+        this.infoPopup = document.getElementById('infoPopup');
+        this.overlay = document.getElementById('overlay');
+        this.startGameBtn = document.getElementById('startGameBtn');
+        this.infoIcon = document.getElementById('infoIcon');
+        this.gameOverPopup = document.getElementById('gameOverPopup');
+        this.winnerText = document.getElementById('winnerText');
+        this.newGameBtn = document.getElementById('newGameBtn');
+        
+        // Show popup on page load
+        this.showPopup();
+        
+        // Add popup event listeners
+        this.startGameBtn.addEventListener('click', () => this.hidePopup());
+        this.infoIcon.addEventListener('click', () => this.showPopup());
+        this.overlay.addEventListener('click', () => this.hidePopup());
+        
+        // Add help button event listener
+        document.getElementById('helpButton').addEventListener('click', () => this.showPopup());
+
+        // Add new game button listener
+        this.newGameBtn.addEventListener('click', () => {
+            this.hideGameOverPopup();
+            this.resetGame();
+        });
     }
 
     init3D() {
@@ -144,7 +173,7 @@ class GoGame {
             antialias: true
         });
         this.renderer.setSize(this.canvas.width, this.canvas.height);
-        this.renderer.setClearColor(0xffffff, 1);
+        this.renderer.setClearColor(0xf0f0f0, 1);  // Match the body background color
         
         // Create a container for the game elements that will be controlled by OrbitControls
         this.gameContainer = new THREE.Group();
@@ -189,6 +218,10 @@ class GoGame {
 
         // Update renderer size to match window
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Add to init3D() method after creating the scene
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
     }
 
     updateLightPosition() {
@@ -250,24 +283,6 @@ class GoGame {
                 this.ctx.strokeStyle = 'black';
                 
                 // Draw vertical lines
-                for (let i = 0; i < this.boardSize * this.tileCount; i++) {
-                    const x = this.gridOffset + (i * this.cellSize);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(x, this.gridOffset);
-                    this.ctx.lineTo(x, this.canvas.height - this.gridOffset);
-                    this.ctx.stroke();
-                }
-
-                // Draw horizontal lines
-                for (let i = 0; i < this.boardSize * this.tileCount; i++) {
-                    const y = this.gridOffset + (i * this.cellSize);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(this.gridOffset, y);
-                    this.ctx.lineTo(this.canvas.width - this.gridOffset, y);
-                    this.ctx.stroke();
-                }
-
-                // Draw stones
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
                     for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
                         const offsetX = tileCol * this.singleBoardSize;
@@ -315,7 +330,7 @@ class GoGame {
         this.ctx.translate(this.viewportX, this.viewportY);
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
         
-        // Draw visible boards backgrounds first
+        // Draw board backgrounds first
         for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
             for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
                 const offsetX = tileCol * this.singleBoardSize;
@@ -329,21 +344,10 @@ class GoGame {
                     this.singleBoardSize,
                     this.singleBoardSize
                 );
-                
-                // Draw board border if enabled
-                if (this.showBoardEdges) {
-                    this.ctx.strokeStyle = '#FF0000'; // Bright red
-                    this.ctx.strokeRect(
-                        offsetX,
-                        offsetY,
-                        this.singleBoardSize,
-                        this.singleBoardSize
-                    );
-                }
             }
         }
         
-        // Draw continuous grid lines across all visible boards
+        // Draw continuous grid lines
         this.ctx.strokeStyle = 'black';
         
         // Calculate the total visible area in board coordinates
@@ -357,9 +361,34 @@ class GoGame {
             for (let i = 0; i < this.boardSize; i++) {
                 const x = tileCol * this.singleBoardSize + this.gridOffset + i * this.cellSize;
                 if (x >= totalStartX && x <= totalEndX) {
+                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
+                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                        this.ctx.strokeStyle = '#FF0000';
+                        this.ctx.lineWidth = 2;
+                        const edgeX = x + this.cellSize / 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(edgeX, totalStartY);
+                        this.ctx.lineTo(edgeX, totalEndY);
+                        this.ctx.stroke();
+                        this.ctx.strokeStyle = 'black';
+                        this.ctx.lineWidth = 1;
+                    }
+                    
+                    // Draw regular grid line
                     this.ctx.beginPath();
-                    this.ctx.moveTo(x, totalStartY);
-                    this.ctx.lineTo(x, totalEndY);
+                    if (this.showBoardEdges) {
+                        // Draw separate segments for each board when edges are shown
+                        for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+                            const startY = tileRow * this.singleBoardSize + this.gridOffset;
+                            const endY = startY + (this.boardSize - 1) * this.cellSize;
+                            this.ctx.moveTo(x, startY);
+                            this.ctx.lineTo(x, endY);
+                        }
+                    } else {
+                        // Draw continuous lines when edges are hidden
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
+                    }
                     this.ctx.stroke();
                 }
             }
@@ -370,9 +399,34 @@ class GoGame {
             for (let i = 0; i < this.boardSize; i++) {
                 const y = tileRow * this.singleBoardSize + this.gridOffset + i * this.cellSize;
                 if (y >= totalStartY && y <= totalEndY) {
+                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
+                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                        this.ctx.strokeStyle = '#FF0000';
+                        this.ctx.lineWidth = 2;
+                        const edgeY = y + this.cellSize / 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(totalStartX, edgeY);
+                        this.ctx.lineTo(totalEndX, edgeY);
+                        this.ctx.stroke();
+                        this.ctx.strokeStyle = 'black';
+                        this.ctx.lineWidth = 1;
+                    }
+                    
+                    // Draw regular grid line
                     this.ctx.beginPath();
-                    this.ctx.moveTo(totalStartX, y);
-                    this.ctx.lineTo(totalEndX, y);
+                    if (this.showBoardEdges) {
+                        // Draw separate segments for each board when edges are shown
+                        for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                            const startX = tileCol * this.singleBoardSize + this.gridOffset;
+                            const endX = startX + (this.boardSize - 1) * this.cellSize;
+                            this.ctx.moveTo(startX, y);
+                            this.ctx.lineTo(endX, y);
+                        }
+                    } else {
+                        // Draw continuous lines when edges are hidden
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
+                    }
                     this.ctx.stroke();
                 }
             }
@@ -422,24 +476,6 @@ class GoGame {
                     );
                 }
             }
-        }
-        
-        // Update the board edges in the panning/zooming section
-        if (this.showBoardEdges) {
-            this.ctx.strokeStyle = '#FF0000'; // Bright red
-            for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
-                for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
-                    const offsetX = tileCol * this.singleBoardSize;
-                    const offsetY = tileRow * this.singleBoardSize;
-                    this.ctx.strokeRect(
-                        offsetX,
-                        offsetY,
-                        this.singleBoardSize,
-                        this.singleBoardSize
-                    );
-                }
-            }
-            this.ctx.lineWidth = 1; // Reset line width
         }
         
         this.ctx.restore();
@@ -555,12 +591,29 @@ class GoGame {
     pass() {
         this.passes++;
         if (this.passes === 2) {
-            alert('Game Over!');
-            this.resetGame();
+            this.showGameOver();
             return;
         }
         this.currentPlayer = this.getOppositeColor();
         this.updatePlayerDisplay();
+    }
+
+    showGameOver() {
+        const winner = this.blackStones > this.whiteStones ? 'Black' : 
+                      this.whiteStones > this.blackStones ? 'White' : 'Tie';
+        
+        let message = winner === 'Tie' ? 
+            `Game Over! It's a tie! (Black: ${this.blackStones}, White: ${this.whiteStones})` :
+            `Game Over! ${winner} wins! (Black: ${this.blackStones}, White: ${this.whiteStones})`;
+        
+        this.winnerText.textContent = message;
+        this.gameOverPopup.style.display = 'block';
+        this.overlay.style.display = 'block';
+    }
+
+    hideGameOverPopup() {
+        this.gameOverPopup.style.display = 'none';
+        this.overlay.style.display = 'none';
     }
 
     resetGame() {
@@ -709,14 +762,22 @@ class GoGame {
             this.renderer.domElement.classList.add('three-js');
             
             const sidebarWidth = 310;
-            const totalSize = Math.min(window.innerHeight, window.innerWidth - sidebarWidth); // Use smaller dimension
+            const availableWidth = window.innerWidth - sidebarWidth;
+            const availableHeight = window.innerHeight;
             
-            this.renderer.setSize(totalSize, totalSize);
+            // Use the full available width and height
+            this.renderer.setSize(availableWidth, availableHeight);
             
-            // Position the renderer's canvas - center it vertically
+            // Position the renderer's canvas to fill the available space
             this.renderer.domElement.style.position = 'absolute';
             this.renderer.domElement.style.left = `${sidebarWidth}px`;
-            this.renderer.domElement.style.top = `${(window.innerHeight - totalSize) / 2}px`; // Center vertically
+            this.renderer.domElement.style.top = '0';
+            this.renderer.domElement.style.width = `${availableWidth}px`;
+            this.renderer.domElement.style.height = `${availableHeight}px`;
+            
+            // Update camera aspect ratio
+            this.camera.aspect = availableWidth / availableHeight;
+            this.camera.updateProjectionMatrix();
             
             this.updateTorusBoard();
             
@@ -724,7 +785,21 @@ class GoGame {
             this.camera.position.set(0, -30, 15);
             this.camera.lookAt(0, 0, 0);
             this.controls.update();
+
+            // Add event listeners for 3D view
+            this.renderer.domElement.addEventListener('mousemove', (e) => this.handleTorusHover(e));
+            this.renderer.domElement.addEventListener('click', (e) => this.handleTorusClick(e));
         } else {
+            // Remove event listeners when switching back to 2D
+            this.renderer.domElement.removeEventListener('mousemove', (e) => this.handleTorusHover(e));
+            this.renderer.domElement.removeEventListener('click', (e) => this.handleTorusClick(e));
+            
+            // Remove hover preview if it exists
+            if (this.hoverMesh) {
+                this.torusMesh.remove(this.hoverMesh);
+                this.hoverMesh = null;
+            }
+            
             // Switch back to 2D view
             this.renderer.domElement.remove();
             this.canvas.style.display = 'block';
@@ -753,22 +828,21 @@ class GoGame {
         }
     }
 
-    create3DStone(theta, phi, color) {
+    create3DStone(theta, phi, color, isPreview = false) {
         const R = 10;
         const r = 5;
         
-        // Adjust stone size based on board size
         const stoneScale = this.boardSize === 19 ? 0.2 : (this.boardSize === 13 ? 0.25 : 0.3);
         const stoneRadius = (2 * Math.PI * r / this.boardSize) * stoneScale;
         
-        // Create sphere geometry
         const geometry = new THREE.SphereGeometry(stoneRadius, 32, 32);
         const material = new THREE.MeshPhongMaterial({
-            color: color === 'black' ? 0x000000 : 0xffffff
+            color: color === 'black' ? 0x000000 : 0xffffff,
+            transparent: isPreview,
+            opacity: isPreview ? 0.5 : 1
         });
         const stone = new THREE.Mesh(geometry, material);
 
-        // Calculate position with a small offset to prevent clipping
         const surfaceOffset = 0.1;
         const normalX = Math.cos(theta) * Math.cos(phi);
         const normalY = Math.sin(theta) * Math.cos(phi);
@@ -1023,6 +1097,97 @@ class GoGame {
         // Position canvas
         this.canvas.style.left = `${sidebarWidth}px`;
         this.canvas.style.top = '0';
+    }
+
+    // Add these new methods for 3D hover and click handling
+    handleTorusHover(event) {
+        // Calculate mouse position in normalized device coordinates (-1 to +1)
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        // Update the picking ray with the camera and mouse position
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        // Calculate objects intersecting the picking ray
+        const intersects = this.raycaster.intersectObject(this.torusMesh);
+
+        if (intersects.length > 0) {
+            const point = intersects[0].point;
+            
+            // Convert intersection point to board coordinates
+            const boardCoords = this.pointToTorusCoords(point);
+            
+            // Only update if position changed
+            if (!this.hoverPos || 
+                this.hoverPos.row !== boardCoords.row || 
+                this.hoverPos.col !== boardCoords.col) {
+                
+                this.hoverPos = boardCoords;
+                
+                // Remove existing hover preview if it exists
+                if (this.hoverMesh) {
+                    this.torusMesh.remove(this.hoverMesh);
+                }
+                
+                // Create new hover preview if move is valid
+                if (this.isValidMove(boardCoords.row, boardCoords.col)) {
+                    this.hoverMesh = this.create3DStone(
+                        boardCoords.row / this.boardSize * Math.PI * 2,
+                        boardCoords.col / this.boardSize * Math.PI * 2,
+                        this.currentPlayer,
+                        true // Add this parameter to indicate preview stone
+                    );
+                    this.torusMesh.add(this.hoverMesh);
+                }
+            }
+        } else {
+            // Clear hover state when not hovering over the torus
+            if (this.hoverPos) {
+                this.hoverPos = null;
+                if (this.hoverMesh) {
+                    this.torusMesh.remove(this.hoverMesh);
+                    this.hoverMesh = null;
+                }
+            }
+        }
+    }
+
+    handleTorusClick(event) {
+        if (!this.hoverPos) return;
+        
+        if (this.isValidMove(this.hoverPos.row, this.hoverPos.col)) {
+            this.makeMove(this.hoverPos.row, this.hoverPos.col);
+        }
+    }
+
+    pointToTorusCoords(point) {
+        // Convert 3D point to torus coordinates
+        const theta = Math.atan2(point.y, point.x);
+        const phi = Math.atan2(point.z, Math.sqrt(point.x * point.x + point.y * point.y) - 10);
+        
+        // Convert to board coordinates
+        let row = Math.floor((theta / (Math.PI * 2) + 1) * this.boardSize) % this.boardSize;
+        let col = Math.floor((phi / (Math.PI * 2) + 1) * this.boardSize) % this.boardSize;
+        
+        // Ensure positive values
+        row = (row + this.boardSize) % this.boardSize;
+        col = (col + this.boardSize) % this.boardSize;
+        
+        return { row, col };
+    }
+
+    showPopup() {
+        this.infoPopup.style.display = 'block';
+        this.overlay.style.display = 'block';
+        // Only show start game button if it's the first time
+        this.startGameBtn.style.display = this.hasStartedGame ? 'none' : 'block';
+    }
+
+    hidePopup() {
+        this.infoPopup.style.display = 'none';
+        this.overlay.style.display = 'none';
+        this.hasStartedGame = true;
     }
 }
 
