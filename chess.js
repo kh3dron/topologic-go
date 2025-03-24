@@ -14,9 +14,6 @@ class ChessGame {
         this.tileCount = 3;
         this.spacing = 0;
 
-        // Initialize pieceImages first
-        this.pieceImages = {};
-
         // Calculate total size needed for one board
         this.singleBoardSize = this.boardSize * this.cellSize;
         // Calculate canvas size needed for 3x3 grid with no spacing
@@ -133,9 +130,6 @@ class ChessGame {
             },
         );
 
-        // Load chess piece images
-        this.loadPieceImages();
-
         // Add popup elements
         this.infoPopup = document.getElementById("infoPopup");
         this.overlay = document.getElementById("overlay");
@@ -164,6 +158,161 @@ class ChessGame {
             this.hideGameOverPopup();
             this.resetGame();
         });
+    }
+
+    drawPiece(piece, x, y) {
+        const size = this.cellSize;
+        const centerX = x + size / 2;
+        const centerY = y + size / 2;
+        const radius = size * 0.4;
+        
+        this.ctx.save();
+        this.ctx.fillStyle = piece.color === "white" ? "#FFFFFF" : "#000000";
+        this.ctx.strokeStyle = piece.color === "white" ? "#000000" : "#FFFFFF";
+        this.ctx.lineWidth = 2;
+
+        // Draw basic shape
+        switch (piece.type) {
+            case "pawn":
+                // Draw pawn as a circle with a small line on top
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, radius * 0.8, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX, centerY - radius * 1.2);
+                this.ctx.stroke();
+                break;
+
+            case "rook":
+                // Draw rook as a castle-like shape
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.8, centerY + radius * 0.8);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Add battlements
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 1.2);
+                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 1.2);
+                this.ctx.moveTo(centerX + radius * 0.8, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 1.2);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 1.2);
+                this.ctx.stroke();
+                break;
+
+            case "knight":
+                // Draw knight as a horse head shape
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Add ear
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
+                this.ctx.stroke();
+                break;
+
+            case "bishop":
+                // Draw bishop as a pointed hat shape
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Add cross
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.2, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 0.8);
+                this.ctx.moveTo(centerX, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX, centerY - radius * 0.6);
+                this.ctx.stroke();
+                break;
+
+            case "queen":
+                // Draw queen as a crown shape
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Add crown points
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
+                this.ctx.moveTo(centerX, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX, centerY - radius * 0.8);
+                this.ctx.moveTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 1.2);
+                this.ctx.stroke();
+                break;
+
+            case "king":
+                // Draw king as a crown with a cross
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                // Add crown points
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
+                this.ctx.moveTo(centerX, centerY - radius * 0.4);
+                this.ctx.lineTo(centerX, centerY - radius * 0.8);
+                this.ctx.moveTo(centerX + radius * 0.4, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 1.2);
+                this.ctx.stroke();
+                // Add cross
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - radius * 0.2, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 0.8);
+                this.ctx.moveTo(centerX, centerY - radius * 0.8);
+                this.ctx.lineTo(centerX, centerY - radius * 0.6);
+                this.ctx.stroke();
+                break;
+        }
+
+        // Add text label
+        this.ctx.font = `${size * 0.4}px Arial`;
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillStyle = piece.color === "white" ? "#000000" : "#FFFFFF";
+        
+        // Use first letter of piece type
+        const label = piece.type.charAt(0).toUpperCase();
+        this.ctx.fillText(label, centerX, centerY);
+
+        this.ctx.restore();
     }
 
     handleClick(event) {
@@ -214,29 +363,42 @@ class ChessGame {
 
     handleHover(event) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const screenX = event.clientX - rect.left;
+        const screenY = event.clientY - rect.top;
 
-        // Calculate which tile we're hovering over
+        // Convert screen coordinates to world coordinates
+        const worldX = (screenX - this.viewportX) / this.zoomLevel;
+        const worldY = (screenY - this.viewportY) / this.zoomLevel;
+
+        // Calculate which board and position we're hovering over
         const tileSize = this.singleBoardSize;
-        const tileCol = Math.floor(x / tileSize);
-        const tileRow = Math.floor(y / tileSize);
+        const tileCol = Math.floor(worldX / tileSize);
+        const tileRow = Math.floor(worldY / tileSize);
 
-        // Get position within the tile
-        const localX = x - (tileCol * tileSize);
-        const localY = y - (tileRow * tileSize);
+        // Get position within the board
+        const localX = worldX - (tileCol * tileSize);
+        const localY = worldY - (tileRow * tileSize);
 
-        // Convert to board coordinates
+        // Convert to board coordinates - adjust for grid offset
         const col = Math.floor((localX - this.gridOffset) / this.cellSize) + 1;
         const row = Math.floor((localY - this.gridOffset) / this.cellSize) + 1;
 
         // Only update if within valid range
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
             if (
-                !this.hoverPos || this.hoverPos.row !== row ||
-                this.hoverPos.col !== col
+                !this.hoverPos || 
+                this.hoverPos.row !== row || 
+                this.hoverPos.col !== col ||
+                this.hoverPos.tileRow !== tileRow ||
+                this.hoverPos.tileCol !== tileCol
             ) {
-                this.hoverPos = { row, col };
+                this.hoverPos = { row, col, tileRow, tileCol };
+                this.drawBoard();
+            }
+        } else {
+            // Clear hover when outside valid board positions
+            if (this.hoverPos) {
+                this.hoverPos = null;
                 this.drawBoard();
             }
         }
@@ -285,23 +447,18 @@ class ChessGame {
             const row = Math.floor((localY - this.gridOffset) / this.cellSize) + 1;
 
             // Clear hover when outside valid board positions
-            if (
-                col < 0 || col >= this.boardSize || row < 0 ||
-                row >= this.boardSize
-            ) {
+            if (col < 0 || col >= this.boardSize || row < 0 || row >= this.boardSize) {
                 if (this.hoverPos) {
                     this.hoverPos = null;
                     this.drawBoard();
                 }
             } else {
                 // Only update and redraw if the hover position has changed
-                if (
-                    !this.hoverPos ||
-                    this.hoverPos.row !== row ||
-                    this.hoverPos.col !== col ||
-                    this.hoverPos.tileRow !== tileRow ||
-                    this.hoverPos.tileCol !== tileCol
-                ) {
+                if (!this.hoverPos || 
+                    this.hoverPos.row !== row || 
+                    this.hoverPos.col !== col || 
+                    this.hoverPos.tileRow !== tileRow || 
+                    this.hoverPos.tileCol !== tileCol) {
                     this.hoverPos = { row, col, tileRow, tileCol };
                     this.drawBoard();
                 }
@@ -354,80 +511,6 @@ class ChessGame {
             (mouseY - this.viewportY) * (this.zoomLevel / oldZoom);
 
         this.drawBoard();
-    }
-
-    loadPieceImages() {
-        const pieces = ["pawn", "rook", "knight", "bishop", "queen", "king"];
-        const colors = ["white", "black"];
-        let loadedImages = 0;
-        const totalImages = pieces.length * colors.length;
-
-        // Create a promise that resolves when all images are loaded
-        const loadPromises = pieces.map((piece) => {
-            return colors.map((color) => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        loadedImages++;
-                        this.pieceImages[`${color}_${piece}`] = img;
-                        resolve();
-                    };
-                    img.onerror = (error) => {
-                        console.error(
-                            `Failed to load ${color} ${piece}:`,
-                            error,
-                        );
-                        // Create a fallback colored rectangle if image fails to load
-                        const canvas = document.createElement("canvas");
-                        canvas.width = 60;
-                        canvas.height = 60;
-                        const ctx = canvas.getContext("2d");
-
-                        // Draw a circle with the piece's color
-                        ctx.beginPath();
-                        ctx.arc(30, 30, 25, 0, 2 * Math.PI);
-                        ctx.fillStyle = color === "white"
-                            ? "#FFFFFF"
-                            : "#000000";
-                        ctx.fill();
-                        ctx.strokeStyle = color === "white"
-                            ? "#000000"
-                            : "#FFFFFF";
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-
-                        // Add piece type text
-                        ctx.fillStyle = color === "white"
-                            ? "#000000"
-                            : "#FFFFFF";
-                        ctx.font = "bold 24px Arial";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillText(piece[0].toUpperCase(), 30, 30);
-
-                        this.pieceImages[`${color}_${piece}`] = canvas;
-                        resolve();
-                    };
-                    // Use a more reliable source for chess pieces
-                    img.src =
-                        `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${
-                            color[0]
-                        }${piece[0]}.svg`;
-                });
-            });
-        }).flat();
-
-        // Wait for all images to load before drawing the board
-        Promise.all(loadPromises)
-            .then(() => {
-                console.log("All chess pieces loaded successfully");
-                this.drawBoard();
-            })
-            .catch((error) => {
-                console.error("Error loading piece images:", error);
-                // Draw board without pieces if image loading fails
-                this.drawBoard();
-            });
     }
 
     initializeBoard() {
@@ -764,20 +847,11 @@ class ChessGame {
                 for (let i = 0; i < this.boardSize; i++) {
                     for (let j = 0; j < this.boardSize; j++) {
                         if (this.board[i][j]) {
-                            const img = this.pieceImages[
-                                `${this.board[i][j].color}_${
-                                    this.board[i][j].type
-                                }`
-                            ];
-                            if (img && img.complete) {
-                                this.ctx.drawImage(
-                                    img,
-                                    offsetX + j * this.cellSize,
-                                    offsetY + i * this.cellSize,
-                                    this.cellSize,
-                                    this.cellSize,
-                                );
-                            }
+                            this.drawPiece(
+                                this.board[i][j],
+                                offsetX + j * this.cellSize,
+                                offsetY + i * this.cellSize
+                            );
                         }
                     }
                 }
