@@ -1084,17 +1084,19 @@ class ChessGame {
 
         console.log('Calculating moves for piece:', piece, 'at position:', { row, col });
 
-        // Helper function to normalize position and handle wrapping
-        const normalizePosition = (row, col) => {
-            let newRow = ((row % 8) + 8) % 8;  // Ensure positive modulo
-            let newCol = ((col % 8) + 8) % 8;  // Ensure positive modulo
-            return [newRow, newCol];
+        // Helper function to check if coordinates are within any valid board
+        const isValidPosition = (row, col) => {
+            // For the 2x2 grid of boards, we need to handle wrapping
+            const boardRow = Math.floor(row / 8);
+            const boardCol = Math.floor(col / 8);
+            // Allow wrapping around the 2x2 grid
+            return true; // We'll handle actual validation in getTransitionedCoords
         };
 
         // Helper function to check if a position is valid and get the piece there
         const getPieceAt = (row, col) => {
-            const [normalizedRow, normalizedCol] = normalizePosition(row, col);
-            return this.board[normalizedRow][normalizedCol];
+            const [localRow, localCol] = this.getTransitionedCoords(row, col);
+            return this.board[localRow][localCol];
         };
 
         const moves = [];
@@ -1107,19 +1109,20 @@ class ChessGame {
             king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
         };
 
+        // Calculate moves based on piece type
         switch (piece.type) {
             case "pawn":
                 // Forward move
                 const forwardRow = row + directions.pawn;
-                const [normForwardRow, normCol] = normalizePosition(forwardRow, col);
-                if (!getPieceAt(forwardRow, col)) {
-                    moves.push([normForwardRow, normCol]);
+                const forwardPiece = getPieceAt(forwardRow, col);
+                if (!forwardPiece) {
+                    moves.push([forwardRow, col]);
                     // First move can be 2 squares
                     if ((piece.color === "white" && row === 1) || (piece.color === "black" && row === 6)) {
                         const doubleRow = row + (2 * directions.pawn);
-                        const [normDoubleRow, normDoubleCol] = normalizePosition(doubleRow, col);
-                        if (!getPieceAt(doubleRow, col)) {
-                            moves.push([normDoubleRow, normDoubleCol]);
+                        const doublePiece = getPieceAt(doubleRow, col);
+                        if (!doublePiece) {
+                            moves.push([doubleRow, col]);
                         }
                     }
                 }
@@ -1127,10 +1130,9 @@ class ChessGame {
                 [-1, 1].forEach(dc => {
                     const captureRow = row + directions.pawn;
                     const captureCol = col + dc;
-                    const [normCaptureRow, normCaptureCol] = normalizePosition(captureRow, captureCol);
                     const targetPiece = getPieceAt(captureRow, captureCol);
                     if (targetPiece && targetPiece.color !== piece.color) {
-                        moves.push([normCaptureRow, normCaptureCol]);
+                        moves.push([captureRow, captureCol]);
                     }
                 });
                 break;
@@ -1139,23 +1141,24 @@ class ChessGame {
             case "bishop":
             case "queen":
                 directions[piece.type].forEach(([dr, dc]) => {
-                    let currentRow = row + dr;
-                    let currentCol = col + dc;
-                    // Allow moving up to 8 squares in any direction to handle wrapping
-                    for (let steps = 0; steps < 8; steps++) {
-                        const [normRow, normCol] = normalizePosition(currentRow, currentCol);
+                    let currentRow = row;
+                    let currentCol = col;
+                    // Allow moving up to 16 squares to ensure we can cross boards
+                    for (let steps = 0; steps < 16; steps++) {
+                        currentRow += dr;
+                        currentCol += dc;
+                        
                         const targetPiece = getPieceAt(currentRow, currentCol);
+                        if (targetPiece === undefined) break;
                         
                         if (!targetPiece) {
-                            moves.push([normRow, normCol]);
+                            moves.push([currentRow, currentCol]);
                         } else {
                             if (targetPiece.color !== piece.color) {
-                                moves.push([normRow, normCol]);
+                                moves.push([currentRow, currentCol]);
                             }
                             break;  // Stop in this direction after hitting a piece
                         }
-                        currentRow += dr;
-                        currentCol += dc;
                     }
                 });
                 break;
@@ -1164,10 +1167,9 @@ class ChessGame {
                 directions.knight.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    const [normRow, normCol] = normalizePosition(newRow, newCol);
                     const targetPiece = getPieceAt(newRow, newCol);
-                    if (!targetPiece || targetPiece.color !== piece.color) {
-                        moves.push([normRow, normCol]);
+                    if (targetPiece !== undefined && (!targetPiece || targetPiece.color !== piece.color)) {
+                        moves.push([newRow, newCol]);
                     }
                 });
                 break;
@@ -1176,29 +1178,36 @@ class ChessGame {
                 directions.king.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    const [normRow, normCol] = normalizePosition(newRow, newCol);
                     const targetPiece = getPieceAt(newRow, newCol);
-                    if (!targetPiece || targetPiece.color !== piece.color) {
-                        moves.push([normRow, normCol]);
+                    if (targetPiece !== undefined && (!targetPiece || targetPiece.color !== piece.color)) {
+                        moves.push([newRow, newCol]);
                     }
                 });
                 break;
         }
 
-        console.log('Calculated moves:', moves);
+        // Return all moves - they're already validated through getPieceAt
         return moves;
     }
 
     drawPossibleMove(row, col, offsetX, offsetY) {
-        const centerX = offsetX + col * this.cellSize + this.cellSize / 2;
-        const centerY = offsetY + row * this.cellSize + this.cellSize / 2;
+        // Transform the coordinates to get the correct board position
+        const boardRow = ((Math.floor(row / 8) % 2) + 2) % 2;
+        const boardCol = ((Math.floor(col / 8) % 2) + 2) % 2;
+        const localRow = ((row % 8) + 8) % 8;
+        const localCol = ((col % 8) + 8) % 8;
+
+        const centerX = offsetX + localCol * this.cellSize + this.cellSize / 2;
+        const centerY = offsetY + localRow * this.cellSize + this.cellSize / 2;
         const radius = this.cellSize * 0.2;
 
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         
-        // Check if this move will capture a piece
-        const targetPiece = this.board[row][col];
+        // Get the transformed coordinates for checking the piece
+        const [transformedRow, transformedCol] = this.getTransitionedCoords(row, col);
+        const targetPiece = this.board[transformedRow][transformedCol];
+
         if (targetPiece) {
             // This is a capture move - use red
             this.ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
@@ -1276,6 +1285,44 @@ class ChessGame {
         
         // Disable piece movement
         this.canvas.style.pointerEvents = "none";
+    }
+
+    // Move getTransitionedCoords to be a class method so it can be used by other functions
+    getTransitionedCoords(row, col) {
+        // Get the current board's position
+        const boardRow = ((Math.floor(row / 8) % 2) + 2) % 2;
+        const boardCol = ((Math.floor(col / 8) % 2) + 2) % 2;
+        const boardIndex = boardRow * 2 + boardCol;
+
+        // Get local coordinates
+        let localRow = ((row % 8) + 8) % 8;
+        let localCol = ((col % 8) + 8) % 8;
+
+        // Calculate the rotation for this board
+        const rotations = [0, 90, 270, 180];
+        const rotation = rotations[boardIndex];
+
+        // Apply rotation to local coordinates
+        const centerX = 3.5;
+        const centerY = 3.5;
+        const x = localCol - centerX;
+        const y = localRow - centerY;
+        const angle = (rotation * Math.PI) / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const newX = x * cos - y * sin;
+        const newY = x * sin + y * cos;
+        
+        localRow = Math.round(newY + centerY);
+        localCol = Math.round(newX + centerX);
+
+        // Handle edge wrapping
+        if (localRow < 0) localRow = 7;
+        if (localRow > 7) localRow = 0;
+        if (localCol < 0) localCol = 7;
+        if (localCol > 7) localCol = 0;
+
+        return [localRow, localCol];
     }
 }
 
