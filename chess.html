@@ -235,6 +235,30 @@
         .game-over-popup button:hover {
             background-color: #45a049;
         }
+        .turn-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .turn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid #333;
+            transition: all 0.3s ease;
+        }
+        
+        .turn-icon.white {
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .turn-icon.black {
+            background-color: black;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -281,7 +305,10 @@
             
             <div class="game-info">
                 <div class="section-title">Game Status</div>
-                <p id="currentPlayer">Current Player: White</p>
+                <div class="turn-indicator">
+                    <div id="turnIcon" class="turn-icon"></div>
+                    <p id="currentPlayer">Current Player: White</p>
+                </div>
                 
                 <div class="view-options">
                     <div class="section-title">View Options</div>

@@ -4,15 +4,20 @@ class ChessGame {
         this.ctx = this.canvas.getContext("2d");
         this.boardSize = 8; // Chess is always 8x8
         this.cellSize = 60; // Make cells a bit bigger
-        this.gridOffset = 25;
+        this.gridOffset = 0; // Remove the grid offset as it's causing issues
         this.currentPlayer = "white";
         this.board = this.initializeBoard();
         this.selectedPiece = null;
         this.hoverPos = null;
+        this.possibleMoves = [];
         this.isTopologicMode = true;
         this.tiledView = false;
         this.tileCount = 3;
         this.spacing = 0;
+        this.pieceImages = {}; // Store loaded piece images
+
+        // Load all piece images
+        this.loadPieceImages();
 
         // Calculate total size needed for one board
         this.singleBoardSize = this.boardSize * this.cellSize;
@@ -160,159 +165,53 @@ class ChessGame {
         });
     }
 
+    loadPieceImages() {
+        const colors = ['w', 'b'];
+        const pieces = ['b', 'k', 'n', 'p', 'q', 'r'];
+        let loadedImages = 0;
+        const totalImages = colors.length * pieces.length;
+
+        colors.forEach(color => {
+            pieces.forEach(piece => {
+                const img = new Image();
+                img.onload = () => {
+                    loadedImages++;
+                    if (loadedImages === totalImages) {
+                        // All images loaded, draw the board
+                        this.drawBoard();
+                    }
+                };
+                img.src = `chess_icons/${color}_${piece}.webp`;
+                this.pieceImages[`${color}_${piece}`] = img;
+            });
+        });
+    }
+
     drawPiece(piece, x, y) {
         const size = this.cellSize;
-        const centerX = x + size / 2;
-        const centerY = y + size / 2;
-        const radius = size * 0.4;
+        const padding = size * 0.1; // 10% padding around the piece
         
-        this.ctx.save();
-        this.ctx.fillStyle = piece.color === "white" ? "#FFFFFF" : "#000000";
-        this.ctx.strokeStyle = piece.color === "white" ? "#000000" : "#FFFFFF";
-        this.ctx.lineWidth = 2;
-
-        // Draw basic shape
-        switch (piece.type) {
-            case "pawn":
-                // Draw pawn as a circle with a small line on top
-                this.ctx.beginPath();
-                this.ctx.arc(centerX, centerY, radius * 0.8, 0, 2 * Math.PI);
-                this.ctx.fill();
-                this.ctx.stroke();
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX, centerY - radius * 1.2);
-                this.ctx.stroke();
-                break;
-
-            case "rook":
-                // Draw rook as a castle-like shape
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.8, centerY + radius * 0.8);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
-                // Add battlements
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 1.2);
-                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 1.2);
-                this.ctx.moveTo(centerX + radius * 0.8, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 1.2);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 1.2);
-                this.ctx.stroke();
-                break;
-
-            case "knight":
-                // Draw knight as a horse head shape
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
-                // Add ear
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
-                this.ctx.stroke();
-                break;
-
-            case "bishop":
-                // Draw bishop as a pointed hat shape
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
-                // Add cross
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.2, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 0.8);
-                this.ctx.moveTo(centerX, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX, centerY - radius * 0.6);
-                this.ctx.stroke();
-                break;
-
-            case "queen":
-                // Draw queen as a crown shape
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
-                // Add crown points
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
-                this.ctx.moveTo(centerX, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX, centerY - radius * 0.8);
-                this.ctx.moveTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 1.2);
-                this.ctx.stroke();
-                break;
-
-            case "king":
-                // Draw king as a crown with a cross
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY + radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.8, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.8, centerY - radius * 0.4);
-                this.ctx.closePath();
-                this.ctx.fill();
-                this.ctx.stroke();
-                // Add crown points
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX - radius * 0.2, centerY - radius * 1.2);
-                this.ctx.moveTo(centerX, centerY - radius * 0.4);
-                this.ctx.lineTo(centerX, centerY - radius * 0.8);
-                this.ctx.moveTo(centerX + radius * 0.4, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 1.2);
-                this.ctx.stroke();
-                // Add cross
-                this.ctx.beginPath();
-                this.ctx.moveTo(centerX - radius * 0.2, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX + radius * 0.2, centerY - radius * 0.8);
-                this.ctx.moveTo(centerX, centerY - radius * 0.8);
-                this.ctx.lineTo(centerX, centerY - radius * 0.6);
-                this.ctx.stroke();
-                break;
+        // Get the image key for this piece
+        const pieceTypeMap = {
+            'pawn': 'p',
+            'knight': 'n',
+            'bishop': 'b',
+            'rook': 'r',
+            'queen': 'q',
+            'king': 'k'
+        };
+        const imageKey = `${piece.color.charAt(0)}_${pieceTypeMap[piece.type]}`;
+        const img = this.pieceImages[imageKey];
+        
+        if (img) {
+            this.ctx.drawImage(
+                img,
+                x + padding,
+                y + padding,
+                size - (padding * 2),
+                size - (padding * 2)
+            );
         }
-
-        // Add text label
-        this.ctx.font = `${size * 0.4}px Arial`;
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.fillStyle = piece.color === "white" ? "#000000" : "#FFFFFF";
-        
-        // Use first letter of piece type
-        const label = piece.type.charAt(0).toUpperCase();
-        this.ctx.fillText(label, centerX, centerY);
-
-        this.ctx.restore();
     }
 
     handleClick(event) {
@@ -335,28 +234,59 @@ class ChessGame {
         const localX = worldX - (tileCol * tileSize);
         const localY = worldY - (tileRow * tileSize);
 
-        // Convert to board coordinates - adjust for grid offset
-        const col = Math.floor((localX - this.gridOffset) / this.cellSize) + 1;
-        const row = Math.floor((localY - this.gridOffset) / this.cellSize) + 1;
+        // Convert to board coordinates - no need to adjust for grid offset
+        const col = Math.floor(localX / this.cellSize);
+        const row = Math.floor(localY / this.cellSize);
+
+        console.log('Click coordinates:', { row, col, tileRow, tileCol });
+        console.log('Current board state:', this.board);
+        console.log('Selected piece:', this.selectedPiece);
+        console.log('Possible moves:', this.possibleMoves);
 
         // Handle piece selection and movement
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
             const piece = this.board[row][col];
+            console.log('Clicked piece:', piece);
+            
             if (piece && piece.color === this.currentPlayer) {
+                console.log('Selecting piece:', piece);
                 this.selectedPiece = { row, col };
+                this.possibleMoves = this.getPossibleMoves(row, col);
+                console.log('Calculated possible moves:', this.possibleMoves);
                 this.drawBoard();
             } else if (this.selectedPiece) {
-                // Move piece
-                this.board[row][col] =
-                    this.board[this.selectedPiece.row][this.selectedPiece.col];
-                this.board[this.selectedPiece.row][this.selectedPiece.col] =
-                    null;
-                this.currentPlayer = this.currentPlayer === "white"
-                    ? "black"
-                    : "white";
-                this.selectedPiece = null;
-                this.updatePlayerDisplay();
-                this.drawBoard();
+                // Check if the move is valid
+                const isValidMove = this.possibleMoves.some(
+                    ([r, c]) => r === row && c === col
+                );
+                
+                console.log('Move validation:', { isValidMove, targetRow: row, targetCol: col });
+                
+                if (isValidMove) {
+                    console.log('Making move from', this.selectedPiece, 'to', { row, col });
+                    // Move piece
+                    this.board[row][col] = this.board[this.selectedPiece.row][this.selectedPiece.col];
+                    this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
+                    
+                    // Check if a king was captured
+                    const capturedPiece = this.board[row][col];
+                    if (capturedPiece && capturedPiece.type === 'king') {
+                        this.handleGameOver(this.currentPlayer);
+                        return;
+                    }
+                    
+                    this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
+                    this.selectedPiece = null;
+                    this.possibleMoves = [];
+                    this.updatePlayerDisplay();
+                    this.drawBoard();
+                } else {
+                    console.log('Invalid move, deselecting piece');
+                    // Deselect piece if clicking invalid square
+                    this.selectedPiece = null;
+                    this.possibleMoves = [];
+                    this.drawBoard();
+                }
             }
         }
     }
@@ -379,9 +309,9 @@ class ChessGame {
         const localX = worldX - (tileCol * tileSize);
         const localY = worldY - (tileRow * tileSize);
 
-        // Convert to board coordinates - adjust for grid offset
-        const col = Math.floor((localX - this.gridOffset) / this.cellSize) + 1;
-        const row = Math.floor((localY - this.gridOffset) / this.cellSize) + 1;
+        // Convert to board coordinates - no need to adjust for grid offset
+        const col = Math.floor(localX / this.cellSize);
+        const row = Math.floor(localY / this.cellSize);
 
         // Only update if within valid range
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
@@ -618,20 +548,10 @@ class ChessGame {
             if (this.isTorusView) {
                 // Draw single board for torus view
                 this.ctx.fillStyle = "#DEB887";
-                this.ctx.fillRect(
-                    0,
-                    0,
-                    this.singleBoardSize,
-                    this.singleBoardSize,
-                );
+                this.ctx.fillRect(0, 0, this.singleBoardSize, this.singleBoardSize);
                 if (this.showBoardEdges) {
                     this.ctx.strokeStyle = "#FF0000";
-                    this.ctx.strokeRect(
-                        0,
-                        0,
-                        this.singleBoardSize,
-                        this.singleBoardSize,
-                    );
+                    this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
                     this.ctx.lineWidth = 1;
                 }
                 this.drawSingleBoard(0, 0);
@@ -644,17 +564,13 @@ class ChessGame {
 
                         // Draw board background
                         this.ctx.fillStyle = "#DEB887";
-                        this.ctx.fillRect(
-                            offsetX,
-                            offsetY,
-                            this.singleBoardSize,
-                            this.singleBoardSize,
-                        );
+                        this.ctx.fillRect(offsetX, offsetY, this.singleBoardSize, this.singleBoardSize);
                     }
                 }
 
                 // Draw continuous grid lines across all boards
                 this.ctx.strokeStyle = "black";
+                this.ctx.lineWidth = 2;
 
                 // Draw vertical lines
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
@@ -668,21 +584,12 @@ class ChessGame {
                 // Draw board edges if enabled
                 if (this.showBoardEdges) {
                     for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                        for (
-                            let tileCol = 0;
-                            tileCol < this.tileCount;
-                            tileCol++
-                        ) {
+                        for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
                             const offsetX = tileCol * this.singleBoardSize;
                             const offsetY = tileRow * this.singleBoardSize;
 
                             this.ctx.strokeStyle = "#FF0000";
-                            this.ctx.strokeRect(
-                                offsetX,
-                                offsetY,
-                                this.singleBoardSize,
-                                this.singleBoardSize,
-                            );
+                            this.ctx.strokeRect(offsetX, offsetY, this.singleBoardSize, this.singleBoardSize);
                         }
                     }
                     this.ctx.lineWidth = 1;
@@ -736,49 +643,38 @@ class ChessGame {
 
         // Draw continuous grid lines
         this.ctx.strokeStyle = "black";
+        this.ctx.lineWidth = 2;
 
         // Calculate the total visible area in board coordinates
-        const totalStartX = startTileCol * this.singleBoardSize +
-            this.gridOffset;
-        const totalEndX = (endTileCol + 1) * this.singleBoardSize -
-            this.gridOffset;
-        const totalStartY = startTileRow * this.singleBoardSize +
-            this.gridOffset;
-        const totalEndY = (endTileRow + 1) * this.singleBoardSize -
-            this.gridOffset;
+        const totalStartX = startTileCol * this.singleBoardSize;
+        const totalEndX = (endTileCol + 1) * this.singleBoardSize;
+        const totalStartY = startTileRow * this.singleBoardSize;
+        const totalEndY = (endTileRow + 1) * this.singleBoardSize;
 
         // Draw vertical lines
         for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
-            for (let i = 0; i < this.boardSize; i++) {
-                const x = tileCol * this.singleBoardSize + this.gridOffset +
-                    i * this.cellSize;
+            for (let i = 0; i <= this.boardSize; i++) {
+                const x = tileCol * this.singleBoardSize + i * this.cellSize;
                 if (x >= totalStartX && x <= totalEndX) {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 2;
-                        const edgeX = x + this.cellSize / 2;
+                        this.ctx.lineWidth = 4;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(edgeX, totalStartY);
-                        this.ctx.lineTo(edgeX, totalEndY);
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
-                        this.ctx.lineWidth = 1;
+                        this.ctx.lineWidth = 2;
                     }
 
                     // Draw regular grid line
                     this.ctx.beginPath();
                     if (this.showBoardEdges) {
                         // Draw separate segments for each board when edges are shown
-                        for (
-                            let tileRow = startTileRow;
-                            tileRow <= endTileRow;
-                            tileRow++
-                        ) {
-                            const startY = tileRow * this.singleBoardSize +
-                                this.gridOffset;
-                            const endY = startY +
-                                (this.boardSize - 1) * this.cellSize;
+                        for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+                            const startY = tileRow * this.singleBoardSize;
+                            const endY = startY + this.singleBoardSize;
                             this.ctx.moveTo(x, startY);
                             this.ctx.lineTo(x, endY);
                         }
@@ -794,36 +690,28 @@ class ChessGame {
 
         // Draw horizontal lines
         for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
-            for (let i = 0; i < this.boardSize; i++) {
-                const y = tileRow * this.singleBoardSize + this.gridOffset +
-                    i * this.cellSize;
+            for (let i = 0; i <= this.boardSize; i++) {
+                const y = tileRow * this.singleBoardSize + i * this.cellSize;
                 if (y >= totalStartY && y <= totalEndY) {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 2;
-                        const edgeY = y + this.cellSize / 2;
+                        this.ctx.lineWidth = 4;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(totalStartX, edgeY);
-                        this.ctx.lineTo(totalEndX, edgeY);
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
-                        this.ctx.lineWidth = 1;
+                        this.ctx.lineWidth = 2;
                     }
 
                     // Draw regular grid line
                     this.ctx.beginPath();
                     if (this.showBoardEdges) {
                         // Draw separate segments for each board when edges are shown
-                        for (
-                            let tileCol = startTileCol;
-                            tileCol <= endTileCol;
-                            tileCol++
-                        ) {
-                            const startX = tileCol * this.singleBoardSize +
-                                this.gridOffset;
-                            const endX = startX +
-                                (this.boardSize - 1) * this.cellSize;
+                        for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                            const startX = tileCol * this.singleBoardSize;
+                            const endX = startX + this.singleBoardSize;
                             this.ctx.moveTo(startX, y);
                             this.ctx.lineTo(endX, y);
                         }
@@ -837,72 +725,104 @@ class ChessGame {
             }
         }
 
-        // Draw pieces on all visible boards
+        // Draw pieces and highlights on all visible boards
         for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
             for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
                 const offsetX = tileCol * this.singleBoardSize;
                 const offsetY = tileRow * this.singleBoardSize;
-
-                // Draw pieces only (grid lines are already drawn)
-                for (let i = 0; i < this.boardSize; i++) {
-                    for (let j = 0; j < this.boardSize; j++) {
-                        if (this.board[i][j]) {
-                            this.drawPiece(
-                                this.board[i][j],
-                                offsetX + j * this.cellSize,
-                                offsetY + i * this.cellSize
-                            );
-                        }
-                    }
-                }
-            }
-        }
-
-        // Draw hover highlight if exists
-        if (this.hoverPos && !this.isDragging && !this.hasMoved) {
-            // Calculate range of tiles to draw hover on
-            const visibleLeft = -this.viewportX / this.zoomLevel;
-            const visibleTop = -this.viewportY / this.zoomLevel;
-            const visibleRight = (this.canvas.width / this.zoomLevel) -
-                this.viewportX / this.zoomLevel;
-            const visibleBottom = (this.canvas.height / this.zoomLevel) -
-                this.viewportY / this.zoomLevel;
-
-            const startTileCol = Math.floor(visibleLeft / this.singleBoardSize);
-            const endTileCol = Math.ceil(visibleRight / this.singleBoardSize);
-            const startTileRow = Math.floor(visibleTop / this.singleBoardSize);
-            const endTileRow = Math.ceil(visibleBottom / this.singleBoardSize);
-
-            // Draw hover preview on all visible boards
-            for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
-                for (
-                    let tileCol = startTileCol;
-                    tileCol <= endTileCol;
-                    tileCol++
-                ) {
-                    const offsetX = tileCol * this.singleBoardSize;
-                    const offsetY = tileRow * this.singleBoardSize;
-                    this.drawHoverHighlight(
-                        this.hoverPos.row,
-                        this.hoverPos.col,
-                        offsetX,
-                        offsetY,
-                    );
-                }
+                this.drawSingleBoard(offsetX, offsetY);
             }
         }
 
         this.ctx.restore();
     }
 
-    drawHoverHighlight(row, col, offsetX, offsetY) {
-        this.ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
-        this.ctx.fillRect(
-            offsetX + col * this.cellSize,
-            offsetY + row * this.cellSize,
-            this.cellSize,
-            this.cellSize,
-        );
+    drawSingleBoard(offsetX, offsetY) {
+        // Draw grid lines
+        this.ctx.strokeStyle = "black";
+        this.ctx.lineWidth = 1;
+
+        // Draw vertical lines
+        for (let i = 0; i <= this.boardSize; i++) {
+            const x = offsetX + i * this.cellSize;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, offsetY);
+            this.ctx.lineTo(x, offsetY + this.singleBoardSize);
+            this.ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (let i = 0; i <= this.boardSize; i++) {
+            const y = offsetY + i * this.cellSize;
+            this.ctx.beginPath();
+            this.ctx.moveTo(offsetX, y);
+            this.ctx.lineTo(offsetX + this.singleBoardSize, y);
+            this.ctx.stroke();
+        }
+
+        // Draw pieces (except selected piece)
+        for (let i = 0; i < this.boardSize; i++) {
+            for (let j = 0; j < this.boardSize; j++) {
+                // Skip drawing the selected piece here - we'll draw it last
+                if (this.board[i][j] && (!this.selectedPiece || 
+                    this.selectedPiece.row !== i || 
+                    this.selectedPiece.col !== j)) {
+                    this.drawPiece(
+                        this.board[i][j],
+                        offsetX + j * this.cellSize,
+                        offsetY + i * this.cellSize
+                    );
+                }
+            }
+        }
+
+        // Draw possible moves if a piece is selected
+        if (this.selectedPiece && this.possibleMoves.length > 0) {
+            // Draw possible moves
+            this.possibleMoves.forEach(([row, col]) => {
+                this.drawPossibleMove(row, col, offsetX, offsetY);
+            });
+        }
+
+        // Draw hover highlight if exists
+        if (this.hoverPos && !this.isDragging && !this.hasMoved) {
+            this.drawHoverHighlight(
+                this.hoverPos.row,
+                this.hoverPos.col,
+                offsetX,
+                offsetY
+            );
+        }
+
+        // Draw selected piece last so it's always on top
+        if (this.selectedPiece) {
+            // Draw the highlight first
+            this.drawSelectedPiece(offsetX, offsetY);
+            
+            // Then draw the piece on top
+            const piece = this.board[this.selectedPiece.row][this.selectedPiece.col];
+            if (piece) {
+                this.drawPiece(
+                    piece,
+                    offsetX + this.selectedPiece.col * this.cellSize,
+                    offsetY + this.selectedPiece.row * this.cellSize
+                );
+            }
+        }
+    }
+
+    drawSelectedPiece(offsetX, offsetY) {
+        const x = offsetX + this.selectedPiece.col * this.cellSize;
+        const y = offsetY + this.selectedPiece.row * this.cellSize;
+        
+        // Draw a more prominent highlight for the selected piece
+        this.ctx.fillStyle = "rgba(0, 255, 0, 0.4)";
+        this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+        
+        // Add a thicker border around the selected piece
+        this.ctx.strokeStyle = "rgba(0, 200, 0, 1)";
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
     }
 
     animate() {
@@ -997,16 +917,174 @@ class ChessGame {
         this.board = this.initializeBoard();
         this.currentPlayer = "white";
         this.selectedPiece = null;
+        this.possibleMoves = [];
         this.updatePlayerDisplay();
         this.drawBoard();
+        
+        // Re-enable piece movement
+        this.canvas.style.pointerEvents = "auto";
+        
+        // Hide game over popup if it's showing
+        this.hideGameOverPopup();
     }
 
     updatePlayerDisplay() {
-        document.getElementById("currentPlayer").textContent =
-            `Current Player: ${
-                this.currentPlayer.charAt(0).toUpperCase() +
-                this.currentPlayer.slice(1)
-            }`;
+        const playerText = `Current Player: ${
+            this.currentPlayer.charAt(0).toUpperCase() +
+            this.currentPlayer.slice(1)
+        }`;
+        document.getElementById("currentPlayer").textContent = playerText;
+        
+        // Update turn indicator
+        const turnIcon = document.getElementById("turnIcon");
+        turnIcon.className = `turn-icon ${this.currentPlayer}`;
+    }
+
+    getPossibleMoves(row, col) {
+        const piece = this.board[row][col];
+        if (!piece) return [];
+
+        console.log('Calculating moves for piece:', piece, 'at position:', { row, col });
+
+        // Helper function to normalize position and handle wrapping
+        const normalizePosition = (row, col) => {
+            let newRow = ((row % 8) + 8) % 8;  // Ensure positive modulo
+            let newCol = ((col % 8) + 8) % 8;  // Ensure positive modulo
+            return [newRow, newCol];
+        };
+
+        // Helper function to check if a position is valid and get the piece there
+        const getPieceAt = (row, col) => {
+            const [normalizedRow, normalizedCol] = normalizePosition(row, col);
+            return this.board[normalizedRow][normalizedCol];
+        };
+
+        const moves = [];
+        const directions = {
+            pawn: piece.color === "white" ? 1 : -1,
+            rook: [[0, 1], [1, 0], [0, -1], [-1, 0]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
+            bishop: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
+            queen: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
+            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+        };
+
+        switch (piece.type) {
+            case "pawn":
+                // Forward move
+                const forwardRow = row + directions.pawn;
+                const [normForwardRow, normCol] = normalizePosition(forwardRow, col);
+                if (!getPieceAt(forwardRow, col)) {
+                    moves.push([normForwardRow, normCol]);
+                    // First move can be 2 squares
+                    if ((piece.color === "white" && row === 1) || (piece.color === "black" && row === 6)) {
+                        const doubleRow = row + (2 * directions.pawn);
+                        const [normDoubleRow, normDoubleCol] = normalizePosition(doubleRow, col);
+                        if (!getPieceAt(doubleRow, col)) {
+                            moves.push([normDoubleRow, normDoubleCol]);
+                        }
+                    }
+                }
+                // Diagonal captures
+                [-1, 1].forEach(dc => {
+                    const captureRow = row + directions.pawn;
+                    const captureCol = col + dc;
+                    const [normCaptureRow, normCaptureCol] = normalizePosition(captureRow, captureCol);
+                    const targetPiece = getPieceAt(captureRow, captureCol);
+                    if (targetPiece && targetPiece.color !== piece.color) {
+                        moves.push([normCaptureRow, normCaptureCol]);
+                    }
+                });
+                break;
+
+            case "rook":
+            case "bishop":
+            case "queen":
+                directions[piece.type].forEach(([dr, dc]) => {
+                    let currentRow = row + dr;
+                    let currentCol = col + dc;
+                    // Allow moving up to 8 squares in any direction to handle wrapping
+                    for (let steps = 0; steps < 8; steps++) {
+                        const [normRow, normCol] = normalizePosition(currentRow, currentCol);
+                        const targetPiece = getPieceAt(currentRow, currentCol);
+                        
+                        if (!targetPiece) {
+                            moves.push([normRow, normCol]);
+                        } else {
+                            if (targetPiece.color !== piece.color) {
+                                moves.push([normRow, normCol]);
+                            }
+                            break;  // Stop in this direction after hitting a piece
+                        }
+                        currentRow += dr;
+                        currentCol += dc;
+                    }
+                });
+                break;
+
+            case "knight":
+                directions.knight.forEach(([dr, dc]) => {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    const [normRow, normCol] = normalizePosition(newRow, newCol);
+                    const targetPiece = getPieceAt(newRow, newCol);
+                    if (!targetPiece || targetPiece.color !== piece.color) {
+                        moves.push([normRow, normCol]);
+                    }
+                });
+                break;
+
+            case "king":
+                directions.king.forEach(([dr, dc]) => {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    const [normRow, normCol] = normalizePosition(newRow, newCol);
+                    const targetPiece = getPieceAt(newRow, newCol);
+                    if (!targetPiece || targetPiece.color !== piece.color) {
+                        moves.push([normRow, normCol]);
+                    }
+                });
+                break;
+        }
+
+        console.log('Calculated moves:', moves);
+        return moves;
+    }
+
+    drawPossibleMove(row, col, offsetX, offsetY) {
+        const centerX = offsetX + col * this.cellSize + this.cellSize / 2;
+        const centerY = offsetY + row * this.cellSize + this.cellSize / 2;
+        const radius = this.cellSize * 0.2;
+
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        
+        // Check if this move will capture a piece
+        const targetPiece = this.board[row][col];
+        if (targetPiece) {
+            // This is a capture move - use red
+            this.ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+            this.ctx.fill();
+            this.ctx.strokeStyle = "rgba(200, 0, 0, 0.8)";
+        } else {
+            // This is a regular move - use grey
+            this.ctx.fillStyle = "rgba(128, 128, 128, 0.5)";
+            this.ctx.fill();
+            this.ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
+        }
+        
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+    }
+
+    drawHoverHighlight(row, col, offsetX, offsetY) {
+        this.ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
+        this.ctx.fillRect(
+            offsetX + col * this.cellSize,
+            offsetY + row * this.cellSize,
+            this.cellSize,
+            this.cellSize,
+        );
     }
 
     setView(isTorusView) {
@@ -1047,6 +1125,19 @@ class ChessGame {
             this.canvas.style.display = "block";
             this.drawBoard();
         }
+    }
+
+    handleGameOver(winner) {
+        // Show game over popup
+        this.gameOverPopup.style.display = "block";
+        this.overlay.style.display = "block";
+        
+        // Update winner text
+        const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
+        this.winnerText.textContent = `${winnerText} wins!`;
+        
+        // Disable piece movement
+        this.canvas.style.pointerEvents = "none";
     }
 }
 
