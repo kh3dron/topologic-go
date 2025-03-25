@@ -95,23 +95,14 @@ class ChessGame {
             this.resetGame.bind(this),
         );
 
-        // Add view type tracking
-        this.isTorusView = false;
-
         // Add Three.js setup
         this.scene = null;
         this.camera = null;
         this.renderer = null;
         this.controls = null;
-        this.torusGeometry = null;
-        this.torusMaterial = null;
-        this.torusMesh = null;
         this.raycaster = null;
         this.mouse = null;
         this.hoverMesh = null;
-
-        // Initialize 3D view
-        this.init3D();
 
         // Add view selection listeners
         document.getElementById("tessellatedView").addEventListener(
@@ -232,35 +223,42 @@ class ChessGame {
 
         // Convert to board coordinates
         const col = Math.floor(localX / this.cellSize);
-        // Flip the row coordinate to match upward-increasing y
-        const row = this.boardSize - 1 - Math.floor(localY / this.cellSize);
+        const row = Math.floor(localY / this.cellSize);
 
-        console.log("Click coordinates:", { row, col, tileRow, tileCol });
+        console.log("Coordinates, Real board:", { row, col });
+
+        // Calculate actual board position including tile offset
+        const actualRow = row;
+        const actualCol = col + (tileCol * this.boardSize);
+        console.log("Coordinates, Tesselation board:", { actualRow, actualCol });
+
+        // Normalize the position
+        const [normRow, normCol] = this.normalizePosition(actualRow, actualCol);
 
         // Handle piece selection and movement
-        if (row >= 0 && row < 8 && col >= 0 && col < 8) {
-            const piece = this.board[row][col];
+        if (normRow >= 0 && normRow < 8 && normCol >= 0 && normCol < 8) {
+            const piece = this.board[normRow][normCol];
 
             if (piece && piece.color === this.currentPlayer) {
-                this.selectedPiece = { row, col };
-                this.possibleMoves = this.getPossibleMoves(row, col);
+                this.selectedPiece = { row: normRow, col: normCol };
+                this.possibleMoves = this.getPossibleMoves(normRow, normCol);
                 this.drawBoard();
             } else if (this.selectedPiece) {
                 // Check if the move is valid
                 const isValidMove = this.possibleMoves.some(
-                    ([r, c]) => r === row && c === col,
+                    ([r, c]) => r === normRow && c === normCol,
                 );
 
                 if (isValidMove) {
                     // Move piece
-                    this.board[row][col] = this.board[this.selectedPiece.row][
+                    this.board[normRow][normCol] = this.board[this.selectedPiece.row][
                         this.selectedPiece.col
                     ];
                     this.board[this.selectedPiece.row][this.selectedPiece.col] =
                         null;
 
                     // Check if a king was captured
-                    const capturedPiece = this.board[row][col];
+                    const capturedPiece = this.board[normRow][normCol];
                     if (capturedPiece && capturedPiece.type === "king") {
                         this.handleGameOver(this.currentPlayer);
                         return;
@@ -303,19 +301,26 @@ class ChessGame {
 
         // Convert to board coordinates
         const col = Math.floor(localX / this.cellSize);
-        // Flip the row coordinate to match upward-increasing y
-        const row = this.boardSize - 1 - Math.floor(localY / this.cellSize);
+        // Calculate row without flipping - we'll handle reflection in normalizePosition
+        const row = Math.floor(localY / this.cellSize);
+
+        // Calculate actual board position including tile offset
+        const actualRow = row + (tileRow * this.boardSize);
+        const actualCol = col + (tileCol * this.boardSize);
+
+        // Normalize the position
+        const [normRow, normCol] = this.normalizePosition(actualRow, actualCol);
 
         // Only update if within valid range
-        if (col >= 0 && col < 8 && row >= 0 && row < 8) {
+        if (normCol >= 0 && normCol < 8 && normRow >= 0 && normRow < 8) {
             if (
                 !this.hoverPos ||
-                this.hoverPos.row !== row ||
-                this.hoverPos.col !== col ||
+                this.hoverPos.row !== actualRow ||
+                this.hoverPos.col !== actualCol ||
                 this.hoverPos.tileRow !== tileRow ||
                 this.hoverPos.tileCol !== tileCol
             ) {
-                this.hoverPos = { row, col, tileRow, tileCol };
+                this.hoverPos = { row: actualRow, col: actualCol, tileRow, tileCol };
                 this.drawBoard();
             }
         } else {
@@ -446,13 +451,11 @@ class ChessGame {
     initializeBoard() {
         const board = Array(8).fill().map(() => Array(8).fill(null));
 
-        // Initialize pawns
         for (let i = 0; i < 8; i++) {
-            board[6][i] = { type: "pawn", color: "black" }; // Black pawns on second row from top
-            board[1][i] = { type: "pawn", color: "white" }; // White pawns on second row from bottom
+            board[6][i] = { type: "pawn", color: "black" };
+            board[1][i] = { type: "pawn", color: "white" };
         }
 
-        // Initialize other pieces
         const pieces = [
             "rook",
             "knight",
@@ -464,79 +467,11 @@ class ChessGame {
             "rook",
         ];
         for (let i = 0; i < 8; i++) {
-            board[7][i] = { type: pieces[i], color: "black" }; // Black pieces on top row
-            board[0][i] = { type: pieces[i], color: "white" }; // White pieces on bottom row
+            board[7][i] = { type: pieces[i], color: "black" };
+            board[0][i] = { type: pieces[i], color: "white" };
         }
 
         return board;
-    }
-
-    init3D() {
-        // Create scene
-        this.scene = new THREE.Scene();
-
-        // Create camera
-        this.camera = new THREE.PerspectiveCamera(
-            75,
-            this.canvas.width / this.canvas.height,
-            0.1,
-            1000,
-        );
-        this.camera.position.set(0, -25, 20);
-
-        // Create renderer
-        this.renderer = new THREE.WebGLRenderer({
-            alpha: true,
-            antialias: true,
-        });
-        this.renderer.setSize(this.canvas.width, this.canvas.height);
-        this.renderer.setClearColor(0xf0f0f0, 1);
-
-        // Create a container for the game elements
-        this.gameContainer = new THREE.Group();
-        this.scene.add(this.gameContainer);
-
-        // Create orbit controls
-        this.controls = new THREE.OrbitControls(
-            this.camera,
-            this.renderer.domElement,
-        );
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
-
-        // Create torus geometry
-        this.torusGeometry = new THREE.TorusGeometry(10, 5, 100, 100);
-        this.torusMaterial = new THREE.MeshPhongMaterial({
-            color: 0xDEB887,
-            side: THREE.DoubleSide,
-        });
-        this.torusMesh = new THREE.Mesh(this.torusGeometry, this.torusMaterial);
-        this.gameContainer.add(this.torusMesh);
-
-        // Add lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        this.scene.add(ambientLight);
-
-        this.pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
-        this.lightSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.5, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffff00 }),
-        );
-
-        this.updateLightPosition();
-
-        this.scene.add(this.pointLight);
-        this.scene.add(this.lightSphere);
-
-        // Add grid lines
-        this.createTorusGrid();
-
-        // Start animation loop
-        this.animate();
-
-        // Add raycaster for interaction
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
     }
 
     drawBoard() {
@@ -544,83 +479,6 @@ class ChessGame {
         this.ctx.fillStyle = "#f0f0f0";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        if (!this.isTopologicMode || this.isTorusView) {
-            if (this.isTorusView) {
-                // Draw single board for torus view
-                this.ctx.fillStyle = "#DEB887";
-                this.ctx.fillRect(
-                    0,
-                    0,
-                    this.singleBoardSize,
-                    this.singleBoardSize,
-                );
-                if (this.showBoardEdges) {
-                    this.ctx.strokeStyle = "#FF0000";
-                    this.ctx.strokeRect(
-                        0,
-                        0,
-                        this.singleBoardSize,
-                        this.singleBoardSize,
-                    );
-                    this.ctx.lineWidth = 1;
-                }
-                this.drawSingleBoard(0, 0);
-            } else {
-                // Draw tessellated view (3x3 grid)
-                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        const offsetX = tileCol * this.singleBoardSize;
-                        const offsetY = tileRow * this.singleBoardSize;
-
-                        // Draw board background
-                        this.ctx.fillStyle = "#DEB887";
-                        this.ctx.fillRect(
-                            offsetX,
-                            offsetY,
-                            this.singleBoardSize,
-                            this.singleBoardSize,
-                        );
-                    }
-                }
-
-                // Draw continuous grid lines across all boards
-                this.ctx.strokeStyle = "black";
-                this.ctx.lineWidth = 2;
-
-                // Draw vertical lines
-                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        const offsetX = tileCol * this.singleBoardSize;
-                        const offsetY = tileRow * this.singleBoardSize;
-                        this.drawSingleBoard(offsetX, offsetY);
-                    }
-                }
-
-                // Draw board edges if enabled
-                if (this.showBoardEdges) {
-                    for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
-                        for (
-                            let tileCol = 0;
-                            tileCol < this.tileCount;
-                            tileCol++
-                        ) {
-                            const offsetX = tileCol * this.singleBoardSize;
-                            const offsetY = tileRow * this.singleBoardSize;
-
-                            this.ctx.strokeStyle = "#FF0000";
-                            this.ctx.strokeRect(
-                                offsetX,
-                                offsetY,
-                                this.singleBoardSize,
-                                this.singleBoardSize,
-                            );
-                        }
-                    }
-                    this.ctx.lineWidth = 1;
-                }
-            }
-            return;
-        }
 
         // Calculate visible area
         const visibleLeft = -this.viewportX / this.zoomLevel;
@@ -770,6 +628,10 @@ class ChessGame {
     }
 
     drawSingleBoard(offsetX, offsetY) {
+        // Calculate the tile row and column from the offset
+        const tileRow = Math.floor(offsetY / this.singleBoardSize);
+        const tileCol = Math.floor(offsetX / this.singleBoardSize);
+
         // Draw grid lines
         this.ctx.strokeStyle = "black";
         this.ctx.lineWidth = 1;
@@ -792,22 +654,37 @@ class ChessGame {
             this.ctx.stroke();
         }
 
+        // Helper function to get the piece at a position, handling reflection
+        const getPieceAtPosition = (row, col) => {
+            // Handle x-axis wrapping
+            col = ((col % 8) + 8) % 8;
+            
+            // Handle y-axis wrapping and reflection
+            let adjustedRow = ((row % 16) + 16) % 16;
+            if (adjustedRow >= 8) {
+                adjustedRow = 15 - adjustedRow; // Reflect back to 0-7
+            }
+            
+            return this.board[adjustedRow][col];
+        };
+
         // Draw pieces (except selected piece)
         for (let i = 0; i < this.boardSize; i++) {
             for (let j = 0; j < this.boardSize; j++) {
-                // Convert i (row) to match upward-increasing y coordinates
-                const displayRow = this.boardSize - 1 - i;
-
+                // Calculate the actual board position including tile offset
+                const actualRow = i + (tileRow * this.boardSize);
+                const actualCol = j + (tileCol * this.boardSize);
+                
+                const piece = getPieceAtPosition(actualRow, actualCol);
+                
                 // Skip drawing the selected piece here - we'll draw it last
-                if (
-                    this.board[i][j] && (!this.selectedPiece ||
-                        this.selectedPiece.row !== i ||
-                        this.selectedPiece.col !== j)
-                ) {
+                if (piece && (!this.selectedPiece ||
+                    this.selectedPiece.row !== actualRow ||
+                    this.selectedPiece.col !== actualCol)) {
                     this.drawPiece(
-                        this.board[i][j],
+                        piece,
                         offsetX + j * this.cellSize,
-                        offsetY + displayRow * this.cellSize,
+                        offsetY + i * this.cellSize
                     );
                 }
             }
@@ -817,39 +694,49 @@ class ChessGame {
         if (this.selectedPiece && this.possibleMoves.length > 0) {
             // Draw possible moves
             this.possibleMoves.forEach(([row, col]) => {
-                const displayRow = this.boardSize - 1 - row;
-                this.drawPossibleMove(displayRow, col, offsetX, offsetY);
+                // Convert the move coordinates to local board coordinates
+                const localRow = row % this.boardSize;
+                const localCol = col % this.boardSize;
+                this.drawPossibleMove(localRow, localCol, offsetX, offsetY);
             });
         }
 
         // Draw hover highlight if exists
         if (this.hoverPos && !this.isDragging && !this.hasMoved) {
-            const displayRow = this.boardSize - 1 - this.hoverPos.row;
+            const localRow = this.hoverPos.row % this.boardSize;
+            const localCol = this.hoverPos.col % this.boardSize;
             this.drawHoverHighlight(
-                displayRow,
-                this.hoverPos.col,
+                localRow,
+                localCol,
                 offsetX,
-                offsetY,
+                offsetY
             );
         }
 
         // Draw selected piece last so it's always on top
         if (this.selectedPiece) {
-            const displayRow = this.boardSize - 1 - this.selectedPiece.row;
+            const localRow = this.selectedPiece.row % this.boardSize;
+            const localCol = this.selectedPiece.col % this.boardSize;
+            
             // Draw the highlight first
-            this.drawSelectedPiece(offsetX, offsetY, displayRow);
+            this.drawSelectedPiece(offsetX, offsetY, localRow);
 
             // Then draw the piece on top
-            const piece =
-                this.board[this.selectedPiece.row][this.selectedPiece.col];
+            const piece = getPieceAtPosition(this.selectedPiece.row, this.selectedPiece.col);
             if (piece) {
                 this.drawPiece(
                     piece,
-                    offsetX + this.selectedPiece.col * this.cellSize,
-                    offsetY + displayRow * this.cellSize,
+                    offsetX + localCol * this.cellSize,
+                    offsetY + localRow * this.cellSize
                 );
             }
         }
+    }
+
+    drawRotationSpace(offsetX, offsetY) {
+        this.drawSingleBoard(offsetX, offsetY);
+        this.ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        this.ctx.fillRect(offsetX, offsetY, this.singleBoardSize, this.singleBoardSize);
     }
 
     drawSelectedPiece(offsetX, offsetY, displayRow) {
@@ -866,15 +753,6 @@ class ChessGame {
         this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
     }
 
-    animate() {
-        requestAnimationFrame(() => this.animate());
-        if (this.isTorusView) {
-            this.controls.update();
-            this.updateLightPosition();
-            this.renderer.render(this.scene, this.camera);
-        }
-    }
-
     updateLightPosition() {
         const distance = 30;
         const lightPos = new THREE.Vector3(20, 20, distance);
@@ -882,57 +760,6 @@ class ChessGame {
 
         this.pointLight.position.copy(lightPos);
         this.lightSphere.position.copy(lightPos);
-    }
-
-    createTorusGrid() {
-        const R = 10;
-        const r = 5;
-        const segments = 100;
-
-        const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x000000,
-            linewidth: 2,
-            transparent: true,
-            opacity: 0.8,
-        });
-
-        // Create grid lines
-        for (let i = 0; i <= 8; i++) {
-            const theta = (i / 8) * Math.PI * 2;
-            const points = [];
-
-            for (let t = 0; t <= segments; t++) {
-                const phi = (t / segments) * Math.PI * 2;
-                const offset = 0.1;
-                const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
-                const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
-                const z = (r + offset) * Math.sin(phi);
-                points.push(new THREE.Vector3(x, y, z));
-            }
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, lineMaterial);
-            this.gameContainer.add(line);
-        }
-
-        // Create horizontal lines
-        for (let i = 0; i <= 8; i++) {
-            const phi = (i / 8) * Math.PI * 2;
-            const points = [];
-
-            for (let t = 0; t <= segments; t++) {
-                const theta = (t / segments) * Math.PI * 2;
-                const offset = 0.1;
-                const x = (R + (r + offset) * Math.cos(phi)) * Math.cos(theta);
-                const y = (R + (r + offset) * Math.cos(phi)) * Math.sin(theta);
-                const z = (r + offset) * Math.sin(phi);
-                points.push(new THREE.Vector3(x, y, z));
-            }
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, lineMaterial);
-            this.gameContainer.add(line);
-        }
     }
 
     showPopup() {
@@ -981,20 +808,31 @@ class ChessGame {
         turnIcon.className = `turn-icon ${this.currentPlayer}`;
     }
 
+    normalizePosition(row, col) {
+        // Handle x-axis wrapping with modulo 8
+        let newCol = ((col % 8) + 8) % 8;
+        
+        // Handle y-axis wrapping and reflection
+        let newRow = row;
+        
+        // First normalize to the 0-15 range
+        newRow = ((row % 16) + 16) % 16;
+        
+        // If in the reflection zone (8-15), reflect back to 0-7
+        if (newRow >= 8) {
+            newRow = 15 - newRow; // This reflects 8->7, 9->6, 10->5, etc.
+        }
+        
+        return [newRow, newCol];
+    }
+
     getPossibleMoves(row, col) {
         const piece = this.board[row][col];
         if (!piece) return [];
 
-        // Helper function to normalize position and handle wrapping
-        const normalizePosition = (row, col) => {
-            let newRow = ((row % 8) + 8) % 8; // Ensure positive modulo
-            let newCol = ((col % 8) + 8) % 8; // Ensure positive modulo
-            return [newRow, newCol];
-        };
-
         // Helper function to check if a position is valid and get the piece there
         const getPieceAt = (row, col) => {
-            const [normalizedRow, normalizedCol] = normalizePosition(row, col);
+            const [normalizedRow, normalizedCol] = this.normalizePosition(row, col);
             return this.board[normalizedRow][normalizedCol];
         };
 
@@ -1002,32 +840,20 @@ class ChessGame {
         const directions = {
             pawn: piece.color === "white" ? 1 : -1,
             rook: [[0, 1], [1, 0], [0, -1], [-1, 0]],
-            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [
-                2,
-                -1,
-            ], [2, 1]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
             bishop: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
             queen: [
-                [0, 1],
-                [1, 0],
-                [0, -1],
-                [-1, 0],
-                [1, 1],
-                [1, -1],
-                [-1, 1],
-                [-1, -1],
+                [0, 1], [1, 0], [0, -1], [-1, 0],
+                [1, 1], [1, -1], [-1, 1], [-1, -1],
             ],
-            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [
-                -1,
-                -1,
-            ]],
+            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
         };
 
         switch (piece.type) {
             case "pawn":
                 // Forward move
                 const forwardRow = row + directions.pawn;
-                const [normForwardRow, normCol] = normalizePosition(
+                const [normForwardRow, normCol] = this.normalizePosition(
                     forwardRow,
                     col,
                 );
@@ -1040,7 +866,7 @@ class ChessGame {
                     ) {
                         const doubleRow = row + (2 * directions.pawn);
                         const [normDoubleRow, normDoubleCol] =
-                            normalizePosition(doubleRow, col);
+                            this.normalizePosition(doubleRow, col);
                         if (!getPieceAt(doubleRow, col)) {
                             moves.push([normDoubleRow, normDoubleCol]);
                         }
@@ -1050,7 +876,7 @@ class ChessGame {
                 [-1, 1].forEach((dc) => {
                     const captureRow = row + directions.pawn;
                     const captureCol = col + dc;
-                    const [normCaptureRow, normCaptureCol] = normalizePosition(
+                    const [normCaptureRow, normCaptureCol] = this.normalizePosition(
                         captureRow,
                         captureCol,
                     );
@@ -1069,7 +895,7 @@ class ChessGame {
                     let currentCol = col + dc;
                     // Allow moving up to 8 squares in any direction to handle wrapping
                     for (let steps = 0; steps < 8; steps++) {
-                        const [normRow, normCol] = normalizePosition(
+                        const [normRow, normCol] = this.normalizePosition(
                             currentRow,
                             currentCol,
                         );
@@ -1093,7 +919,7 @@ class ChessGame {
                 directions.knight.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    const [normRow, normCol] = normalizePosition(
+                    const [normRow, normCol] = this.normalizePosition(
                         newRow,
                         newCol,
                     );
@@ -1108,7 +934,7 @@ class ChessGame {
                 directions.king.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    const [normRow, normCol] = normalizePosition(
+                    const [normRow, normCol] = this.normalizePosition(
                         newRow,
                         newCol,
                     );
