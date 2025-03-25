@@ -6,12 +6,7 @@ class ChessGame {
         this.cellSize = 60; // Make cells a bit bigger
         this.gridOffset = 0; // Remove the grid offset as it's causing issues
         this.currentPlayer = "white";
-        
-        // Initialize the three board representations
-        this.true_board = this.initializeTrueBoard();
-        this.rotation_board = this.initializeRotationBoard();
-        this.drawn_board = new Map(); // Infinite board using Map for sparse storage
-        
+        this.board = this.initializeBoard();
         this.selectedPiece = null;
         this.hoverPos = null;
         this.possibleMoves = [];
@@ -20,7 +15,6 @@ class ChessGame {
         this.tileCount = 3;
         this.spacing = 0;
         this.pieceImages = {}; // Store loaded piece images
-        this.isFourBoardMode = true; // Always true now
 
         // Load all piece images
         this.loadPieceImages();
@@ -124,10 +118,6 @@ class ChessGame {
             "click",
             () => this.setView(false),
         );
-        document.getElementById("torusView").addEventListener(
-            "click",
-            () => this.setView(true),
-        );
 
         // Add new property for board edge visibility
         this.showBoardEdges = false;
@@ -169,50 +159,16 @@ class ChessGame {
             this.hideGameOverPopup();
             this.resetGame();
         });
-
-        // Add CSS styles for controls
-        const style = document.createElement('style');
-        style.textContent = `
-            .controls {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 1000;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            .control-button {
-                padding: 8px 16px;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-                transition: background-color 0.3s;
-            }
-            .control-button:hover {
-                background-color: #45a049;
-            }
-            .control-button.active {
-                background-color: #2196F3;
-            }
-            .control-button.active:hover {
-                background-color: #1976D2;
-            }
-        `;
-        document.head.appendChild(style);
     }
 
     loadPieceImages() {
-        const colors = ['w', 'b'];
-        const pieces = ['b', 'k', 'n', 'p', 'q', 'r'];
+        const colors = ["w", "b"];
+        const pieces = ["b", "k", "n", "p", "q", "r"];
         let loadedImages = 0;
         const totalImages = colors.length * pieces.length;
 
-        colors.forEach(color => {
-            pieces.forEach(piece => {
+        colors.forEach((color) => {
+            pieces.forEach((piece) => {
                 const img = new Image();
                 img.onload = () => {
                     loadedImages++;
@@ -227,41 +183,30 @@ class ChessGame {
         });
     }
 
-    drawPiece(piece, x, y, flip = false) {
+    drawPiece(piece, x, y) {
         const size = this.cellSize;
         const padding = size * 0.1; // 10% padding around the piece
-        
+
         // Get the image key for this piece
         const pieceTypeMap = {
-            'pawn': 'p',
-            'knight': 'n',
-            'bishop': 'b',
-            'rook': 'r',
-            'queen': 'q',
-            'king': 'k'
+            "pawn": "p",
+            "knight": "n",
+            "bishop": "b",
+            "rook": "r",
+            "queen": "q",
+            "king": "k",
         };
         const imageKey = `${piece.color.charAt(0)}_${pieceTypeMap[piece.type]}`;
         const img = this.pieceImages[imageKey];
-        
+
         if (img) {
-            this.ctx.save();
-            
-            // If flipping, move to center of piece and rotate 180 degrees
-            if (flip) {
-                this.ctx.translate(x + size/2, y + size/2);
-                this.ctx.rotate(Math.PI);
-                this.ctx.translate(-(x + size/2), -(y + size/2));
-            }
-            
             this.ctx.drawImage(
                 img,
                 x + padding,
                 y + padding,
                 size - (padding * 2),
-                size - (padding * 2)
+                size - (padding * 2),
             );
-            
-            this.ctx.restore();
         }
     }
 
@@ -278,134 +223,62 @@ class ChessGame {
 
         // Calculate which board and position we're clicking
         const tileSize = this.singleBoardSize;
-        let tileCol, tileRow, col, row;
+        const tileCol = Math.floor(worldX / tileSize);
+        const tileRow = Math.floor(worldY / tileSize);
 
-        if (this.isFourBoardMode) {
-            // For 4-board mode, we need to calculate the group and board position
-            const groupCol = Math.floor(worldX / (tileSize * 2));
-            const groupRow = Math.floor(worldY / (tileSize * 2));
-            
-            // Calculate position within the group
-            const localX = worldX - (groupCol * tileSize * 2);
-            const localY = worldY - (groupRow * tileSize * 2);
-            
-            // Determine which board in the 4-board pattern
-            const boardCol = Math.floor(localX / tileSize);
-            const boardRow = Math.floor(localY / tileSize);
-            const boardIndex = boardRow * 2 + boardCol;
-            
-            // Calculate final tile position
-            tileCol = groupCol * 2 + boardCol;
-            tileRow = groupRow * 2 + boardRow;
-            
-            // Calculate position within the board
-            const boardX = localX - (boardCol * tileSize);
-            const boardY = localY - (boardRow * tileSize);
-            
-            // Transform coordinates based on board rotation
-            let transformedX = boardX;
-            let transformedY = boardY;
-            
-            // Apply inverse rotation to get the correct board coordinates
-            const centerX = tileSize / 2;
-            const centerY = tileSize / 2;
-            
-            // Move to origin
-            transformedX -= centerX;
-            transformedY -= centerY;
-            
-            // Apply inverse rotation
-            const rotations = [0, 90, 270, 180];
-            const angle = (-rotations[boardIndex] * Math.PI) / 180;
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
-            
-            const newX = transformedX * cos - transformedY * sin;
-            const newY = transformedX * sin + transformedY * cos;
-            
-            // Move back from origin
-            transformedX = newX + centerX;
-            transformedY = newY + centerY;
-            
-            // Convert to board coordinates
-            col = Math.floor(transformedX / this.cellSize);
-            row = Math.floor(transformedY / this.cellSize);
-        } else {
-            // Original single-board mode
-            tileCol = Math.floor(worldX / tileSize);
-            tileRow = Math.floor(worldY / tileSize);
-            
-            // Get position within the board
-            const localX = worldX - (tileCol * tileSize);
-            const localY = worldY - (tileRow * tileSize);
-            
-            col = Math.floor(localX / this.cellSize);
-            row = Math.floor(localY / this.cellSize);
-        }
+        // Get position within the board
+        const localX = worldX - (tileCol * tileSize);
+        const localY = worldY - (tileRow * tileSize);
 
-        // Get the piece at the clicked position from the drawn board
-        const piece = this.getDrawnBoardPiece(row, col);
-        
-        if (piece && piece.color === this.currentPlayer) {
-            this.selectedPiece = { row, col };
-            this.possibleMoves = this.getPossibleMoves(row, col);
-            this.drawBoard();
-        } else if (this.selectedPiece) {
-            // Check if the move is valid
-            const isValidMove = this.possibleMoves.some(
-                ([r, c]) => r === row && c === col
-            );
-            
-            if (isValidMove) {
-                // Check if we're capturing a king
-                const capturedPiece = this.getDrawnBoardPiece(row, col);
-                if (capturedPiece && capturedPiece.type === 'king') {
-                    this.handleGameOver(this.currentPlayer);
-                    return;
+        // Convert to board coordinates
+        const col = Math.floor(localX / this.cellSize);
+        // Flip the row coordinate to match upward-increasing y
+        const row = this.boardSize - 1 - Math.floor(localY / this.cellSize);
+
+        console.log("Click coordinates:", { row, col, tileRow, tileCol });
+
+        // Handle piece selection and movement
+        if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+            const piece = this.board[row][col];
+
+            if (piece && piece.color === this.currentPlayer) {
+                this.selectedPiece = { row, col };
+                this.possibleMoves = this.getPossibleMoves(row, col);
+                this.drawBoard();
+            } else if (this.selectedPiece) {
+                // Check if the move is valid
+                const isValidMove = this.possibleMoves.some(
+                    ([r, c]) => r === row && c === col,
+                );
+
+                if (isValidMove) {
+                    // Move piece
+                    this.board[row][col] = this.board[this.selectedPiece.row][
+                        this.selectedPiece.col
+                    ];
+                    this.board[this.selectedPiece.row][this.selectedPiece.col] =
+                        null;
+
+                    // Check if a king was captured
+                    const capturedPiece = this.board[row][col];
+                    if (capturedPiece && capturedPiece.type === "king") {
+                        this.handleGameOver(this.currentPlayer);
+                        return;
+                    }
+
+                    this.currentPlayer = this.currentPlayer === "white"
+                        ? "black"
+                        : "white";
+                    this.selectedPiece = null;
+                    this.possibleMoves = [];
+                    this.updatePlayerDisplay();
+                    this.drawBoard();
+                } else {
+                    // Deselect piece if clicking invalid square
+                    this.selectedPiece = null;
+                    this.possibleMoves = [];
+                    this.drawBoard();
                 }
-                
-                // Move piece in true_board
-                const sourceRow = this.selectedPiece.row % 8;
-                const sourceCol = this.selectedPiece.col % 8;
-                const targetRow = row % 8;
-                const targetCol = col % 8;
-                
-                // Update true_board
-                this.true_board[targetRow][targetCol] = this.true_board[sourceRow][sourceCol];
-                this.true_board[sourceRow][sourceCol] = null;
-                
-                // Update rotation_board
-                this.updateRotationBoard();
-                
-                this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
-                this.selectedPiece = null;
-                this.possibleMoves = [];
-                this.updatePlayerDisplay();
-                this.drawBoard();
-            } else {
-                // Deselect piece if clicking invalid square
-                this.selectedPiece = null;
-                this.possibleMoves = [];
-                this.drawBoard();
-            }
-        }
-    }
-
-    updateRotationBoard() {
-        // Update all four quadrants of the rotation board based on true_board
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                // Top-left quadrant (0 degrees)
-                this.rotation_board[i][j] = this.true_board[i][j];
-                
-                // Top-right quadrant (90 degrees)
-                this.rotation_board[i][j + 8] = this.rotatePiece(this.true_board[i][j], 90);
-                
-                // Bottom-right quadrant (180 degrees)
-                this.rotation_board[i + 8][j + 8] = this.rotatePiece(this.true_board[i][j], 180);
-                
-                // Bottom-left quadrant (270 degrees)
-                this.rotation_board[i + 8][j] = this.rotatePiece(this.true_board[i][j], 270);
             }
         }
     }
@@ -421,76 +294,23 @@ class ChessGame {
 
         // Calculate which board and position we're hovering over
         const tileSize = this.singleBoardSize;
-        let tileCol, tileRow, col, row;
+        const tileCol = Math.floor(worldX / tileSize);
+        const tileRow = Math.floor(worldY / tileSize);
 
-        if (this.isFourBoardMode) {
-            // For 4-board mode, we need to calculate the group and board position
-            const groupCol = Math.floor(worldX / (tileSize * 2));
-            const groupRow = Math.floor(worldY / (tileSize * 2));
-            
-            // Calculate position within the group
-            const localX = worldX - (groupCol * tileSize * 2);
-            const localY = worldY - (groupRow * tileSize * 2);
-            
-            // Determine which board in the 4-board pattern
-            const boardCol = Math.floor(localX / tileSize);
-            const boardRow = Math.floor(localY / tileSize);
-            const boardIndex = boardRow * 2 + boardCol;
-            
-            // Calculate final tile position
-            tileCol = groupCol * 2 + boardCol;
-            tileRow = groupRow * 2 + boardRow;
-            
-            // Calculate position within the board
-            const boardX = localX - (boardCol * tileSize);
-            const boardY = localY - (boardRow * tileSize);
-            
-            // Transform coordinates based on board rotation
-            let transformedX = boardX;
-            let transformedY = boardY;
-            
-            // Apply inverse rotation to get the correct board coordinates
-            const centerX = tileSize / 2;
-            const centerY = tileSize / 2;
-            
-            // Move to origin
-            transformedX -= centerX;
-            transformedY -= centerY;
-            
-            // Apply inverse rotation
-            const rotations = [0, 90, 270, 180];
-            const angle = (-rotations[boardIndex] * Math.PI) / 180;
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
-            
-            const newX = transformedX * cos - transformedY * sin;
-            const newY = transformedX * sin + transformedY * cos;
-            
-            // Move back from origin
-            transformedX = newX + centerX;
-            transformedY = newY + centerY;
-            
-            // Convert to board coordinates
-            col = Math.floor(transformedX / this.cellSize);
-            row = Math.floor(transformedY / this.cellSize);
-        } else {
-            // Original single-board mode
-            tileCol = Math.floor(worldX / tileSize);
-            tileRow = Math.floor(worldY / tileSize);
-            
-            // Get position within the board
-            const localX = worldX - (tileCol * tileSize);
-            const localY = worldY - (tileRow * tileSize);
-            
-            col = Math.floor(localX / this.cellSize);
-            row = Math.floor(localY / this.cellSize);
-        }
+        // Get position within the board
+        const localX = worldX - (tileCol * tileSize);
+        const localY = worldY - (tileRow * tileSize);
+
+        // Convert to board coordinates
+        const col = Math.floor(localX / this.cellSize);
+        // Flip the row coordinate to match upward-increasing y
+        const row = this.boardSize - 1 - Math.floor(localY / this.cellSize);
 
         // Only update if within valid range
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
             if (
-                !this.hoverPos || 
-                this.hoverPos.row !== row || 
+                !this.hoverPos ||
+                this.hoverPos.row !== row ||
                 this.hoverPos.col !== col ||
                 this.hoverPos.tileRow !== tileRow ||
                 this.hoverPos.tileCol !== tileCol
@@ -546,22 +366,29 @@ class ChessGame {
             const localY = worldY - (tileRow * tileSize);
 
             // Convert to board coordinates - adjust for grid offset
-            const col = Math.floor((localX - this.gridOffset) / this.cellSize) + 1;
-            const row = Math.floor((localY - this.gridOffset) / this.cellSize) + 1;
+            const col = Math.floor((localX - this.gridOffset) / this.cellSize) +
+                1;
+            const row = Math.floor((localY - this.gridOffset) / this.cellSize) +
+                1;
 
             // Clear hover when outside valid board positions
-            if (col < 0 || col >= this.boardSize || row < 0 || row >= this.boardSize) {
+            if (
+                col < 0 || col >= this.boardSize || row < 0 ||
+                row >= this.boardSize
+            ) {
                 if (this.hoverPos) {
                     this.hoverPos = null;
                     this.drawBoard();
                 }
             } else {
                 // Only update and redraw if the hover position has changed
-                if (!this.hoverPos || 
-                    this.hoverPos.row !== row || 
-                    this.hoverPos.col !== col || 
-                    this.hoverPos.tileRow !== tileRow || 
-                    this.hoverPos.tileCol !== tileCol) {
+                if (
+                    !this.hoverPos ||
+                    this.hoverPos.row !== row ||
+                    this.hoverPos.col !== col ||
+                    this.hoverPos.tileRow !== tileRow ||
+                    this.hoverPos.tileCol !== tileCol
+                ) {
                     this.hoverPos = { row, col, tileRow, tileCol };
                     this.drawBoard();
                 }
@@ -616,16 +443,16 @@ class ChessGame {
         this.drawBoard();
     }
 
-    initializeTrueBoard() {
+    initializeBoard() {
         const board = Array(8).fill().map(() => Array(8).fill(null));
 
-        // Initialize pawns (second and seventh rows)
+        // Initialize pawns
         for (let i = 0; i < 8; i++) {
-            board[1][i] = { type: "pawn", color: "white" };  // White pawns on second row
-            board[6][i] = { type: "pawn", color: "black" };  // Black pawns on seventh row
+            board[6][i] = { type: "pawn", color: "black" }; // Black pawns on second row from top
+            board[1][i] = { type: "pawn", color: "white" }; // White pawns on second row from bottom
         }
 
-        // Initialize other pieces (first and eighth rows)
+        // Initialize other pieces
         const pieces = [
             "rook",
             "knight",
@@ -637,67 +464,79 @@ class ChessGame {
             "rook",
         ];
         for (let i = 0; i < 8; i++) {
-            board[0][i] = { type: pieces[i], color: "white" };  // White pieces on first row
-            board[7][i] = { type: pieces[i], color: "black" };  // Black pieces on eighth row
+            board[7][i] = { type: pieces[i], color: "black" }; // Black pieces on top row
+            board[0][i] = { type: pieces[i], color: "white" }; // White pieces on bottom row
         }
 
         return board;
     }
 
-    initializeRotationBoard() {
-        // Create a 16x16 board
-        const board = Array(16).fill().map(() => Array(16).fill(null));
-        
-        // Copy the true board to the top-left quadrant
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                board[i][j] = this.true_board[i][j];
-            }
-        }
-        
-        // Rotate 90 degrees for top-right quadrant
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                board[i][j + 8] = this.rotatePiece(this.true_board[i][j], 90);
-            }
-        }
-        
-        // Rotate 180 degrees for bottom-right quadrant
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                board[i + 8][j + 8] = this.rotatePiece(this.true_board[i][j], 180);
-            }
-        }
-        
-        // Rotate 270 degrees for bottom-left quadrant
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                board[i + 8][j] = this.rotatePiece(this.true_board[i][j], 270);
-            }
-        }
-        
-        return board;
-    }
+    init3D() {
+        // Create scene
+        this.scene = new THREE.Scene();
 
-    rotatePiece(piece, degrees) {
-        if (!piece) return null;
-        
-        // Create a new piece object to avoid modifying the original
-        const rotatedPiece = { ...piece };
-        
-        // For now, we just return the piece as is since the rotation is handled by the board layout
-        // In a more complex implementation, we might want to adjust the piece's visual representation
-        return rotatedPiece;
-    }
+        // Create camera
+        this.camera = new THREE.PerspectiveCamera(
+            75,
+            this.canvas.width / this.canvas.height,
+            0.1,
+            1000,
+        );
+        this.camera.position.set(0, -25, 20);
 
-    // Helper function to get piece from drawn_board
-    getDrawnBoardPiece(row, col) {
-        // Convert to normalized coordinates (0-15)
-        const normalizedRow = ((row % 16) + 16) % 16;
-        const normalizedCol = ((col % 16) + 16) % 16;
-        
-        // Get the piece from rotation_board
-        return this.rotation_board[normalizedRow][normalizedCol];
+        // Create renderer
+        this.renderer = new THREE.WebGLRenderer({
+            alpha: true,
+            antialias: true,
+        });
+        this.renderer.setSize(this.canvas.width, this.canvas.height);
+        this.renderer.setClearColor(0xf0f0f0, 1);
+
+        // Create a container for the game elements
+        this.gameContainer = new THREE.Group();
+        this.scene.add(this.gameContainer);
+
+        // Create orbit controls
+        this.controls = new THREE.OrbitControls(
+            this.camera,
+            this.renderer.domElement,
+        );
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+
+        // Create torus geometry
+        this.torusGeometry = new THREE.TorusGeometry(10, 5, 100, 100);
+        this.torusMaterial = new THREE.MeshPhongMaterial({
+            color: 0xDEB887,
+            side: THREE.DoubleSide,
+        });
+        this.torusMesh = new THREE.Mesh(this.torusGeometry, this.torusMaterial);
+        this.gameContainer.add(this.torusMesh);
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        this.pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
+        this.lightSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xffff00 }),
+        );
+
+        this.updateLightPosition();
+
+        this.scene.add(this.pointLight);
+        this.scene.add(this.lightSphere);
+
+        // Add grid lines
+        this.createTorusGrid();
+
+        // Start animation loop
+        this.animate();
+
+        // Add raycaster for interaction
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
     }
 
     drawBoard() {
@@ -709,85 +548,75 @@ class ChessGame {
             if (this.isTorusView) {
                 // Draw single board for torus view
                 this.ctx.fillStyle = "#DEB887";
-                this.ctx.fillRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                this.ctx.fillRect(
+                    0,
+                    0,
+                    this.singleBoardSize,
+                    this.singleBoardSize,
+                );
                 if (this.showBoardEdges) {
                     this.ctx.strokeStyle = "#FF0000";
-                    this.ctx.strokeRect(0, 0, this.singleBoardSize, this.singleBoardSize);
+                    this.ctx.strokeRect(
+                        0,
+                        0,
+                        this.singleBoardSize,
+                        this.singleBoardSize,
+                    );
                     this.ctx.lineWidth = 1;
                 }
                 this.drawSingleBoard(0, 0);
             } else {
-                // Draw the 4-board pattern with rotations
+                // Draw tessellated view (3x3 grid)
                 for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
                     for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
-                        // Calculate the base offset for this 4-board group
-                        const groupCol = Math.floor(tileCol / 2);
-                        const groupRow = Math.floor(tileRow / 2);
-                        const baseX = groupCol * this.singleBoardSize * 2;
-                        const baseY = groupRow * this.singleBoardSize * 2;
+                        const offsetX = tileCol * this.singleBoardSize;
+                        const offsetY = tileRow * this.singleBoardSize;
 
-                        // Calculate which board in the 4-board pattern this is
-                        const boardIndex = (tileRow % 2) * 2 + (tileCol % 2);
-                        const offsetX = baseX + (boardIndex % 2) * this.singleBoardSize;
-                        const offsetY = baseY + Math.floor(boardIndex / 2) * this.singleBoardSize;
-
-                        // Save the current context state
-                        this.ctx.save();
-
-                        // Move to the center of the board
-                        const centerX = offsetX + this.singleBoardSize / 2;
-                        const centerY = offsetY + this.singleBoardSize / 2;
-
-                        // Apply rotation based on board index
-                        // Board 0: 0 degrees (top-left)
-                        // Board 1: 90 degrees (top-right)
-                        // Board 2: 270 degrees (bottom-left)
-                        // Board 3: 180 degrees (bottom-right)
-                        const rotations = [0, 90, 270, 180];
-                        this.ctx.translate(centerX, centerY);
-                        this.ctx.rotate((rotations[boardIndex] * Math.PI) / 180);
-                        this.ctx.translate(-centerX, -centerY);
-
-                        // Draw alternating squares for the board background
-                        for (let i = 0; i < this.boardSize; i++) {
-                            for (let j = 0; j < this.boardSize; j++) {
-                                // Adjust the pattern based on rotation
-                                let isLightSquare;
-                                if (boardIndex === 0) { // 0 degrees
-                                    isLightSquare = (i + j) % 2 === 0;
-                                } else if (boardIndex === 1) { // 90 degrees
-                                    isLightSquare = (i - j) % 2 === 0;
-                                } else if (boardIndex === 2) { // 270 degrees
-                                    isLightSquare = (i - j) % 2 === 0;
-                                } else { // 180 degrees
-                                    isLightSquare = (i + j) % 2 === 1;
-                                }
-                                this.ctx.fillStyle = isLightSquare ? "#DEB887" : "#B8860B";
-                                this.ctx.fillRect(
-                                    offsetX + j * this.cellSize,
-                                    offsetY + i * this.cellSize,
-                                    this.cellSize,
-                                    this.cellSize
-                                );
-                            }
-                        }
-
-                        // Draw the board contents with piece rotation for 180-degree boards
-                        this.drawSingleBoard(offsetX, offsetY, boardIndex === 3);
-
-                        // Draw board edges if enabled
-                        if (this.showBoardEdges) {
-                            // Check if this is the true board (top-left quadrant)
-                            const isTrueBoard = groupCol === 0 && groupRow === 0 && boardIndex === 0;
-                            
-                            this.ctx.strokeStyle = isTrueBoard ? "#0000FF" : "#FF0000";
-                            this.ctx.lineWidth = 2;
-                            this.ctx.strokeRect(offsetX, offsetY, this.singleBoardSize, this.singleBoardSize);
-                        }
-
-                        // Restore the context state
-                        this.ctx.restore();
+                        // Draw board background
+                        this.ctx.fillStyle = "#DEB887";
+                        this.ctx.fillRect(
+                            offsetX,
+                            offsetY,
+                            this.singleBoardSize,
+                            this.singleBoardSize,
+                        );
                     }
+                }
+
+                // Draw continuous grid lines across all boards
+                this.ctx.strokeStyle = "black";
+                this.ctx.lineWidth = 2;
+
+                // Draw vertical lines
+                for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
+                    for (let tileCol = 0; tileCol < this.tileCount; tileCol++) {
+                        const offsetX = tileCol * this.singleBoardSize;
+                        const offsetY = tileRow * this.singleBoardSize;
+                        this.drawSingleBoard(offsetX, offsetY);
+                    }
+                }
+
+                // Draw board edges if enabled
+                if (this.showBoardEdges) {
+                    for (let tileRow = 0; tileRow < this.tileCount; tileRow++) {
+                        for (
+                            let tileCol = 0;
+                            tileCol < this.tileCount;
+                            tileCol++
+                        ) {
+                            const offsetX = tileCol * this.singleBoardSize;
+                            const offsetY = tileRow * this.singleBoardSize;
+
+                            this.ctx.strokeStyle = "#FF0000";
+                            this.ctx.strokeRect(
+                                offsetX,
+                                offsetY,
+                                this.singleBoardSize,
+                                this.singleBoardSize,
+                            );
+                        }
+                    }
+                    this.ctx.lineWidth = 1;
                 }
             }
             return;
@@ -812,79 +641,135 @@ class ChessGame {
         this.ctx.translate(this.viewportX, this.viewportY);
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
 
-        // Draw the 4-board pattern with rotations
+        // Draw board backgrounds first
         for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
             for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
-                // Calculate the base offset for this 4-board group
-                const groupCol = Math.floor(tileCol / 2);
-                const groupRow = Math.floor(tileRow / 2);
-                const baseX = groupCol * this.singleBoardSize * 2;
-                const baseY = groupRow * this.singleBoardSize * 2;
+                const offsetX = tileCol * this.singleBoardSize;
+                const offsetY = tileRow * this.singleBoardSize;
 
-                // Calculate which board in the 4-board pattern this is
-                const boardIndex = (tileRow % 2) * 2 + (tileCol % 2);
-                const offsetX = baseX + (boardIndex % 2) * this.singleBoardSize;
-                const offsetY = baseY + Math.floor(boardIndex / 2) * this.singleBoardSize;
-
-                // Save the current context state
-                this.ctx.save();
-
-                // Move to the center of the board
-                const centerX = offsetX + this.singleBoardSize / 2;
-                const centerY = offsetY + this.singleBoardSize / 2;
-
-                // Apply rotation based on board index
-                const rotations = [0, 90, 270, 180];
-                this.ctx.translate(centerX, centerY);
-                this.ctx.rotate((rotations[boardIndex] * Math.PI) / 180);
-                this.ctx.translate(-centerX, -centerY);
-
-                // Draw alternating squares for the board background
+                // Draw alternating squares for each board
                 for (let i = 0; i < this.boardSize; i++) {
                     for (let j = 0; j < this.boardSize; j++) {
-                        // Adjust the pattern based on rotation
-                        let isLightSquare;
-                        if (boardIndex === 0) { // 0 degrees
-                            isLightSquare = (i + j) % 2 === 0;
-                        } else if (boardIndex === 1) { // 90 degrees
-                            isLightSquare = (i - j) % 2 === 0;
-                        } else if (boardIndex === 2) { // 270 degrees
-                            isLightSquare = (i - j) % 2 === 0;
-                        } else { // 180 degrees
-                            isLightSquare = (i + j) % 2 === 1;
-                        }
-                        this.ctx.fillStyle = isLightSquare ? "#DEB887" : "#B8860B";
+                        const isLightSquare = (i + j) % 2 === 0;
+                        this.ctx.fillStyle = isLightSquare
+                            ? "#DEB887"
+                            : "#B8860B";
                         this.ctx.fillRect(
                             offsetX + j * this.cellSize,
                             offsetY + i * this.cellSize,
                             this.cellSize,
-                            this.cellSize
+                            this.cellSize,
                         );
                     }
                 }
+            }
+        }
 
-                // Draw the board contents with piece rotation for 180-degree boards
-                this.drawSingleBoard(offsetX, offsetY, boardIndex === 3);
+        // Draw continuous grid lines
+        this.ctx.strokeStyle = "black";
+        this.ctx.lineWidth = 2;
 
-                // Draw board edges if enabled
-                if (this.showBoardEdges) {
-                    // Check if this is the true board (top-left quadrant)
-                    const isTrueBoard = groupCol === 0 && groupRow === 0 && boardIndex === 0;
-                    
-                    this.ctx.strokeStyle = isTrueBoard ? "#0000FF" : "#FF0000";
-                    this.ctx.lineWidth = 2;
-                    this.ctx.strokeRect(offsetX, offsetY, this.singleBoardSize, this.singleBoardSize);
+        // Calculate the total visible area in board coordinates
+        const totalStartX = startTileCol * this.singleBoardSize;
+        const totalEndX = (endTileCol + 1) * this.singleBoardSize;
+        const totalStartY = startTileRow * this.singleBoardSize;
+        const totalEndY = (endTileRow + 1) * this.singleBoardSize;
+
+        // Draw vertical lines
+        for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
+            for (let i = 0; i <= this.boardSize; i++) {
+                const x = tileCol * this.singleBoardSize + i * this.cellSize;
+                if (x >= totalStartX && x <= totalEndX) {
+                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
+                    if (this.showBoardEdges && i === this.boardSize) {
+                        this.ctx.strokeStyle = "#FF0000";
+                        this.ctx.lineWidth = 4;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
+                        this.ctx.stroke();
+                        this.ctx.strokeStyle = "black";
+                        this.ctx.lineWidth = 2;
+                    }
+
+                    // Draw regular grid line
+                    this.ctx.beginPath();
+                    if (this.showBoardEdges) {
+                        // Draw separate segments for each board when edges are shown
+                        for (
+                            let tileRow = startTileRow;
+                            tileRow <= endTileRow;
+                            tileRow++
+                        ) {
+                            const startY = tileRow * this.singleBoardSize;
+                            const endY = startY + this.singleBoardSize;
+                            this.ctx.moveTo(x, startY);
+                            this.ctx.lineTo(x, endY);
+                        }
+                    } else {
+                        // Draw continuous lines when edges are hidden
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
+                    }
+                    this.ctx.stroke();
                 }
+            }
+        }
 
-                // Restore the context state
-                this.ctx.restore();
+        // Draw horizontal lines
+        for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
+            for (let i = 0; i <= this.boardSize; i++) {
+                const y = tileRow * this.singleBoardSize + i * this.cellSize;
+                if (y >= totalStartY && y <= totalEndY) {
+                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
+                    if (this.showBoardEdges && i === this.boardSize) {
+                        this.ctx.strokeStyle = "#FF0000";
+                        this.ctx.lineWidth = 4;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
+                        this.ctx.stroke();
+                        this.ctx.strokeStyle = "black";
+                        this.ctx.lineWidth = 2;
+                    }
+
+                    // Draw regular grid line
+                    this.ctx.beginPath();
+                    if (this.showBoardEdges) {
+                        // Draw separate segments for each board when edges are shown
+                        for (
+                            let tileCol = startTileCol;
+                            tileCol <= endTileCol;
+                            tileCol++
+                        ) {
+                            const startX = tileCol * this.singleBoardSize;
+                            const endX = startX + this.singleBoardSize;
+                            this.ctx.moveTo(startX, y);
+                            this.ctx.lineTo(endX, y);
+                        }
+                    } else {
+                        // Draw continuous lines when edges are hidden
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
+                    }
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+        // Draw pieces and highlights on all visible boards
+        for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
+            for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
+                const offsetX = tileCol * this.singleBoardSize;
+                const offsetY = tileRow * this.singleBoardSize;
+                this.drawSingleBoard(offsetX, offsetY);
             }
         }
 
         this.ctx.restore();
     }
 
-    drawSingleBoard(offsetX, offsetY, flipPieces = false) {
+    drawSingleBoard(offsetX, offsetY) {
         // Draw grid lines
         this.ctx.strokeStyle = "black";
         this.ctx.lineWidth = 1;
@@ -910,16 +795,19 @@ class ChessGame {
         // Draw pieces (except selected piece)
         for (let i = 0; i < this.boardSize; i++) {
             for (let j = 0; j < this.boardSize; j++) {
+                // Convert i (row) to match upward-increasing y coordinates
+                const displayRow = this.boardSize - 1 - i;
+
                 // Skip drawing the selected piece here - we'll draw it last
-                const piece = this.getDrawnBoardPiece(i, j);
-                if (piece && (!this.selectedPiece || 
-                    this.selectedPiece.row !== i || 
-                    this.selectedPiece.col !== j)) {
+                if (
+                    this.board[i][j] && (!this.selectedPiece ||
+                        this.selectedPiece.row !== i ||
+                        this.selectedPiece.col !== j)
+                ) {
                     this.drawPiece(
-                        piece,
+                        this.board[i][j],
                         offsetX + j * this.cellSize,
-                        offsetY + i * this.cellSize,
-                        flipPieces
+                        offsetY + displayRow * this.cellSize,
                     );
                 }
             }
@@ -929,49 +817,49 @@ class ChessGame {
         if (this.selectedPiece && this.possibleMoves.length > 0) {
             // Draw possible moves
             this.possibleMoves.forEach(([row, col]) => {
-                this.drawPossibleMove(row, col, offsetX, offsetY);
+                const displayRow = this.boardSize - 1 - row;
+                this.drawPossibleMove(displayRow, col, offsetX, offsetY);
             });
         }
 
         // Draw hover highlight if exists
         if (this.hoverPos && !this.isDragging && !this.hasMoved) {
+            const displayRow = this.boardSize - 1 - this.hoverPos.row;
             this.drawHoverHighlight(
-                this.hoverPos.row,
+                displayRow,
                 this.hoverPos.col,
                 offsetX,
-                offsetY
+                offsetY,
             );
         }
 
         // Draw selected piece last so it's always on top
         if (this.selectedPiece) {
+            const displayRow = this.boardSize - 1 - this.selectedPiece.row;
             // Draw the highlight first
-            this.drawSelectedPiece(offsetX, offsetY);
-            
+            this.drawSelectedPiece(offsetX, offsetY, displayRow);
+
             // Then draw the piece on top
-            const piece = this.getDrawnBoardPiece(
-                this.selectedPiece.row,
-                this.selectedPiece.col
-            );
+            const piece =
+                this.board[this.selectedPiece.row][this.selectedPiece.col];
             if (piece) {
                 this.drawPiece(
                     piece,
                     offsetX + this.selectedPiece.col * this.cellSize,
-                    offsetY + this.selectedPiece.row * this.cellSize,
-                    flipPieces
+                    offsetY + displayRow * this.cellSize,
                 );
             }
         }
     }
 
-    drawSelectedPiece(offsetX, offsetY) {
+    drawSelectedPiece(offsetX, offsetY, displayRow) {
         const x = offsetX + this.selectedPiece.col * this.cellSize;
-        const y = offsetY + this.selectedPiece.row * this.cellSize;
-        
+        const y = offsetY + displayRow * this.cellSize;
+
         // Draw a more prominent highlight for the selected piece
         this.ctx.fillStyle = "rgba(0, 255, 0, 0.4)";
         this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
-        
+
         // Add a thicker border around the selected piece
         this.ctx.strokeStyle = "rgba(0, 200, 0, 1)";
         this.ctx.lineWidth = 3;
@@ -1067,16 +955,16 @@ class ChessGame {
     }
 
     resetGame() {
-        this.board = this.initializeTrueBoard();
+        this.board = this.initializeBoard();
         this.currentPlayer = "white";
         this.selectedPiece = null;
         this.possibleMoves = [];
         this.updatePlayerDisplay();
         this.drawBoard();
-        
+
         // Re-enable piece movement
         this.canvas.style.pointerEvents = "auto";
-        
+
         // Hide game over popup if it's showing
         this.hideGameOverPopup();
     }
@@ -1087,107 +975,88 @@ class ChessGame {
             this.currentPlayer.slice(1)
         }`;
         document.getElementById("currentPlayer").textContent = playerText;
-        
+
         // Update turn indicator
         const turnIcon = document.getElementById("turnIcon");
         turnIcon.className = `turn-icon ${this.currentPlayer}`;
     }
 
     getPossibleMoves(row, col) {
-        // First get the piece from the true_board
-        const sourceRow = row % 8;
-        const sourceCol = col % 8;
-        const piece = this.true_board[sourceRow][sourceCol];
-        
+        const piece = this.board[row][col];
         if (!piece) return [];
 
-        console.log('Calculating moves for piece:', piece, 'at position:', { sourceRow, sourceCol });
+        // Helper function to normalize position and handle wrapping
+        const normalizePosition = (row, col) => {
+            let newRow = ((row % 8) + 8) % 8; // Ensure positive modulo
+            let newCol = ((col % 8) + 8) % 8; // Ensure positive modulo
+            return [newRow, newCol];
+        };
 
-        // Calculate moves for the base position within true_board
-        const moves = new Set(); // Use Set to avoid duplicate moves
-        
-        // Get base moves according to piece type
-        const baseMoves = this.calculateBaseMoves(sourceRow, sourceCol, piece);
-        
-        // Apply overflow rules to each base move
-        baseMoves.forEach(([r, c]) => {
-            // Add the base move first
-            moves.add(JSON.stringify([r, c]));
+        // Helper function to check if a position is valid and get the piece there
+        const getPieceAt = (row, col) => {
+            const [normalizedRow, normalizedCol] = normalizePosition(row, col);
+            return this.board[normalizedRow][normalizedCol];
+        };
 
-            // Apply overflow rules for edge cases
-            if (r >= 8) {
-                // Moving down off the board
-                moves.add(JSON.stringify([sourceCol, r - 8]));
-            }
-            if (r < 0) {
-                // Moving up off the board
-                moves.add(JSON.stringify([8 - sourceCol, sourceRow]));
-            }
-            if (c >= 8) {
-                // Moving right off the board
-                moves.add(JSON.stringify([8 - sourceRow, sourceCol]));
-            }
-            if (c < 0) {
-                // Moving left off the board
-                moves.add(JSON.stringify([sourceRow, 8 - sourceCol]));
-            }
-        });
-
-        // Convert moves back to arrays and normalize coordinates
-        const allMoves = Array.from(moves).map(move => {
-            let [r, c] = JSON.parse(move);
-            // Ensure coordinates are within valid range
-            r = ((r % 8) + 8) % 8;
-            c = ((c % 8) + 8) % 8;
-            return [r, c];
-        });
-
-        // Filter out moves that would capture own pieces
-        return allMoves.filter(([r, c]) => {
-            const targetPiece = this.true_board[r][c];
-            return !targetPiece || targetPiece.color !== piece.color;
-        });
-    }
-
-    calculateBaseMoves(row, col, piece) {
         const moves = [];
         const directions = {
             pawn: piece.color === "white" ? 1 : -1,
             rook: [[0, 1], [1, 0], [0, -1], [-1, 0]],
-            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [
+                2,
+                -1,
+            ], [2, 1]],
             bishop: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
-            queen: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
-            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+            queen: [
+                [0, 1],
+                [1, 0],
+                [0, -1],
+                [-1, 0],
+                [1, 1],
+                [1, -1],
+                [-1, 1],
+                [-1, -1],
+            ],
+            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [
+                -1,
+                -1,
+            ]],
         };
 
         switch (piece.type) {
             case "pawn":
                 // Forward move
                 const forwardRow = row + directions.pawn;
-                if (forwardRow >= 0 && forwardRow < 8) {
-                    // Check if forward square is empty
-                    if (!this.true_board[forwardRow][col]) {
-                        moves.push([forwardRow, col]);
-                        
-                        // First move can be 2 squares if path is clear
-                        if ((piece.color === "white" && row === 1) || (piece.color === "black" && row === 6)) {
-                            const doubleRow = row + (2 * directions.pawn);
-                            if (doubleRow >= 0 && doubleRow < 8 && !this.true_board[doubleRow][col]) {
-                                moves.push([doubleRow, col]);
-                            }
+                const [normForwardRow, normCol] = normalizePosition(
+                    forwardRow,
+                    col,
+                );
+                if (!getPieceAt(forwardRow, col)) {
+                    moves.push([normForwardRow, normCol]);
+                    // First move can be 2 squares
+                    if (
+                        (piece.color === "white" && row === 1) ||
+                        (piece.color === "black" && row === 6)
+                    ) {
+                        const doubleRow = row + (2 * directions.pawn);
+                        const [normDoubleRow, normDoubleCol] =
+                            normalizePosition(doubleRow, col);
+                        if (!getPieceAt(doubleRow, col)) {
+                            moves.push([normDoubleRow, normDoubleCol]);
                         }
                     }
                 }
-                
-                // Diagonal captures - only add if enemy piece is present
-                [-1, 1].forEach(dc => {
+                // Diagonal captures
+                [-1, 1].forEach((dc) => {
                     const captureRow = row + directions.pawn;
                     const captureCol = col + dc;
-                    if (captureRow >= 0 && captureRow < 8 && captureCol >= 0 && captureCol < 8) {
-                        const targetPiece = this.true_board[captureRow][captureCol];
-                        if (targetPiece && targetPiece.color !== piece.color) {
-                            moves.push([captureRow, captureCol]);
-                        }
+                    const [normCaptureRow, normCaptureCol] = normalizePosition(
+                        captureRow,
+                        captureCol,
+                    );
+                    const targetPiece = getPieceAt(captureRow, captureCol);
+                    if (targetPiece && targetPiece.color !== piece.color) {
+                        moves.push([normCaptureRow, normCaptureCol]);
                     }
                 });
                 break;
@@ -1195,26 +1064,27 @@ class ChessGame {
             case "rook":
             case "bishop":
             case "queen":
-                // Get the appropriate directions for the piece type
-                const pieceDirections = directions[piece.type];
-                
-                // For each direction the piece can move in
-                pieceDirections.forEach(([dr, dc]) => {
-                    let currentRow = row;
-                    let currentCol = col;
-                    
-                    // Move in that direction until we hit a piece or the board edge
-                    for (let steps = 1; steps <= 8; steps++) {
-                        currentRow = row + dr * steps;
-                        currentCol = col + dc * steps;
-                        
-                        // Add the move if it's within bounds
-                        moves.push([currentRow, currentCol]);
-                        
-                        // Stop if we hit a piece (we'll filter out invalid moves later)
-                        if (currentRow >= 0 && currentRow < 8 && currentCol >= 0 && currentCol < 8) {
-                            if (this.true_board[currentRow][currentCol]) break;
+                directions[piece.type].forEach(([dr, dc]) => {
+                    let currentRow = row + dr;
+                    let currentCol = col + dc;
+                    // Allow moving up to 8 squares in any direction to handle wrapping
+                    for (let steps = 0; steps < 8; steps++) {
+                        const [normRow, normCol] = normalizePosition(
+                            currentRow,
+                            currentCol,
+                        );
+                        const targetPiece = getPieceAt(currentRow, currentCol);
+
+                        if (!targetPiece) {
+                            moves.push([normRow, normCol]);
+                        } else {
+                            if (targetPiece.color !== piece.color) {
+                                moves.push([normRow, normCol]);
+                            }
+                            break; // Stop in this direction after hitting a piece
                         }
+                        currentRow += dr;
+                        currentCol += dc;
                     }
                 });
                 break;
@@ -1223,7 +1093,14 @@ class ChessGame {
                 directions.knight.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    moves.push([newRow, newCol]);
+                    const [normRow, normCol] = normalizePosition(
+                        newRow,
+                        newCol,
+                    );
+                    const targetPiece = getPieceAt(newRow, newCol);
+                    if (!targetPiece || targetPiece.color !== piece.color) {
+                        moves.push([normRow, normCol]);
+                    }
                 });
                 break;
 
@@ -1231,7 +1108,14 @@ class ChessGame {
                 directions.king.forEach(([dr, dc]) => {
                     const newRow = row + dr;
                     const newCol = col + dc;
-                    moves.push([newRow, newCol]);
+                    const [normRow, normCol] = normalizePosition(
+                        newRow,
+                        newCol,
+                    );
+                    const targetPiece = getPieceAt(newRow, newCol);
+                    if (!targetPiece || targetPiece.color !== piece.color) {
+                        moves.push([normRow, normCol]);
+                    }
                 });
                 break;
         }
@@ -1240,21 +1124,15 @@ class ChessGame {
     }
 
     drawPossibleMove(row, col, offsetX, offsetY) {
-        // Get the local coordinates within the current board
-        const localRow = row % 8;
-        const localCol = col % 8;
-
-        const centerX = offsetX + localCol * this.cellSize + this.cellSize / 2;
-        const centerY = offsetY + localRow * this.cellSize + this.cellSize / 2;
+        const centerX = offsetX + col * this.cellSize + this.cellSize / 2;
+        const centerY = offsetY + row * this.cellSize + this.cellSize / 2;
         const radius = this.cellSize * 0.2;
 
-        // Draw the dot indicator
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        
-        // Check if there's a piece at the target position
-        const targetPiece = this.true_board[row][col];
 
+        // Check if this move will capture a piece
+        const targetPiece = this.board[row][col];
         if (targetPiece) {
             // This is a capture move - use red
             this.ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
@@ -1266,64 +1144,9 @@ class ChessGame {
             this.ctx.fill();
             this.ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
         }
-        
+
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-
-        // Draw arrow from selected piece to this move
-        if (this.selectedPiece) {
-            const startX = offsetX + this.selectedPiece.col * this.cellSize + this.cellSize / 2;
-            const startY = offsetY + this.selectedPiece.row * this.cellSize + this.cellSize / 2;
-            
-            // Calculate arrow direction
-            const dx = centerX - startX;
-            const dy = centerY - startY;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            
-            // Normalize direction
-            const dirX = dx / length;
-            const dirY = dy / length;
-            
-            // Calculate arrow points
-            const arrowLength = this.cellSize * 0.8; // Length of the arrow
-            const arrowWidth = this.cellSize * 0.2; // Width of the arrow head
-            
-            // Start point (slightly offset from piece center)
-            const startOffset = this.cellSize * 0.3;
-            const arrowStartX = startX + dirX * startOffset;
-            const arrowStartY = startY + dirY * startOffset;
-            
-            // End point (slightly offset from target center)
-            const endOffset = this.cellSize * 0.3;
-            const arrowEndX = centerX - dirX * endOffset;
-            const arrowEndY = centerY - dirY * endOffset;
-            
-            // Draw arrow line
-            this.ctx.beginPath();
-            this.ctx.moveTo(arrowStartX, arrowStartY);
-            this.ctx.lineTo(arrowEndX, arrowEndY);
-            this.ctx.strokeStyle = targetPiece ? "rgba(200, 0, 0, 0.8)" : "rgba(100, 100, 100, 0.8)";
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
-            
-            // Draw arrow head
-            const angle = Math.atan2(dy, dx);
-            const arrowAngle1 = angle + Math.PI / 6;
-            const arrowAngle2 = angle - Math.PI / 6;
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(arrowEndX, arrowEndY);
-            this.ctx.lineTo(
-                arrowEndX - arrowWidth * Math.cos(arrowAngle1),
-                arrowEndY - arrowWidth * Math.sin(arrowAngle1)
-            );
-            this.ctx.moveTo(arrowEndX, arrowEndY);
-            this.ctx.lineTo(
-                arrowEndX - arrowWidth * Math.cos(arrowAngle2),
-                arrowEndY - arrowWidth * Math.sin(arrowAngle2)
-            );
-            this.ctx.stroke();
-        }
     }
 
     drawHoverHighlight(row, col, offsetX, offsetY) {
@@ -1336,55 +1159,15 @@ class ChessGame {
         );
     }
 
-    setView(isTorusView) {
-        this.isTorusView = isTorusView;
-        document.getElementById("tessellatedView").classList.toggle(
-            "active",
-            !isTorusView,
-        );
-        document.getElementById("torusView").classList.toggle(
-            "active",
-            isTorusView,
-        );
-
-        if (isTorusView) {
-            this.canvas.style.display = "none";
-            document.body.appendChild(this.renderer.domElement);
-            this.renderer.domElement.classList.add("three-js");
-
-            const sidebarWidth = 310;
-            const availableWidth = window.innerWidth - sidebarWidth;
-            const availableHeight = window.innerHeight;
-
-            this.renderer.setSize(availableWidth, availableHeight);
-            this.renderer.domElement.style.position = "absolute";
-            this.renderer.domElement.style.left = `${sidebarWidth}px`;
-            this.renderer.domElement.style.top = "0";
-            this.renderer.domElement.style.width = `${availableWidth}px`;
-            this.renderer.domElement.style.height = `${availableHeight}px`;
-
-            this.camera.aspect = availableWidth / availableHeight;
-            this.camera.updateProjectionMatrix();
-
-            this.camera.position.set(0, -30, 15);
-            this.camera.lookAt(0, 0, 0);
-            this.controls.update();
-        } else {
-            this.renderer.domElement.remove();
-            this.canvas.style.display = "block";
-            this.drawBoard();
-        }
-    }
-
     handleGameOver(winner) {
         // Show game over popup
         this.gameOverPopup.style.display = "block";
         this.overlay.style.display = "block";
-        
+
         // Update winner text
         const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
         this.winnerText.textContent = `${winnerText} wins!`;
-        
+
         // Disable piece movement
         this.canvas.style.pointerEvents = "none";
     }
