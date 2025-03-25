@@ -26,46 +26,60 @@
         canvas {
             position: fixed;
             top: 0;
-            left: 310px; /* Position after sidebar */
-            width: calc(100vw - 310px); /* Full width minus sidebar */
+            left: 0;
+            width: 100vw;
             height: 100vh;
             background-color: #f0f0f0;
-            touch-action: none; /* Prevents default touch actions */
+            touch-action: none;
         }
         .three-js {
             position: absolute !important;
             top: 0 !important;
-            left: 310px !important; /* Position after sidebar */
-            width: calc(100vw - 310px) !important; /* Full width minus sidebar */
+            left: 0 !important;
+            width: 100vw !important;
             height: 100vh !important;
         }
         /* Modernized sidebar */
         .sidebar {
             position: fixed;
             width: 280px;
-            height: calc(100vh - 30px);
+            height: 100vh;
             background-color: rgba(127, 127, 127, 0.3);
-            padding: 30px;
+            padding: 20px;
             z-index: 1000;
             pointer-events: auto;
             flex-shrink: 0;
-            left: 15px;
-            top: 15px;
-            border-radius: 15px;
+            left: 0;
+            top: 0;
             backdrop-filter: blur(10px);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         /* Styled buttons */
         .projection-selector {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .projection-selector button {
             width: 100%;
-            margin: 8px 0;
-            padding: 12px 20px;
-            font-size: 16px;
+            margin: 5px 0;
+            padding: 8px 15px;
+            font-size: 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             background-color: #4CAF50;
             color: white;
             cursor: pointer;
@@ -83,11 +97,11 @@
         /* Game control buttons */
         #resetButton {
             width: 100%;
-            margin: 8px 0;
-            padding: 12px 20px;
-            font-size: 16px;
+            margin: 5px 0;
+            padding: 8px 15px;
+            font-size: 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             background-color: #f5f5f5;
             color: #333;
             cursor: pointer;
@@ -99,41 +113,41 @@
         }
         /* Game info section */
         .game-info {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
         .game-info p {
-            font-size: 16px;
+            font-size: 14px;
             color: #333;
-            margin: 10px 0;
+            margin: 5px 0;
         }
         /* Section title */
         .section-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         /* Checkbox styling */
         .view-options {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid rgba(0, 0, 0, 0.1);
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
         
         .checkbox-container {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 16px;
+            font-size: 14px;
             color: #333;
             cursor: pointer;
         }
         
         .checkbox-container input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             cursor: pointer;
         }
         /* Info popup styling */
@@ -144,30 +158,32 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             z-index: 2000;
-            max-width: 500px;
-            width: 90%;
+            max-width: 90%;
+            width: 400px;
         }
         .info-popup h2 {
             margin-top: 0;
             color: #333;
+            font-size: 20px;
         }
-        .info-popup p {
-            line-height: 1.6;
+        .info-popup p, .info-popup ul {
+            line-height: 1.5;
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
         }
         .info-popup button {
             background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             transition: background-color 0.2s;
         }
         .info-popup button:hover {
@@ -175,10 +191,10 @@
         }
         .info-icon {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 24px;
-            height: 24px;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
             color: #666;
             transition: color 0.2s;
@@ -203,33 +219,33 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             z-index: 2000;
-            max-width: 500px;
-            width: 90%;
+            max-width: 90%;
+            width: 400px;
             text-align: center;
         }
         .game-over-popup h2 {
             margin-top: 0;
             color: #333;
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 20px;
+            margin-bottom: 15px;
         }
         .game-over-popup p {
-            font-size: 18px;
+            font-size: 16px;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .game-over-popup button {
             background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             transition: background-color 0.2s;
         }
         .game-over-popup button:hover {
@@ -238,44 +254,62 @@
         .turn-indicator {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
         .turn-icon {
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            border: 3px solid #333;
+            border: 2px solid #333;
             transition: all 0.3s ease;
         }
         
         .turn-icon.white {
             background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
         }
         
         .turn-icon.black {
             background-color: black;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+        }
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 250px;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .menu-toggle {
+                display: block;
+            }
+            canvas {
+                left: 0;
+                width: 100vw;
+            }
+            .info-popup, .game-over-popup {
+                width: 90%;
+                max-width: 350px;
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <button class="menu-toggle" id="menuToggle">☰</button>
     <div class="overlay" id="overlay"></div>
     <div class="info-popup" id="infoPopup">
-        <h2>Welcome to Topologic Chess!</h2>
+        <h2>Welcome to Torus Chess!</h2>
+        <p>This is a unique variant of chess played on a torus (donut shape) with a reflection. This allows for topological weirdness while still being a playable game.</p>
         <ul>
-            <li>The board is embedded on a <a href="https://en.wikipedia.org/wiki/Torus">Torus</a>. </li>
-            <li>The edges of the board wrap around to connect to the opposite edge.</li>
-            <br>
-            <li>Move around the infinite board by dragging the mouse.</li>
-            <li>Scroll to zoom in and out.</li>
-            <li>View the game board in 2D with the "Tessellated View" button.</li>
-            <li>View the game board in 3D with the "Torus View" button.</li>
-            <br>
-            <li>Multiplayer or AI opponents not yet implemented. #todo!</li>
+            <li><strong>Horizontal Wrapping:</strong> Moving off the right edge brings you to the left edge</li>
+            <li><strong>Vertical Reflection:</strong> Moving off the top edge brings you to the bottom edge, but reflected</li>
         </ul>
+        <p>Good luck!</p>
         <button id="startGameBtn">Start Game</button>
     </div>
     <div class="game-over-popup" id="gameOverPopup">
@@ -292,26 +326,25 @@
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
-            <div class="section-title">View Mode</div>
+            <div class="section-title">Controls</div>
             <div class="projection-selector">
                 <button id="tessellatedView" class="active">Tessellated View</button>
-                <button id="torusView">Torus View</button>
                 <button id="helpButton">Help</button>
-                <button id="topologicGo" onclick="window.location.href='index.html'">Topologic Go</button>
+                <button id="topologicGo" onclick="window.location.href='index.html'">← Back to All Games</button>
             </div>
             
-            <div class="section-title">Game Controls</div>
+            <div class="section-title">Game</div>
             <button id="resetButton">New Game</button>
             
             <div class="game-info">
-                <div class="section-title">Game Status</div>
+                <div class="section-title">Status</div>
                 <div class="turn-indicator">
                     <div id="turnIcon" class="turn-icon"></div>
                     <p id="currentPlayer">Current Player: White</p>
                 </div>
                 
                 <div class="view-options">
-                    <div class="section-title">View Options</div>
+                    <div class="section-title">View</div>
                     <label class="checkbox-container">
                         <input type="checkbox" id="showBoardEdges">
                         Show Board Edges
