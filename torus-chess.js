@@ -298,8 +298,7 @@ class ChessGame {
                     this.board[this.selectedPiece.row][this.selectedPiece.col] = null;
                     
                     // Check if a king was captured
-                    const capturedPiece = this.board[row][col];
-                    if (capturedPiece && capturedPiece.type === 'king') {
+                    if (this.isKingCaptured(this.currentPlayer === "white" ? "black" : "white")) {
                         this.handleGameOver(this.currentPlayer);
                         return;
                     }
@@ -1172,16 +1171,14 @@ class ChessGame {
     }
 
     handleGameOver(winner) {
-        // Show game over popup
-        this.gameOverPopup.style.display = "block";
-        this.overlay.style.display = "block";
-        
-        // Update winner text
-        const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
-        this.winnerText.textContent = `${winnerText} wins!`;
-        
         // Disable piece movement
         this.canvas.style.pointerEvents = "none";
+
+        // Show game over popup
+        const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
+        this.winnerText.textContent = `Game Over! ${winnerText} wins by capturing the king!`;
+        this.gameOverPopup.style.display = "block";
+        this.overlay.style.display = "block";
     }
 
     // Add these new methods for coordinate display
@@ -1217,6 +1214,22 @@ class ChessGame {
             Real Board: [${coords.real.row}, ${coords.real.col}]<br>
             Tessellation: [${coords.tessellation.row}, ${coords.tessellation.col}]
         `;
+    }
+
+    isKingCaptured(color) {
+        // Check if the king of the specified color is still on the board
+        let kingFound = false;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = this.board[row][col];
+                if (piece && piece.type === "king" && piece.color === color) {
+                    kingFound = true;
+                    break;
+                }
+            }
+            if (kingFound) break;
+        }
+        return !kingFound;
     }
 }
 

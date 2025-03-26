@@ -521,11 +521,15 @@ class ChessGame {
     initializeBoard() {
         const board = Array(8).fill().map(() => Array(8).fill(null));
 
+        // Initialize pawns
         for (let i = 0; i < 8; i++) {
-            board[6][i] = { type: "pawn", color: "black", direction: 1 }; // Black pawns move down
-            board[1][i] = { type: "pawn", color: "white", direction: -1 }; // White pawns move up
+            // Black pawns start at row 6 (bottom)
+            board[6][i] = { type: "pawn", color: "black", direction: 1 };
+            // White pawns start at row 1 (top)
+            board[1][i] = { type: "pawn", color: "white", direction: -1 };
         }
 
+        // Initialize other pieces
         const pieces = [
             "rook",
             "knight",
@@ -536,8 +540,14 @@ class ChessGame {
             "knight",
             "rook",
         ];
+
+        // Black pieces at the bottom (row 7)
         for (let i = 0; i < 8; i++) {
             board[7][i] = { type: pieces[i], color: "black" };
+        }
+
+        // White pieces at the top (row 0)
+        for (let i = 0; i < 8; i++) {
             board[0][i] = { type: pieces[i], color: "white" };
         }
 
@@ -604,17 +614,16 @@ class ChessGame {
 
         // Draw vertical lines
         for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
-            for (let i = 0; i < this.boardSize; i++) {
+            for (let i = 0; i <= this.boardSize; i++) {
                 const x = tileCol * this.singleBoardSize + this.gridOffset + i * this.cellSize;
                 if (x >= totalStartX && x <= totalEndX) {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
                         this.ctx.lineWidth = 4;
-                        const edgeX = x + this.cellSize / 2;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(edgeX, totalStartY);
-                        this.ctx.lineTo(edgeX, totalEndY);
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
                         this.ctx.lineWidth = 2;
@@ -642,17 +651,16 @@ class ChessGame {
 
         // Draw horizontal lines
         for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
-            for (let i = 0; i < this.boardSize; i++) {
+            for (let i = 0; i <= this.boardSize; i++) {
                 const y = tileRow * this.singleBoardSize + this.gridOffset + i * this.cellSize;
                 if (y >= totalStartY && y <= totalEndY) {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
                         this.ctx.lineWidth = 4;
-                        const edgeY = y + this.cellSize / 2;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(totalStartX, edgeY);
-                        this.ctx.lineTo(totalEndX, edgeY);
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
                         this.ctx.lineWidth = 2;
@@ -856,14 +864,21 @@ class ChessGame {
                 <p>This is a variant of chess played on a torus (donut shape), represented as a flat board with special wrapping rules:</p>
                 <ul>
                     <li>The board wraps horizontally: moving off the right edge brings you to the left edge of the board.</li>
-                    <li>The board wraps vertically with reflection: moving off the top edge brings you to the bottom edge, but reflected.</li>
+                    <li>The board wraps vertically with rotation: moving off the top edge brings you to the bottom edge, but rotated.</li>
                 </ul>
                 <p>This creates interesting tactical possibilities as pieces can move in ways not possible on a regular chess board.</p>
-                <p><strong>Pawns:</strong> Pawns maintain their direction of movement across horizontal wrapping, but reverse direction when crossing a reflection boundary.</p>
+                <p><strong>Board Rotation Pattern:</strong></p>
+                <ul>
+                    <li><strong>Normal Board:</strong> Standard 8x8 chess board (0,0 to 7,7)</li>
+                    <li><strong>Right-Rotated Board:</strong> Board rotated 90° clockwise (white pieces on left)</li>
+                    <li><strong>Fully Reflected Board:</strong> Board completely reflected (black pieces on top)</li>
+                    <li><strong>Left-Rotated Board:</strong> Board rotated 90° counter-clockwise (white pieces on right)</li>
+                </ul>
+                <p><strong>Pawns:</strong> Pawns maintain their direction of movement across horizontal wrapping, but reverse direction when crossing rotation boundaries.</p>
                 <p><strong>Coordinate Systems:</strong></p>
                 <ul>
                     <li><strong>Real Board:</strong> The standard 8x8 chess board (0,0 to 7,7)</li>
-                    <li><strong>Rotation Board:</strong> Includes reflection area (0,0 to 7,15)</li>
+                    <li><strong>Rotation Board:</strong> Includes all four rotation zones (0,0 to 7,15)</li>
                     <li><strong>Tessellation Board:</strong> Infinite repeating pattern of the rotation board</li>
                 </ul>
                 <p>Toggle "Show Board Edges" to visualize the boundaries between boards.</p>
@@ -919,33 +934,55 @@ class ChessGame {
 
     // Converts tessellation coordinates to real board coordinates
     normalizePosition(row, col) {
-        // Handle x-axis wrapping with modulo 8
-        let newCol = ((col % 8) + 8) % 8;
-
-        // Handle y-axis wrapping and reflection
-        // First normalize to the 0-15 range (16 = 2*8 for reflection)
+        // Handle x-axis wrapping with modulo 16 (2 boards * 8 columns)
+        let newCol = ((col % 16) + 16) % 16;
+        // Handle y-axis wrapping with modulo 16 (2 boards * 8 rows)
         let newRow = ((row % 16) + 16) % 16;
 
-        // If in the reflection zone (8-15), reflect back to 0-7
-        if (newRow >= 8) {
-            newRow = 15 - newRow; // This reflects 8->7, 9->6, 10->5, etc.
-        }
+        // Determine which rotation zone we're in (0-3)
+        const rotationZone = (Math.floor(newRow / 8) * 2) + Math.floor(newCol / 8);
 
-        return [newRow, newCol];
+        // Get local coordinates within the current board
+        const localRow = newRow % 8;
+        const localCol = newCol % 8;
+
+        // Apply rotation based on zone in spiral pattern
+        switch (rotationZone) {
+            case 0: // Bottom left - Normal board
+                return [localRow, localCol];
+            case 1: // Bottom right - Right-rotated board
+                return [7 - localCol, localRow];
+            case 2: // Top right - Left-rotated board
+                return [localCol, 7 - localRow];
+            case 3: // Top left - Fully reflected board
+                return [7 - localRow, 7 - localCol];
+            default:
+                return [localRow, localCol];
+        }
     }
 
     // Determines if a position in tessellation space is in a reflected zone
     isPositionReflected(row, col) {
-        // Position is reflected if its normalized tessellation row is >= 8
-        return ((row % 16) + 16) % 16 >= 8;
+        // Position is reflected if it's in the top boards (zones 2 or 3)
+        return Math.floor(((row % 16) + 16) % 16 / 8) === 1;
     }
 
     // Determines the color of a square in the tessellation space
     isLightSquare(tessRow, tessCol) {
-        // In standard chess, (row+col) % 2 == 0 is a light square
-        // But on a torus with reflection, we need to consider how reflection affects the pattern
+        // Get the real board coordinates
         const [realRow, realCol] = this.normalizePosition(tessRow, tessCol);
-        return (realRow + realCol) % 2 === 0;
+        
+        // Determine which rotation zone we're in
+        const newRow = ((tessRow % 16) + 16) % 16;
+        const newCol = ((tessCol % 16) + 16) % 16;
+        const rotationZone = (Math.floor(newRow / 8) * 2) + Math.floor(newCol / 8);
+        
+        // In standard chess, (row+col) % 2 == 0 is a light square
+        // We need to adjust this based on the rotation zone
+        const isLight = (realRow + realCol) % 2 === 0;
+        
+        // In the top boards (zones 2 and 3), we need to invert the pattern
+        return rotationZone >= 2 ? !isLight : isLight;
     }
 
     // Creates a coordinate display element
@@ -978,17 +1015,33 @@ class ChessGame {
     updateCoordinateDisplay(coords) {
         if (!this.coordinateDisplay) return;
 
+        // Determine which rotation zone we're in
+        const rotationZone = Math.floor(((coords.tessellation.row % 16) + 16) % 16 / 4);
+        let zoneDescription;
+        switch (rotationZone) {
+            case 0:
+                zoneDescription = '<span style="color: #99ff99">Normal Board</span>';
+                break;
+            case 1:
+                zoneDescription = '<span style="color: #99ccff">Right-Rotated Board</span>';
+                break;
+            case 2:
+                zoneDescription = '<span style="color: #ff9999">Fully Reflected Board</span>';
+                break;
+            case 3:
+                zoneDescription = '<span style="color: #99ccff">Left-Rotated Board</span>';
+                break;
+            default:
+                zoneDescription = '<span style="color: #cccccc">Unknown Zone</span>';
+        }
+
         this.coordinateDisplay.style.display = "block";
         this.coordinateDisplay.innerHTML = `
             <strong>Coordinates:</strong><br>
             Real Board: [${coords.real.row}, ${coords.real.col}]<br>
             Rotation Board: [${coords.rotation.row}, ${coords.rotation.col}]<br>
             Tessellation: [${coords.tessellation.row}, ${coords.tessellation.col}]<br>
-            ${
-            coords.isReflected
-                ? '<span style="color: #ff9999">In Reflection Zone</span>'
-                : '<span style="color: #99ff99">In Normal Zone</span>'
-        }
+            ${zoneDescription}
         `;
     }
 
@@ -1233,6 +1286,17 @@ class ChessGame {
         this.ctx.strokeStyle = isCapture ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 200, 0, 0.5)";
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
+    }
+
+    handleGameOver(winner) {
+        // Disable piece movement
+        this.canvas.style.pointerEvents = "none";
+
+        // Show game over popup
+        const winnerText = winner.charAt(0).toUpperCase() + winner.slice(1);
+        this.winnerText.textContent = `Game Over! ${winnerText} wins by capturing the king!`;
+        this.gameOverPopup.style.display = "block";
+        this.overlay.style.display = "block";
     }
 }
 

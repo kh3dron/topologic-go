@@ -548,8 +548,8 @@ class ChessGame {
         const board = Array(8).fill().map(() => Array(8).fill(null));
 
         for (let i = 0; i < 8; i++) {
-            board[6][i] = { type: "pawn", color: "black", direction: -1 }; // Black pawns move up
-            board[1][i] = { type: "pawn", color: "white", direction: 1 }; // White pawns move down
+            board[6][i] = { type: "pawn", color: "black", direction: 1 }; // Black pawns move up
+            board[1][i] = { type: "pawn", color: "white", direction: -1 }; // White pawns move down
         }
 
         const pieces = [
