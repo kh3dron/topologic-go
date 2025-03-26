@@ -163,6 +163,35 @@ class ChessGame {
             this.hideGameOverPopup();
             this.resetGame();
         });
+
+        // Add mobile menu toggle functionality
+        const menuToggle = document.getElementById("menuToggle");
+        const sidebar = document.querySelector(".sidebar");
+        const overlay = document.getElementById("overlay");
+
+        menuToggle.addEventListener("click", () => {
+            sidebar.classList.toggle("active");
+            overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
+        });
+
+        overlay.addEventListener("click", () => {
+            sidebar.classList.remove("active");
+            overlay.style.display = "none";
+        });
+
+        // Close menu when clicking outside on mobile
+        document.addEventListener("click", (e) => {
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(e.target) && 
+                !menuToggle.contains(e.target) && 
+                sidebar.classList.contains("active")) {
+                sidebar.classList.remove("active");
+                overlay.style.display = "none";
+            }
+        });
+
+        // Create coordinate display element
+        this.createCoordinateDisplay();
     }
 
     loadPieceImages() {
@@ -289,6 +318,13 @@ class ChessGame {
                 }
             }
         }
+
+        // Update coordinate display
+        const coords = {
+            real: { row: row, col: col },
+            tessellation: { row: tileRow, col: tileCol }
+        };
+        this.updateCoordinateDisplay(coords);
     }
 
     handleHover(event) {
@@ -895,11 +931,28 @@ class ChessGame {
     }
 
     showPopup() {
+        const infoContent = document.getElementById("popupContent");
+        if (infoContent) {
+            infoContent.innerHTML = `
+                <h3>Torus Chess</h3>
+                <p>This is a variant of chess played on a torus (donut shape), represented as a flat board with special wrapping rules:</p>
+                <ul>
+                    <li>The board wraps horizontally: moving off the right edge brings you to the left edge of the board.</li>
+                    <li>The board wraps vertically: moving off the top edge brings you to the bottom edge.</li>
+                </ul>
+                <p>This creates interesting tactical possibilities as pieces can move in ways not possible on a regular chess board.</p>
+                <p><strong>Coordinate Systems:</strong></p>
+                <ul>
+                    <li><strong>Real Board:</strong> The standard 8x8 chess board (0,0 to 7,7)</li>
+                    <li><strong>Tessellation Board:</strong> Infinite repeating pattern of the board</li>
+                </ul>
+                <p>Toggle "Show Board Edges" to visualize the boundaries between boards.</p>
+            `;
+        }
+
         this.infoPopup.style.display = "block";
         this.overlay.style.display = "block";
-        this.startGameBtn.style.display = this.hasStartedGame
-            ? "none"
-            : "block";
+        this.startGameBtn.style.display = this.hasStartedGame ? "none" : "block";
     }
 
     hidePopup() {
@@ -1052,29 +1105,20 @@ class ChessGame {
     }
 
     drawPossibleMove(row, col, offsetX, offsetY) {
-        const centerX = offsetX + col * this.cellSize + this.cellSize / 2;
-        const centerY = offsetY + row * this.cellSize + this.cellSize / 2;
-        const radius = this.cellSize * 0.2;
+        const x = offsetX + col * this.cellSize;
+        const y = offsetY + row * this.cellSize;
 
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        
         // Check if this move will capture a piece
         const targetPiece = this.board[row][col];
-        if (targetPiece) {
-            // This is a capture move - use red
-            this.ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-            this.ctx.fill();
-            this.ctx.strokeStyle = "rgba(200, 0, 0, 0.8)";
-        } else {
-            // This is a regular move - use grey
-            this.ctx.fillStyle = "rgba(128, 128, 128, 0.5)";
-            this.ctx.fill();
-            this.ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
-        }
-        
+
+        // Draw a semi-transparent highlight for possible moves
+        this.ctx.fillStyle = targetPiece ? "rgba(255, 0, 0, 0.3)" : "rgba(0, 255, 0, 0.2)";
+        this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+
+        // Add a border around the highlight
+        this.ctx.strokeStyle = targetPiece ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 200, 0, 0.5)";
         this.ctx.lineWidth = 2;
-        this.ctx.stroke();
+        this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
     }
 
     drawHoverHighlight(row, col, offsetX, offsetY) {
@@ -1138,6 +1182,41 @@ class ChessGame {
         
         // Disable piece movement
         this.canvas.style.pointerEvents = "none";
+    }
+
+    // Add these new methods for coordinate display
+    createCoordinateDisplay() {
+        // Create the coordinate display element if it doesn't exist
+        if (!document.getElementById("coordinateDisplay")) {
+            const display = document.createElement("div");
+            display.id = "coordinateDisplay";
+            display.style.position = "fixed";
+            display.style.bottom = "10px";
+            display.style.left = "10px";
+            display.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+            display.style.color = "white";
+            display.style.padding = "10px";
+            display.style.borderRadius = "5px";
+            display.style.fontFamily = "monospace";
+            display.style.fontSize = "12px";
+            display.style.zIndex = "1000";
+            display.style.display = "none";
+            document.body.appendChild(display);
+            this.coordinateDisplay = display;
+        } else {
+            this.coordinateDisplay = document.getElementById("coordinateDisplay");
+        }
+    }
+
+    updateCoordinateDisplay(coords) {
+        if (!this.coordinateDisplay) return;
+
+        this.coordinateDisplay.style.display = "block";
+        this.coordinateDisplay.innerHTML = `
+            <strong>Coordinates:</strong><br>
+            Real Board: [${coords.real.row}, ${coords.real.col}]<br>
+            Tessellation: [${coords.tessellation.row}, ${coords.tessellation.col}]
+        `;
     }
 }
 
