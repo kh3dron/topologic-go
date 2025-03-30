@@ -623,24 +623,23 @@ class ChessGame {
         this.ctx.lineWidth = 2;
 
         // Calculate the total visible area in board coordinates
-        const totalStartX = startTileCol * this.singleBoardSize + this.gridOffset;
-        const totalEndX = (endTileCol + 1) * this.singleBoardSize - this.gridOffset;
-        const totalStartY = startTileRow * this.singleBoardSize + this.gridOffset;
-        const totalEndY = (endTileRow + 1) * this.singleBoardSize - this.gridOffset;
+        const totalStartX = startTileCol * this.singleBoardSize;
+        const totalEndX = (endTileCol + 1) * this.singleBoardSize;
+        const totalStartY = startTileRow * this.singleBoardSize;
+        const totalEndY = (endTileRow + 1) * this.singleBoardSize;
 
         // Draw vertical lines
         for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
-            for (let i = 0; i < this.boardSize; i++) {
-                const x = tileCol * this.singleBoardSize + this.gridOffset + i * this.cellSize;
+            for (let i = 0; i <= this.boardSize; i++) {
+                const x = tileCol * this.singleBoardSize + i * this.cellSize;
                 if (x >= totalStartX && x <= totalEndX) {
-                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    // Draw board edge (red line) if this is the first or last line of a board and edges are enabled
+                    if (this.showBoardEdges && (i === 0 || i === this.boardSize)) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 4;
-                        const edgeX = x + this.cellSize; // Move edge to be between tiles
+                        this.ctx.lineWidth = 8;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(edgeX, totalStartY);
-                        this.ctx.lineTo(edgeX, totalEndY);
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
                         this.ctx.lineWidth = 2;
@@ -651,8 +650,8 @@ class ChessGame {
                     if (this.showBoardEdges) {
                         // Draw separate segments for each board when edges are shown
                         for (let tileRow = startTileRow; tileRow <= endTileRow; tileRow++) {
-                            const startY = tileRow * this.singleBoardSize + this.gridOffset;
-                            const endY = startY + (this.boardSize - 1) * this.cellSize;
+                            const startY = tileRow * this.singleBoardSize;
+                            const endY = startY + this.boardSize * this.cellSize;
                             this.ctx.moveTo(x, startY);
                             this.ctx.lineTo(x, endY);
                         }
@@ -668,17 +667,16 @@ class ChessGame {
 
         // Draw horizontal lines
         for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
-            for (let i = 0; i < this.boardSize; i++) {
-                const y = tileRow * this.singleBoardSize + this.gridOffset + i * this.cellSize;
+            for (let i = 0; i <= this.boardSize; i++) {
+                const y = tileRow * this.singleBoardSize + i * this.cellSize;
                 if (y >= totalStartY && y <= totalEndY) {
-                    // Draw board edge (red line) if this is the last line of a board and edges are enabled
-                    if (this.showBoardEdges && i === this.boardSize - 1) {
+                    // Draw board edge (red line) if this is the first or last line of a board and edges are enabled
+                    if (this.showBoardEdges && (i === 0 || i === this.boardSize)) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 4;
-                        const edgeY = y + this.cellSize; // Move edge to be between tiles
+                        this.ctx.lineWidth = 8;
                         this.ctx.beginPath();
-                        this.ctx.moveTo(totalStartX, edgeY);
-                        this.ctx.lineTo(totalEndX, edgeY);
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
                         this.ctx.stroke();
                         this.ctx.strokeStyle = "black";
                         this.ctx.lineWidth = 2;
@@ -689,8 +687,8 @@ class ChessGame {
                     if (this.showBoardEdges) {
                         // Draw separate segments for each board when edges are shown
                         for (let tileCol = startTileCol; tileCol <= endTileCol; tileCol++) {
-                            const startX = tileCol * this.singleBoardSize + this.gridOffset;
-                            const endX = startX + (this.boardSize - 1) * this.cellSize;
+                            const startX = tileCol * this.singleBoardSize;
+                            const endX = startX + this.boardSize * this.cellSize;
                             this.ctx.moveTo(startX, y);
                             this.ctx.lineTo(endX, y);
                         }
