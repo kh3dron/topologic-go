@@ -548,8 +548,8 @@ class ChessGame {
         const board = Array(8).fill().map(() => Array(8).fill(null));
 
         for (let i = 0; i < 8; i++) {
-            board[6][i] = { type: "pawn", color: "black", direction: 1 }; // Black pawns move up
-            board[1][i] = { type: "pawn", color: "white", direction: -1 }; // White pawns move down
+            board[6][i] = { type: "pawn", color: "black", direction: -1 }; // Black pawns move up
+            board[1][i] = { type: "pawn", color: "white", direction: 1 }; // White pawns move down
         }
 
         const pieces = [
@@ -1028,77 +1028,47 @@ class ChessGame {
 
         const moves = [];
 
-        // For pawns, we need to consider their direction based on whether they're in a reflected zone
+        // For pawns, we always use their original direction in real board space
         let pawnDirection = piece.type === "pawn" ? piece.direction : 0;
-
-        // If the pawn is in a reflected zone, its direction is reversed
-        if (piece.type === "pawn" && isReflected) {
-            pawnDirection *= -1;
-        }
 
         const directions = {
             rook: [[0, 1], [1, 0], [0, -1], [-1, 0]],
-            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [
-                2,
-                -1,
-            ], [2, 1]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
             bishop: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
-            queen: [
-                [0, 1],
-                [1, 0],
-                [0, -1],
-                [-1, 0],
-                [1, 1],
-                [1, -1],
-                [-1, 1],
-                [-1, -1],
-            ],
-            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [
-                -1,
-                -1,
-            ]],
+            queen: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
+            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
         };
 
         switch (piece.type) {
             case "pawn":
-                // Forward move
+                // Forward move - always calculate in real board space
                 const forwardRow = row + pawnDirection;
-                const [normForwardRow, normForwardCol] = this.normalizePosition(
-                    forwardRow,
-                    col,
-                );
+                const [normForwardRow, normForwardCol] = this.normalizePosition(forwardRow, col);
 
                 // Check if the square in front is empty
-                if (!getPieceAt(forwardRow, col)) {
+                if (!this.board[normForwardRow][normForwardCol]) {
                     moves.push([normForwardRow, normForwardCol]);
 
                     // First move can be 2 squares
-                    const isStartingPosition =
-                        (piece.color === "white" && row === 1) ||
-                        (piece.color === "black" && row === 6);
+                    const isStartingPosition = (piece.color === "white" && row === 1) || (piece.color === "black" && row === 6);
 
                     if (isStartingPosition) {
                         const doubleRow = row + (2 * pawnDirection);
-                        const [normDoubleRow, normDoubleCol] = this
-                            .normalizePosition(doubleRow, col);
+                        const [normDoubleRow, normDoubleCol] = this.normalizePosition(doubleRow, col);
 
-                        if (!getPieceAt(doubleRow, col)) {
+                        if (!this.board[normDoubleRow][normDoubleCol]) {
                             moves.push([normDoubleRow, normDoubleCol]);
                         }
                     }
                 }
 
-                // Diagonal captures
-                [-1, 1].forEach((dc) => {
+                // Diagonal captures - calculate in real board space
+                [-1, 1].forEach(dc => {
                     const captureRow = row + pawnDirection;
                     const captureCol = col + dc;
-                    const [normCaptureRow, normCaptureCol] = this
-                        .normalizePosition(
-                            captureRow,
-                            captureCol,
-                        );
+                    const [normCaptureRow, normCaptureCol] = this.normalizePosition(captureRow, captureCol);
 
-                    const targetPiece = getPieceAt(captureRow, captureCol);
+                    const targetPiece = this.board[normCaptureRow][normCaptureCol];
                     if (targetPiece && targetPiece.color !== piece.color) {
                         moves.push([normCaptureRow, normCaptureCol]);
                     }
