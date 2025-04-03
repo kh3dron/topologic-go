@@ -694,7 +694,7 @@ class ChessGame {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
                     if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 4;
+                        this.ctx.lineWidth = 8;
                         this.ctx.beginPath();
                         this.ctx.moveTo(x, totalStartY);
                         this.ctx.lineTo(x, totalEndY);
@@ -731,7 +731,7 @@ class ChessGame {
                     // Draw board edge (red line) if this is the last line of a board and edges are enabled
                     if (this.showBoardEdges && i === this.boardSize) {
                         this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 4;
+                        this.ctx.lineWidth = 8;
                         this.ctx.beginPath();
                         this.ctx.moveTo(totalStartX, y);
                         this.ctx.lineTo(totalEndX, y);
