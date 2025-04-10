@@ -173,7 +173,7 @@ class ChessGame {
                         this.drawBoard();
                     }
                 };
-                img.src = `chess_icons/${color}_${piece}.webp`;
+                img.src = `../../chess_icons/${color}_${piece}.webp`;
                 this.pieceImages[`${color}_${piece}`] = img;
             });
         });

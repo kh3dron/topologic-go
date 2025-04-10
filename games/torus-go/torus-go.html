@@ -4,23 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Topologic Chess</title>
+    <title>Topological Go</title>
     <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../style.css">
 </head>
 <body>
-    <button class="menu-toggle" id="menuToggle">☰</button>
     <div class="overlay" id="overlay"></div>
     <div class="info-popup" id="infoPopup">
-        <h2>Welcome to Torus ReflectedChess!</h2>
-        <p>This is a unique variant of chess played on a torus (donut shape) with a reflection. This allows for topological weirdness while still being a playable game.</p>
+        <h2>Welcome to Topological Go!</h2>
         <ul>
-            <li><strong>Horizontal Wrapping:</strong> Moving off the right edge brings you to the left edge</li>
-            <li><strong>Vertical Reflection:</strong> Moving off the top edge brings you to the bottom edge, but reflected</li>
+            <li>The board is embedded on a <a href="https://en.wikipedia.org/wiki/Torus">Torus</a>. </li>
+            <li>The edges of the board wrap around to connect to the opposite edge.</li>
+            <br>
+            <li>There are no star points, edges or corners. </li>
+            <br>
+            <li>Move around the infinite board by dragging the mouse.</li>
+            <li>Scroll to zoom in and out.</li>
+            <li>View the game board in 2D with the "Tessellated View" button.</li>
+            <li>View the game board in 3D with the "Torus View" button.</li>
+            <br>
+            <li>Multiplayer or AI opponents not yet implemented. #todo!</li>
         </ul>
-        <p>Good luck!</p>
         <button id="startGameBtn">Start Game</button>
     </div>
     <div class="game-over-popup" id="gameOverPopup">
@@ -29,7 +35,7 @@
         <button id="newGameBtn">New Game</button>
     </div>
     <div class="game-container">
-        <canvas id="chessBoard"></canvas>
+        <canvas id="goBoard"></canvas>
         
         <div class="sidebar">
             <svg class="info-icon" id="infoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -37,33 +43,41 @@
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
-            <div class="section-title">Controls</div>
+            <div class="section-title">View Mode</div>
             <div class="projection-selector">
                 <button id="tessellatedView" class="active">Tessellated View</button>
+                <button id="torusView">Torus View</button>
                 <button id="helpButton">Help</button>
-                <button id="topologicGo" onclick="window.location.href='index.html'">← Back to All Games</button>
+                <button id="topologicChess" onclick="window.location.href='chess.html'">Topologic Chess</button>
             </div>
             
-            <div class="section-title">Game</div>
+            <div class="section-title">Game Controls</div>
+            <button id="passButton">Pass Turn</button>
             <button id="resetButton">New Game</button>
             
             <div class="game-info">
-                <div class="section-title">Status</div>
-                <div class="turn-indicator">
-                    <div id="turnIcon" class="turn-icon"></div>
-                    <p id="currentPlayer">Current Player: White</p>
-                </div>
+                <div class="section-title">Game Status</div>
+                <p id="currentPlayer">Current Player: Black</p>
+                <p id="stoneCount">Black: 0 stones | White: 0 stones</p>
                 
                 <div class="view-options">
-                    <div class="section-title">View</div>
+                    <div class="section-title">View Options</div>
                     <label class="checkbox-container">
                         <input type="checkbox" id="showBoardEdges">
                         Show Board Edges
                     </label>
                 </div>
+                <div class="view-options">
+                    <div class="section-title">Board Size</div>
+                    <select id="boardSize" class="board-size-select">
+                        <option value="19">19x19</option>
+                        <option value="13">13x13</option>
+                        <option value="9">9x9</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-    <script src="torus-reflected-chess.js"></script>
+    <script src="torus-go.js"></script>
 </body>
 </html>
