@@ -1,0 +1,22 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5432:5432
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 3001:3001
