@@ -11,114 +11,158 @@
         margin: 0;
         padding: 0;
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: #1a1a1a;
+        color: #ffffff;
         position: relative;
       }
 
       body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: url("escher.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        opacity: 0.3;
-        z-index: -1;
+        display: none;
+      }
+
+      .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
       }
 
       .title {
-        color: #2c3e50;
+        color: #ffffff;
         text-align: center;
-        size: 100px;
-        margin-bottom: 2rem;
-        font-size: 2.5rem;
+        font-size: 3rem;
+        margin-bottom: 3rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
       }
 
-      .container {
-        max-width: 800px;
-        padding: 2rem;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 15px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(5px);
-      }
-
-      h1 {
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 2rem;
-        font-size: 2.5rem;
-      }
-
-      .section {
-        margin-bottom: 2rem;
+      .games-section {
+        margin-bottom: 3rem;
       }
 
       .section-title {
-        color: #34495e;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
+        color: #ffffff;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
         padding-bottom: 0.5rem;
-        border-bottom: 2px solid #eee;
+        border-bottom: 2px solid #333;
       }
 
-      .game-grid {
+      .variant-title {
+        color: #ffffff;
+        font-size: 1.5rem;
+        margin: 1.5rem 0 1rem;
+        font-weight: 500;
+      }
+
+      .games-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.75rem;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
         list-style: none;
         padding: 0;
         margin: 0;
       }
 
-      .game-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #2c3e50;
+      .game-tile {
+        aspect-ratio: 2/1;
+        background: #2a2a2a;
+        border-radius: 12px;
+        cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
-        text-align: center;
-        height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
+        padding: 0.75rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #404040;
       }
 
-      .game-card:hover {
+      .game-tile:hover {
         transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        border-color: #505050;
+        background: #333333;
       }
 
-      .game-card h3 {
+      .game-tile h3 {
         margin: 0;
         font-size: 1.1rem;
+        color: #ffffff;
       }
 
-      .status {
-        font-size: 0.9rem;
-        color: #666;
+      .coming-soon {
+        color: #ff6b6b;
+        font-size: 1rem;
         margin-top: 0.5rem;
+        font-weight: bold;
       }
 
-      .status.working {
-        color: #27ae60;
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 100vh;
+        background: #2a2a2a;
+        padding: 1.5rem;
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
       }
 
-      .status.partial {
-        color: #f39c12;
+      .splash-screen.active {
+        transform: translateX(0);
       }
 
-      .status.not-working {
-        color: #e74c3c;
+      .splash-content {
+        flex-grow: 1;
+      }
+
+      .splash-title {
+        font-size: 1.8rem;
+        color: #ffffff;
+        margin-bottom: 1rem;
+      }
+
+      .button-container {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .play-button, .about-button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 1rem;
+        width: 120px;
+        transition: background 0.2s;
+      }
+
+      .about-button {
+        background: #3498db;
+      }
+
+      .about-button:hover {
+        background: #2980b9;
+      }
+
+      .play-button:hover {
+        background: #45a049;
+      }
+
+      .splash-description {
+        color: #cccccc;
+        line-height: 1.5;
       }
 
       .auth-bar {
@@ -128,14 +172,15 @@
         display: flex;
         align-items: center;
         gap: 15px;
-        background: rgba(255, 255, 255, 0.9);
+        background: #2a2a2a;
         padding: 10px 20px;
         border-radius: 25px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        z-index: 100;
       }
 
       .auth-bar span {
-        color: #2c3e50;
+        color: #ffffff;
         font-weight: 500;
       }
 
@@ -177,55 +222,169 @@
       </div>
     </div>
 
-    <div class="container">
-      <h1>Topologic Games</h1>
+    <div class="main-container">
+      <h1 class="title">Topologic Games</h1>
 
-      <div class="section">
-        <h2 class="section-title">Working Games</h2>
-        <ul class="game-grid">
+      <div class="games-section">
+        <h2 class="section-title">Chess Games</h2>
+        <ul class="games-grid">
           <li>
-            <a href="games/torus-reflected-chess/torus-reflected-chess.html" class="game-card">
+            <div class="game-tile" onclick="showSplash('torus-reflected-chess')">
               <h3>Torus Reflected Chess</h3>
-              <p class="status working"> Fun and managable! </p>
-            </a>
+            </div>
           </li>
           <li>
-            <a href="games/torus-chess/torus-chess.html" class="game-card">
+            <div class="game-tile" onclick="showSplash('torus-chess')">
               <h3>Torus Chess</h3>
-              <p class="status working"> Very quick games...</p>
-            </a>
+            </div>
           </li>
           <li>
-            <a href="games/spherical-chess/spherical-chess.html" class="game-card">
+            <div class="game-tile" onclick="showSplash('spherical-chess')">
               <h3>Spherical Chess</h3>
-              <p class="status working">"Windmill Chess"</p>
-            </a>
+            </div>
           </li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <h2 class="section-title">In Development</h2>
-        <ul class="game-grid">
           <li>
-            <a href="games/torus-go/torus-go.html" class="game-card">
-              <h3>Torus Go</h3>
-              <div class="status partial">Partially Working</div>
-            </a>
+            <div class="game-tile">
+              <h3>3 Player Chess</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
           </li>
-
+          <li>
+            <div class="game-tile">
+              <h3>3 Player Tessellated Chess</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
+          <li>
+            <div class="game-tile">
+              <h3>3 Player Rotated Tessellated Chess</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
+          <li>
+            <div class="game-tile">
+              <h3>Aperiodic Monotile Chess</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
         </ul>
       </div>
 
-      <div class="section">
-        <h2 class="section-title">Coming Soon</h2>
-        <ul class="game-grid">
+      <div class="games-section">
+        <h2 class="section-title">Go Games</h2>
+        <ul class="games-grid">
+          <li>
+            <div class="game-tile" onclick="showSplash('torus-go')">
+              <h3>Torus Go</h3>
+            </div>
+          </li>
+          <li>
+            <div class="game-tile">
+              <h3>Rotated Toroidal Go</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
+          <li>
+            <div class="game-tile">
+              <h3>Spherical Go</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
+        </ul>
+      </div>
 
+      <div class="games-section">
+        <h2 class="section-title">Checkers Games</h2>
+        <ul class="games-grid">
+          <li>
+            <div class="game-tile">
+              <h3>Torus Checkers</h3>
+              <div class="coming-soon">Coming Soon</div>
+            </div>
+          </li>
         </ul>
       </div>
     </div>
 
+    <div id="splashScreen" class="splash-screen">
+      <div class="splash-content">
+        <h2 class="splash-title" id="splashTitle"></h2>
+        <div class="button-container">
+          <button class="play-button" id="playButton">Play</button>
+          <button class="about-button" id="aboutButton">About</button>
+        </div>
+        <p class="splash-description" id="splashDescription"></p>
+      </div>
+    </div>
+
     <script>
+      const gameData = {
+        'torus-reflected-chess': {
+          title: 'Torus Reflected Chess',
+          description: 'A unique variant of chess played on a toroidal board where pieces can wrap around the edges. The reflection mechanic adds an extra layer of strategy to the game.',
+          url: 'games/torus-reflected-chess/torus-reflected-chess.html'
+        },
+        'torus-chess': {
+          title: 'Torus Chess',
+          title: 'Torus Chess',
+          description: 'Classic chess rules adapted for a toroidal board. Pieces can move across the edges of the board, creating new strategic possibilities.',
+          url: 'games/torus-chess/torus-chess.html'
+        },
+        'spherical-chess': {
+          title: 'Spherical Chess',
+          description: 'Also known as "Windmill Chess", this variant is played on a spherical board where pieces can move in all directions, including around the sphere.',
+          url: 'games/spherical-chess/spherical-chess.html'
+        },
+        'torus-go': {
+          title: 'Torus Go',
+          description: 'The ancient game of Go adapted for a toroidal board. Stones can wrap around the edges, creating new patterns and strategies.',
+          url: 'games/torus-go/torus-go.html'
+        }
+      };
+
+      function showSplash(gameId) {
+        const splash = document.getElementById('splashScreen');
+        const title = document.getElementById('splashTitle');
+        const description = document.getElementById('splashDescription');
+        const playButton = document.getElementById('playButton');
+        const aboutButton = document.getElementById('aboutButton');
+        
+        const game = gameData[gameId];
+        title.textContent = game.title;
+        description.textContent = game.description;
+        playButton.onclick = () => window.location.href = game.url;
+        aboutButton.onclick = () => {
+          // For now, just show the description in an alert
+          alert(game.description);
+        };
+        
+        splash.classList.add('active');
+      }
+
+      // Close splash screen when clicking outside
+      document.addEventListener('click', (e) => {
+        const splash = document.getElementById('splashScreen');
+        const gameTiles = document.querySelectorAll('.game-tile');
+        
+        // Check if click is on a game tile
+        const clickedTile = Array.from(gameTiles).find(tile => tile.contains(e.target));
+        if (clickedTile) {
+          const gameId = clickedTile.getAttribute('onclick').match(/'([^']+)'/)[1];
+          showSplash(gameId);
+          return;
+        }
+        
+        // If click is outside both splash and tiles, close splash
+        if (!splash.contains(e.target)) {
+          splash.classList.remove('active');
+        }
+      });
+
+      // Prevent splash from closing when clicking inside it
+      document.getElementById('splashScreen').addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
       // Check authentication status on page load
       window.onload = function() {
         const token = localStorage.getItem('token');
