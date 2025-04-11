@@ -3,7 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -17,6 +19,8 @@ type User struct {
 }
 
 func InitDB() error {
+	log.Println("Initializing database connection...")
+
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
@@ -24,21 +28,33 @@ func InitDB() error {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
 	)
+	log.Printf("Connecting to database with host: %s, port: %s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
 
 	var err error
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
+		log.Printf("Error opening database connection: %v", err)
 		return err
 	}
 
-	if err = DB.Ping(); err != nil {
-		return err
+	// Retry connection for up to 30 seconds
+	maxRetries := 30
+	for i := 0; i < maxRetries; i++ {
+		err = DB.Ping()
+		if err == nil {
+			log.Println("Successfully connected to database")
+			return createTables()
+		}
+		log.Printf("Attempt %d: Error pinging database: %v", i+1, err)
+		time.Sleep(1 * time.Second)
 	}
 
-	return createTables()
+	log.Printf("Failed to connect to database after %d attempts", maxRetries)
+	return fmt.Errorf("failed to connect to database after %d attempts: %v", maxRetries, err)
 }
 
 func createTables() error {
+	log.Println("Creating database tables if they don't exist...")
 	query := `
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
@@ -48,16 +64,24 @@ func createTables() error {
 	)`
 
 	_, err := DB.Exec(query)
-	return err
+	if err != nil {
+		log.Printf("Error creating tables: %v", err)
+		return err
+	}
+	log.Println("Database tables created successfully")
+	return nil
 }
 
 func CreateUser(username, password string) (*User, error) {
+	log.Printf("Creating new user: %s", username)
 	query := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id`
 	var id int
 	err := DB.QueryRow(query, username, password).Scan(&id)
 	if err != nil {
+		log.Printf("Error creating user %s: %v", username, err)
 		return nil, err
 	}
+	log.Printf("Successfully created user %s with ID %d", username, id)
 
 	return &User{
 		ID:       id,
@@ -66,11 +90,14 @@ func CreateUser(username, password string) (*User, error) {
 }
 
 func GetUserByUsername(username string) (*User, error) {
+	log.Printf("Fetching user: %s", username)
 	query := `SELECT id, username, password FROM users WHERE username = $1`
 	user := &User{}
 	err := DB.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Password)
 	if err != nil {
+		log.Printf("Error fetching user %s: %v", username, err)
 		return nil, err
 	}
+	log.Printf("Successfully fetched user %s", username)
 	return user, nil
 }

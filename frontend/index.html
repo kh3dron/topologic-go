@@ -120,9 +120,63 @@
       .status.not-working {
         color: #e74c3c;
       }
+
+      .auth-bar {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px 20px;
+        border-radius: 25px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .auth-bar span {
+        color: #2c3e50;
+        font-weight: 500;
+      }
+
+      .auth-bar button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .auth-bar button:hover {
+        background: #45a049;
+      }
+
+      .auth-links {
+        display: flex;
+        gap: 10px;
+      }
+
+      .auth-links a {
+        color: #4CAF50;
+        text-decoration: none;
+        font-weight: 500;
+      }
     </style>
   </head>
   <body>
+    <div id="authBar" class="auth-bar">
+      <div id="authLinks" class="auth-links">
+        <a href="login.html">Login</a>
+        <a href="signup.html">Sign Up</a>
+      </div>
+      <div id="userInfo" style="display: none;">
+        <span id="usernameDisplay"></span>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+
     <div class="container">
       <h1>Topologic Games</h1>
 
@@ -170,5 +224,31 @@
         </ul>
       </div>
     </div>
+
+    <script>
+      // Check authentication status on page load
+      window.onload = function() {
+        const token = localStorage.getItem('token');
+        const username = localStorage.getItem('username');
+        const authLinks = document.getElementById('authLinks');
+        const userInfo = document.getElementById('userInfo');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+
+        if (token && username) {
+          authLinks.style.display = 'none';
+          userInfo.style.display = 'flex';
+          usernameDisplay.textContent = username;
+        } else {
+          authLinks.style.display = 'flex';
+          userInfo.style.display = 'none';
+        }
+      };
+
+      function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.reload();
+      }
+    </script>
   </body>
 </html>
