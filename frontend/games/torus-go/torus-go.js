@@ -1338,4 +1338,9 @@ class GoGame {
 }
 
 // Start the game when the page loads
-window.onload = () => new GoGame();
+window.onload = () => {
+    const game = new GoGame();
+    game.init3D(); // Initialize the 3D scene
+    game.drawBoard(); // Draw the initial board
+    game.animate(); // Start the animation loop
+};
