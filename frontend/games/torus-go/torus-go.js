@@ -720,64 +720,104 @@ class GoGame {
             }`;
     }
 
-    removeDeadStones(color) {
-        for (let i = 0; i < this.boardSize; i++) {
-            for (let j = 0; j < this.boardSize; j++) {
-                if (this.board[i][j] === color && !this.hasLiberties(i, j)) {
-                    this.board[i][j] = null;
-                }
-            }
-        }
-    }
-
-    hasLiberties(row, col, checked = new Set()) {
+    getConnectedGroup(row, col, color, visited = new Set()) {
         const key = `${row},${col}`;
-        if (checked.has(key)) return false;
-        checked.add(key);
-
-        const color = this.board[row][col];
+        if (visited.has(key) || this.board[row][col] !== color) return visited;
+        
+        visited.add(key);
         const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-
+        
         for (const [dx, dy] of directions) {
             let newRow = row + dx;
             let newCol = col + dy;
-
+            
             if (this.isTopologicMode) {
                 const torusCoords = this.getTorusCoords(newRow, newCol);
                 newRow = torusCoords.row;
                 newCol = torusCoords.col;
-            } else if (
-                newRow < 0 || newRow >= this.boardSize || newCol < 0 ||
-                newCol >= this.boardSize
-            ) {
+            } else if (newRow < 0 || newRow >= this.boardSize || newCol < 0 || newCol >= this.boardSize) {
                 continue;
             }
-
-            if (this.board[newRow][newCol] === null) {
-                return true;
-            }
-
-            if (
-                this.board[newRow][newCol] === color &&
-                this.hasLiberties(newRow, newCol, checked)
-            ) {
-                return true;
-            }
+            
+            this.getConnectedGroup(newRow, newCol, color, visited);
         }
-
-        return false;
+        
+        return visited;
     }
 
-    countStonesToRemove(color) {
-        let count = 0;
+    removeDeadStones(color) {
+        const deadGroups = new Set();
+        
+        // First identify all dead groups
         for (let i = 0; i < this.boardSize; i++) {
             for (let j = 0; j < this.boardSize; j++) {
-                if (this.board[i][j] === color && !this.hasLiberties(i, j)) {
-                    count++;
+                if (this.board[i][j] === color) {
+                    const groupKey = `${i},${j}`;
+                    if (!deadGroups.has(groupKey)) {
+                        const group = this.getConnectedGroup(i, j, color);
+                        let hasLiberty = false;
+                        
+                        // Check if any stone in the group has a liberty
+                        for (const pos of group) {
+                            const [row, col] = pos.split(',').map(Number);
+                            if (this.hasLiberties(row, col)) {
+                                hasLiberty = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasLiberty) {
+                            // Add all stones in the dead group to deadGroups
+                            for (const pos of group) {
+                                deadGroups.add(pos);
+                            }
+                        }
+                    }
                 }
             }
         }
-        return count;
+        
+        // Remove all dead stones
+        for (const pos of deadGroups) {
+            const [row, col] = pos.split(',').map(Number);
+            this.board[row][col] = null;
+        }
+        
+        return deadGroups.size; // Return number of stones removed
+    }
+
+    countStonesToRemove(color) {
+        const deadGroups = new Set();
+        
+        for (let i = 0; i < this.boardSize; i++) {
+            for (let j = 0; j < this.boardSize; j++) {
+                if (this.board[i][j] === color) {
+                    const groupKey = `${i},${j}`;
+                    if (!deadGroups.has(groupKey)) {
+                        const group = this.getConnectedGroup(i, j, color);
+                        let hasLiberty = false;
+                        
+                        // Check if any stone in the group has a liberty
+                        for (const pos of group) {
+                            const [row, col] = pos.split(',').map(Number);
+                            if (this.hasLiberties(row, col)) {
+                                hasLiberty = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasLiberty) {
+                            // Add all stones in the dead group to deadGroups
+                            for (const pos of group) {
+                                deadGroups.add(pos);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return deadGroups.size;
     }
 
     updateStoneCount() {
@@ -1334,6 +1374,62 @@ class GoGame {
         this.infoPopup.style.display = "none";
         this.overlay.style.display = "none";
         this.hasStartedGame = true;
+    }
+
+    hasLiberties(row, col, checked = new Set()) {
+        const key = `${row},${col}`;
+        if (checked.has(key)) return false;
+        checked.add(key);
+
+        const color = this.board[row][col];
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        // First check for immediate liberties
+        for (const [dx, dy] of directions) {
+            let newRow = row + dx;
+            let newCol = col + dy;
+
+            if (this.isTopologicMode) {
+                const torusCoords = this.getTorusCoords(newRow, newCol);
+                newRow = torusCoords.row;
+                newCol = torusCoords.col;
+            } else if (
+                newRow < 0 || newRow >= this.boardSize || newCol < 0 ||
+                newCol >= this.boardSize
+            ) {
+                continue;
+            }
+
+            if (this.board[newRow][newCol] === null) {
+                return true;
+            }
+        }
+
+        // If no immediate liberties, check connected group's liberties
+        for (const [dx, dy] of directions) {
+            let newRow = row + dx;
+            let newCol = col + dy;
+
+            if (this.isTopologicMode) {
+                const torusCoords = this.getTorusCoords(newRow, newCol);
+                newRow = torusCoords.row;
+                newCol = torusCoords.col;
+            } else if (
+                newRow < 0 || newRow >= this.boardSize || newCol < 0 ||
+                newCol >= this.boardSize
+            ) {
+                continue;
+            }
+
+            if (
+                this.board[newRow][newCol] === color &&
+                this.hasLiberties(newRow, newCol, checked)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
