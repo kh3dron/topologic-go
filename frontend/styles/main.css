@@ -104,6 +104,13 @@ body {
   font-weight: bold;
 }
 
+.in-development {
+  color: #ffff00;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  font-weight: bold;
+}
+
 /* Splash Screen */
 .splash-screen {
   position: fixed;

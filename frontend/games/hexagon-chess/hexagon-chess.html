@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexagonal Chess</title>
+    <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <style>
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #2c2c2c;
+        }
+
+        .game-board {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #chessBoard {
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .controls button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .controls button:hover {
+            background-color: #45a049;
+        }
+
+        .game-status {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .player-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .player-indicator .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .player-indicator.white .dot {
+            background-color: white;
+        }
+
+        .player-indicator.black .dot {
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>Game Controls</h2>
+        <button onclick="game.resetGame()">New Game</button>
+        <button onclick="game.undoMove()">Undo Move</button>
+        <button onclick="game.showHelp()">Help</button>
+    </div>
+
+    <div class="game-status">
+        <h2>Game Status</h2>
+        <div class="player-indicator white">
+            <div class="dot"></div>
+            <span>White's Turn</span>
+        </div>
+        <div class="player-indicator black">
+            <div class="dot"></div>
+            <span>Black's Turn</span>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="game-board">
+            <canvas id="chessBoard"></canvas>
+        </div>
+    </div>
+
+    <div class="game-over-popup" id="gameOverPopup">
+        <h2>Game Over!</h2>
+        <p id="winnerText"></p>
+        <button id="newGameBtn">New Game</button>
+    </div>
+
+    <script src="hexagon-chess.js"></script>
+</body>
+</html>
