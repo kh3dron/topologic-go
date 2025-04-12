@@ -78,3 +78,9 @@ CALCULATING POSSIBLE MOVES:
 - given these rules, all possible moves are calculated for the true_board.
 - these moves are then drawn on the rotation_board according to the rules of the rotation space.
 - the drawn_board is then duplicated across the entire screen according to the tesselation rules.
+
+
+TODO 
+- crowning
+  - pawns must move 7 tiles to crown
+- checkbox for allow checkmate moves

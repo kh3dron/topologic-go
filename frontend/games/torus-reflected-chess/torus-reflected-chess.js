@@ -1,6 +1,6 @@
 class ChessGame {
     constructor() {
-        this.canvas = document.getElementById("chessBoard");
+        this.canvas = document.getElementById("gameCanvas");
         this.ctx = this.canvas.getContext("2d");
         this.boardSize = 8; // Chess is always 8x8
         this.cellSize = 50; // Match Go game's initial cell size
@@ -17,31 +17,11 @@ class ChessGame {
         this.pieceImages = {}; // Store loaded piece images
         this.coordinateDisplay = null; // Element to display coordinates
 
-        // Add mobile menu toggle functionality
-        const menuToggle = document.getElementById("menuToggle");
-        const sidebar = document.querySelector(".sidebar");
-        const overlay = document.getElementById("overlay");
-
-        menuToggle.addEventListener("click", () => {
-            sidebar.classList.toggle("active");
-            overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
-        });
-
-        overlay.addEventListener("click", () => {
-            sidebar.classList.remove("active");
-            overlay.style.display = "none";
-        });
-
-        // Close menu when clicking outside on mobile
-        document.addEventListener("click", (e) => {
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                !menuToggle.contains(e.target) && 
-                sidebar.classList.contains("active")) {
-                sidebar.classList.remove("active");
-                overlay.style.display = "none";
-            }
-        });
+        // Initialize view options
+        this.showBoardEdges = false;
+        this.showCoordinates = true;
+        this.isReflected = false;
+        this.isTorus = true;
 
         // Load all piece images
         this.loadPieceImages();
@@ -102,10 +82,7 @@ class ChessGame {
 
         // Add event listeners for pan and zoom
         this.canvas.addEventListener("mousedown", this.startDrag.bind(this));
-        this.canvas.addEventListener(
-            "mousemove",
-            this.handleDragAndHover.bind(this),
-        );
+        this.canvas.addEventListener("mousemove", this.handleDragAndHover.bind(this));
         this.canvas.addEventListener("mouseup", this.stopDrag.bind(this));
         this.canvas.addEventListener("wheel", this.handleZoom.bind(this));
 
@@ -117,70 +94,32 @@ class ChessGame {
             this.drawBoard();
         });
 
-        // Add reset button listener
-        document.getElementById("resetButton").addEventListener(
-            "click",
-            this.resetGame.bind(this),
-        );
+        // Add button listeners
+        document.getElementById("newGameBtn").addEventListener("click", this.resetGame.bind(this));
+        document.getElementById("toggleReflectionBtn").addEventListener("click", this.toggleReflection.bind(this));
+        document.getElementById("toggleTorusBtn").addEventListener("click", this.toggleTorus.bind(this));
+        document.getElementById("newGamePopupBtn").addEventListener("click", () => {
+            this.hideGameOverPopup();
+            this.resetGame();
+        });
 
-        // Add Three.js setup
-        this.scene = null;
-        this.camera = null;
-        this.renderer = null;
-        this.controls = null;
-        this.raycaster = null;
-        this.mouse = null;
-        this.hoverMesh = null;
+        // Add checkbox listeners
+        document.getElementById("showBoardEdges").addEventListener("change", (e) => {
+            console.log("Show board edges checkbox changed:", e.target.checked);
+            this.showBoardEdges = e.target.checked;
+            this.drawBoard();
+        });
+
+        document.getElementById("showCoordinatesCheckbox").addEventListener("change", (e) => {
+            this.showCoordinates = e.target.checked;
+            this.drawBoard();
+        });
 
         // Create coordinate display element
         this.createCoordinateDisplay();
 
-        // Add view selection listeners
-        document.getElementById("tessellatedView").addEventListener(
-            "click",
-            () => this.setView(false),
-        );
-
-        // Add new property for board edge visibility
-        this.showBoardEdges = false;
-
-        // Add event listener for the checkbox
-        document.getElementById("showBoardEdges").addEventListener(
-            "change",
-            (e) => {
-                this.showBoardEdges = e.target.checked;
-                this.drawBoard();
-            },
-        );
-
-        // Add popup elements
-        this.infoPopup = document.getElementById("infoPopup");
-        this.overlay = document.getElementById("overlay");
-        this.startGameBtn = document.getElementById("startGameBtn");
-        this.infoIcon = document.getElementById("infoIcon");
-        this.gameOverPopup = document.getElementById("gameOverPopup");
-        this.winnerText = document.getElementById("winnerText");
-        this.newGameBtn = document.getElementById("newGameBtn");
-
-        // Show popup on page load
-        this.showPopup();
-
-        // Add popup event listeners
-        this.startGameBtn.addEventListener("click", () => this.hidePopup());
-        this.infoIcon.addEventListener("click", () => this.showPopup());
-        this.overlay.addEventListener("click", () => this.hidePopup());
-
-        // Add help button event listener
-        document.getElementById("helpButton").addEventListener(
-            "click",
-            () => this.showPopup(),
-        );
-
-        // Add new game button listener
-        this.newGameBtn.addEventListener("click", () => {
-            this.hideGameOverPopup();
-            this.resetGame();
-        });
+        // Draw initial board
+        this.drawBoard();
     }
 
     loadPieceImages() {
@@ -571,6 +510,11 @@ class ChessGame {
     }
 
     drawBoard() {
+        console.log("Drawing board, showBoardEdges:", this.showBoardEdges);
+        console.log("Canvas size:", this.canvas.width, this.canvas.height);
+        console.log("Viewport:", this.viewportX, this.viewportY);
+        console.log("Zoom level:", this.zoomLevel);
+        
         // Clear the entire canvas
         this.ctx.fillStyle = "#f0f0f0";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -586,6 +530,8 @@ class ChessGame {
         const endTileCol = Math.ceil(visibleRight / this.singleBoardSize);
         const startTileRow = Math.floor(visibleTop / this.singleBoardSize);
         const endTileRow = Math.ceil(visibleBottom / this.singleBoardSize);
+
+        console.log("Drawing tiles from", startTileCol, startTileRow, "to", endTileCol, endTileRow);
 
         // Apply zoom and pan transformation
         this.ctx.save();
@@ -628,23 +574,14 @@ class ChessGame {
         const totalStartY = startTileRow * this.singleBoardSize;
         const totalEndY = (endTileRow + 1) * this.singleBoardSize;
 
+        console.log("Drawing grid lines, total area:", totalStartX, totalStartY, totalEndX, totalEndY);
+
+        // Draw all black grid lines first
         // Draw vertical lines
         for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
             for (let i = 0; i <= this.boardSize; i++) {
                 const x = tileCol * this.singleBoardSize + i * this.cellSize;
                 if (x >= totalStartX && x <= totalEndX) {
-                    // Draw board edge (red line) if this is the first or last line of a board and edges are enabled
-                    if (this.showBoardEdges && (i === 0 || i === this.boardSize)) {
-                        this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 8;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(x, totalStartY);
-                        this.ctx.lineTo(x, totalEndY);
-                        this.ctx.stroke();
-                        this.ctx.strokeStyle = "black";
-                        this.ctx.lineWidth = 2;
-                    }
-
                     // Draw regular grid line
                     this.ctx.beginPath();
                     if (this.showBoardEdges) {
@@ -670,18 +607,6 @@ class ChessGame {
             for (let i = 0; i <= this.boardSize; i++) {
                 const y = tileRow * this.singleBoardSize + i * this.cellSize;
                 if (y >= totalStartY && y <= totalEndY) {
-                    // Draw board edge (red line) if this is the first or last line of a board and edges are enabled
-                    if (this.showBoardEdges && (i === 0 || i === this.boardSize)) {
-                        this.ctx.strokeStyle = "#FF0000";
-                        this.ctx.lineWidth = 8;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(totalStartX, y);
-                        this.ctx.lineTo(totalEndX, y);
-                        this.ctx.stroke();
-                        this.ctx.strokeStyle = "black";
-                        this.ctx.lineWidth = 2;
-                    }
-
                     // Draw regular grid line
                     this.ctx.beginPath();
                     if (this.showBoardEdges) {
@@ -698,6 +623,40 @@ class ChessGame {
                         this.ctx.lineTo(totalEndX, y);
                     }
                     this.ctx.stroke();
+                }
+            }
+        }
+
+        // Now draw red board edges if enabled
+        if (this.showBoardEdges) {
+            this.ctx.strokeStyle = "#FF0000";
+            this.ctx.lineWidth = 12;
+
+            // Draw vertical red lines
+            for (let tileCol = startTileCol; tileCol <= endTileCol + 1; tileCol++) {
+                for (let i = 0; i <= this.boardSize; i++) {
+                    const x = tileCol * this.singleBoardSize + i * this.cellSize;
+                    if (x >= totalStartX && x <= totalEndX && (i === 0 || i === this.boardSize)) {
+                        console.log("Drawing vertical red line at x:", x);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, totalStartY);
+                        this.ctx.lineTo(x, totalEndY);
+                        this.ctx.stroke();
+                    }
+                }
+            }
+
+            // Draw horizontal red lines
+            for (let tileRow = startTileRow; tileRow <= endTileRow + 1; tileRow++) {
+                for (let i = 0; i <= this.boardSize; i++) {
+                    const y = tileRow * this.singleBoardSize + i * this.cellSize;
+                    if (y >= totalStartY && y <= totalEndY && (i === 0 || i === this.boardSize)) {
+                        console.log("Drawing horizontal red line at y:", y);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(totalStartX, y);
+                        this.ctx.lineTo(totalEndX, y);
+                        this.ctx.stroke();
+                    }
                 }
             }
         }

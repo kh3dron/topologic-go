@@ -4,66 +4,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Topologic Chess</title>
+    <title>Torus Reflected Chess</title>
     <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="torus-reflected-chess.css">
 </head>
 <body>
-    <button class="menu-toggle" id="menuToggle">☰</button>
-    <div class="overlay" id="overlay"></div>
-    <div class="info-popup" id="infoPopup">
-        <h2>Welcome to Torus ReflectedChess!</h2>
-        <p>This is a unique variant of chess played on a torus (donut shape) with a reflection. This allows for topological weirdness while still being a playable game.</p>
-        <ul>
-            <li><strong>Horizontal Wrapping:</strong> Moving off the right edge brings you to the left edge</li>
-            <li><strong>Vertical Reflection:</strong> Moving off the top edge brings you to the bottom edge, but reflected</li>
-        </ul>
-        <p>Good luck!</p>
-        <button id="startGameBtn">Start Game</button>
-    </div>
-    <div class="game-over-popup" id="gameOverPopup">
-        <h2>Game Over!</h2>
-        <p id="winnerText"></p>
-        <button id="newGameBtn">New Game</button>
-    </div>
+    <header class="game-header">
+        <h1>Topologic Games <span class="game-title">Torus Reflected Chess</span></h1>
+    </header>
+
     <div class="game-container">
-        <canvas id="chessBoard"></canvas>
+        <canvas id="gameCanvas"></canvas>
         
-        <div class="sidebar">
-            <svg class="info-icon" id="infoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <div class="section-title">Controls</div>
-            <div class="projection-selector">
-                <button id="tessellatedView" class="active">Tessellated View</button>
-                <button id="helpButton">Help</button>
-                <button id="topologicGo" onclick="window.location.href='index.html'">← Back to All Games</button>
+        <div class="left-panel">
+            <div class="game-controls">
+                <h3 class="section-title">Game Controls</h3>
+                <button id="newGameBtn">New Game</button>
             </div>
-            
-            <div class="section-title">Game</div>
-            <button id="resetButton">New Game</button>
-            
+
+            <div class="view-options">
+                <h3 class="section-title">View Options</h3>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="showBoardEdges">
+                    Show Board Edges
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="showCoordinatesCheckbox" checked>
+                    Show Coordinates
+                </label>
+            </div>
+
             <div class="game-info">
-                <div class="section-title">Status</div>
+                <h3 class="section-title">Game Info</h3>
                 <div class="turn-indicator">
-                    <div id="turnIcon" class="turn-icon"></div>
-                    <p id="currentPlayer">Current Player: White</p>
-                </div>
-                
-                <div class="view-options">
-                    <div class="section-title">View</div>
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="showBoardEdges">
-                        Show Board Edges
-                    </label>
+                    <div class="turn-icon white"></div>
+                    <span>White's Turn</span>
                 </div>
             </div>
         </div>
+
+        <div class="right-panel">
+            <div class="game-controls">
+                <h3 class="section-title">Game Settings</h3>
+                <button id="toggleReflectionBtn">Toggle Reflection</button>
+                <button id="toggleTorusBtn">Toggle Torus</button>
+            </div>
+        </div>
     </div>
+
+    <div class="game-over-popup">
+        <h2>Game Over</h2>
+        <p id="gameResultText"></p>
+        <button id="newGamePopupBtn">New Game</button>
+    </div>
+
     <script src="torus-reflected-chess.js"></script>
 </body>
 </html>
