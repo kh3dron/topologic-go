@@ -152,6 +152,52 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(AuthResponse{Token: token})
 }
 
+func userStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	userID, err := auth.GetUserIDFromToken(r.Header.Get("Authorization"))
+	if err != nil {
+		sendError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	stats, err := db.GetUserStats(userID)
+	if err != nil {
+		log.Printf("Error getting user stats: %v", err)
+		sendError(w, http.StatusInternalServerError, "Error getting user stats")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+func userGamesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	userID, err := auth.GetUserIDFromToken(r.Header.Get("Authorization"))
+	if err != nil {
+		sendError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	games, err := db.GetUserGames(userID)
+	if err != nil {
+		log.Printf("Error getting user games: %v", err)
+		sendError(w, http.StatusInternalServerError, "Error getting user games")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(games)
+}
+
 func main() {
 	log.Println("Starting server...")
 
@@ -169,6 +215,8 @@ func main() {
 	http.HandleFunc("/health", corsMiddleware(healthHandler))
 	http.HandleFunc("/api/login", corsMiddleware(loginHandler))
 	http.HandleFunc("/api/register", corsMiddleware(registerHandler))
+	http.HandleFunc("/api/user/stats", corsMiddleware(userStatsHandler))
+	http.HandleFunc("/api/user/games", corsMiddleware(userGamesHandler))
 
 	log.Println("Server starting on port 3001...")
 	if err := http.ListenAndServe(":3001", nil); err != nil {

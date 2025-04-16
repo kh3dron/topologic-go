@@ -18,6 +18,24 @@ type User struct {
 	Password string `json:"-"` // Password is not included in JSON responses
 }
 
+type UserStatsResponse struct {
+	GamesPlayed   int `json:"games_played"`
+	GamesWon      int `json:"games_won"`
+	GamesLost     int `json:"games_lost"`
+	GamesDrawn    int `json:"games_drawn"`
+	CurrentRating int `json:"current_rating"`
+	HighestRating int `json:"highest_rating"`
+}
+
+type GameHistoryResponse struct {
+	ID                  int       `json:"id"`
+	CreatedAt           time.Time `json:"created_at"`
+	Result              string    `json:"result"`
+	TimeControl         int       `json:"time_control"`
+	WhitePlayerUsername string    `json:"white_player_username"`
+	BlackPlayerUsername string    `json:"black_player_username"`
+}
+
 func InitDB() error {
 	log.Println("Initializing database connection...")
 
@@ -100,4 +118,82 @@ func GetUserByUsername(username string) (*User, error) {
 	}
 	log.Printf("Successfully fetched user %s", username)
 	return user, nil
+}
+
+func GetUserStats(userID int) (*UserStatsResponse, error) {
+	query := `
+		SELECT 
+			games_played,
+			games_won,
+			games_lost,
+			games_drawn,
+			rating as current_rating,
+			highest_rating
+		FROM user_game_stats
+		WHERE user_id = $1
+	`
+
+	var stats UserStatsResponse
+	err := DB.QueryRow(query, userID).Scan(
+		&stats.GamesPlayed,
+		&stats.GamesWon,
+		&stats.GamesLost,
+		&stats.GamesDrawn,
+		&stats.CurrentRating,
+		&stats.HighestRating,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+func GetUserGames(userID int) ([]GameHistoryResponse, error) {
+	query := `
+		SELECT 
+			g.id,
+			g.created_at,
+			g.result,
+			g.time_control,
+			w.username as white_player_username,
+			b.username as black_player_username
+		FROM games g
+		JOIN users w ON g.white_player_id = w.id
+		JOIN users b ON g.black_player_id = b.id
+		WHERE (g.white_player_id = $1 OR g.black_player_id = $1)
+		AND g.status = 'completed'
+		ORDER BY g.created_at DESC
+		LIMIT 50
+	`
+
+	rows, err := DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var games []GameHistoryResponse
+	for rows.Next() {
+		var game GameHistoryResponse
+		err := rows.Scan(
+			&game.ID,
+			&game.CreatedAt,
+			&game.Result,
+			&game.TimeControl,
+			&game.WhitePlayerUsername,
+			&game.BlackPlayerUsername,
+		)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, game)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return games, nil
 }

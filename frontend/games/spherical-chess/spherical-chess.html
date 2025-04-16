@@ -8,9 +8,21 @@
     <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="spherical-chess.css">
 </head>
 <body>
+    <div id="authBar" class="auth-bar">
+      <div id="authLinks" class="auth-links">
+        <a href="../../login.html">Login</a>
+        <a href="../../signup.html">Sign Up</a>
+      </div>
+      <div id="userInfo" style="display: none;">
+        <a href="../../profile.html" id="usernameDisplay"></a>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+
     <header class="game-header">
         <h1>Topologic Games <span class="game-title">/ Spherical Chess</span></h1>
     </header>
@@ -54,6 +66,31 @@
         <button id="newGameBtn">New Game</button>
     </div>
 
+    <script>
+        // Check authentication status on page load
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            const authLinks = document.getElementById('authLinks');
+            const userInfo = document.getElementById('userInfo');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (token && username) {
+                authLinks.style.display = 'none';
+                userInfo.style.display = 'flex';
+                usernameDisplay.textContent = username;
+            } else {
+                authLinks.style.display = 'flex';
+                userInfo.style.display = 'none';
+            }
+        };
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.reload();
+        }
+    </script>
     <script src="spherical-chess.js"></script>
 </body>
 </html>

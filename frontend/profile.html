@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile - Topologic Games</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/profile.css">
+  </head>
+  <body>
+    <div id="authBar" class="auth-bar">
+      <div id="userInfo" class="user-info">
+        <a href="index.html">Home</a>
+        <span id="usernameDisplay"></span>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <h1 class="title">My Profile</h1>
+      
+      <div class="profile-section">
+        <div class="profile-stats">
+          <h2 class="section-title">Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Games Played</span>
+              <span class="stat-value" id="gamesPlayed">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Games Won</span>
+              <span class="stat-value" id="gamesWon">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Games Lost</span>
+              <span class="stat-value" id="gamesLost">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Games Drawn</span>
+              <span class="stat-value" id="gamesDrawn">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Current Rating</span>
+              <span class="stat-value" id="currentRating">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Highest Rating</span>
+              <span class="stat-value" id="highestRating">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="game-history">
+          <h2>Recent Games</h2>
+          <div class="games-list" id="gamesList">
+            <!-- Games will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Check authentication status on page load
+      window.onload = async function() {
+        const token = localStorage.getItem('token');
+        const username = localStorage.getItem('username');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+
+        if (!token || !username) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        usernameDisplay.textContent = username;
+        await loadUserStats();
+        await loadGameHistory();
+      };
+
+      async function loadUserStats() {
+        try {
+          const response = await fetch('http://localhost:3001/api/user/stats', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to load user stats');
+          }
+
+          const stats = await response.json();
+          document.getElementById('gamesPlayed').textContent = stats.games_played;
+          document.getElementById('gamesWon').textContent = stats.games_won;
+          document.getElementById('gamesLost').textContent = stats.games_lost;
+          document.getElementById('gamesDrawn').textContent = stats.games_drawn;
+          document.getElementById('currentRating').textContent = stats.current_rating;
+          document.getElementById('highestRating').textContent = stats.highest_rating;
+        } catch (error) {
+          console.error('Error loading user stats:', error);
+        }
+      }
+
+      async function loadGameHistory() {
+        try {
+          const response = await fetch('http://localhost:3001/api/user/games', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to load game history');
+          }
+
+          const games = await response.json();
+          const gamesList = document.getElementById('gamesList');
+          gamesList.innerHTML = '';
+
+          games.forEach(game => {
+            const gameElement = document.createElement('div');
+            gameElement.className = 'game-item';
+            
+            const resultClass = game.result === 'white_win' ? 'win' : 
+                              game.result === 'black_win' ? 'loss' : 'draw';
+            
+            gameElement.innerHTML = `
+              <div class="game-info">
+                <span class="game-date">${new Date(game.created_at).toLocaleDateString()}</span>
+                <span class="game-result ${resultClass}">${getResultText(game)}</span>
+              </div>
+              <div class="game-details">
+                <span>vs ${game.opponent_username}</span>
+                <span>${game.time_control}s</span>
+              </div>
+            `;
+            
+            gamesList.appendChild(gameElement);
+          });
+        } catch (error) {
+          console.error('Error loading game history:', error);
+        }
+      }
+
+      function getResultText(game) {
+        const username = localStorage.getItem('username');
+        if (game.result === 'draw') return 'Draw';
+        if (game.result === 'white_win' && game.white_player_username === username) return 'Win';
+        if (game.result === 'black_win' && game.black_player_username === username) return 'Win';
+        return 'Loss';
+      }
+
+      function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.href = 'login.html';
+      }
+    </script>
+  </body>
+</html> 

@@ -919,10 +919,8 @@ class ChessGame {
     }
 
     updatePlayerDisplay() {
-        const playerText = `Current Player: ${
-            this.currentPlayer.charAt(0).toUpperCase() +
-            this.currentPlayer.slice(1)
-        }`;
+        const username = localStorage.getItem('username') || this.currentPlayer;
+        const playerText = `Current Player: ${username} (${this.currentPlayer})`;
         document.getElementById("currentPlayer").textContent = playerText;
 
         // Update turn indicator
@@ -1057,59 +1055,57 @@ class ChessGame {
 
         const moves = [];
 
-        // For pawns, we need to consider their direction based on whether they're in a reflected zone
+        // For pawns, we need to consider their direction based on rotation zone
         let pawnDirection = piece.type === "pawn" ? piece.direction : 0;
 
-        // If the pawn is in a reflected zone, its direction is reversed
-        if (piece.type === "pawn" && isReflected) {
-            pawnDirection *= -1;
+        // Calculate which rotation zone we're in using the same method as normalizePosition
+        const newRow = ((row % 16) + 16) % 16;
+        const newCol = ((col % 16) + 16) % 16;
+        const rotationZone = (Math.floor(newRow / 8) * 2) + Math.floor(newCol / 8);
+        
+        // Adjust pawn direction based on rotation zone
+        if (piece.type === "pawn") {
+            switch (rotationZone) {
+                case 0: // Bottom left - Normal board
+                    pawnDirection = piece.direction;
+                    break;
+                case 1: // Bottom right - Right-rotated board
+                    pawnDirection = piece.direction * -1;
+                    break;
+                case 2: // Top right - Left-rotated board
+                    pawnDirection = piece.direction;
+                    break;
+                case 3: // Top left - Fully reflected board
+                    pawnDirection = piece.direction * -1;
+                    break;
+            }
         }
 
         const directions = {
             rook: [[0, 1], [1, 0], [0, -1], [-1, 0]],
-            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [
-                2,
-                -1,
-            ], [2, 1]],
+            knight: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
             bishop: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
-            queen: [
-                [0, 1],
-                [1, 0],
-                [0, -1],
-                [-1, 0],
-                [1, 1],
-                [1, -1],
-                [-1, 1],
-                [-1, -1],
-            ],
-            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [
-                -1,
-                -1,
-            ]],
+            queen: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
+            king: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
         };
 
         switch (piece.type) {
             case "pawn":
                 // Forward move
                 const forwardRow = row + pawnDirection;
-                const [normForwardRow, normForwardCol] = this.normalizePosition(
-                    forwardRow,
-                    col,
-                );
+                const [normForwardRow, normForwardCol] = this.normalizePosition(forwardRow, col);
 
                 // Check if the square in front is empty
                 if (!getPieceAt(forwardRow, col)) {
                     moves.push([normForwardRow, normForwardCol]);
 
                     // First move can be 2 squares
-                    const isStartingPosition =
-                        (piece.color === "white" && row === 1) ||
-                        (piece.color === "black" && row === 6);
+                    const isStartingPosition = (piece.color === "white" && row === 1) || 
+                                            (piece.color === "black" && row === 6);
 
                     if (isStartingPosition) {
                         const doubleRow = row + (2 * pawnDirection);
-                        const [normDoubleRow, normDoubleCol] = this
-                            .normalizePosition(doubleRow, col);
+                        const [normDoubleRow, normDoubleCol] = this.normalizePosition(doubleRow, col);
 
                         if (!getPieceAt(doubleRow, col)) {
                             moves.push([normDoubleRow, normDoubleCol]);
@@ -1121,11 +1117,7 @@ class ChessGame {
                 [-1, 1].forEach((dc) => {
                     const captureRow = row + pawnDirection;
                     const captureCol = col + dc;
-                    const [normCaptureRow, normCaptureCol] = this
-                        .normalizePosition(
-                            captureRow,
-                            captureCol,
-                        );
+                    const [normCaptureRow, normCaptureCol] = this.normalizePosition(captureRow, captureCol);
 
                     const targetPiece = getPieceAt(captureRow, captureCol);
                     if (targetPiece && targetPiece.color !== piece.color) {

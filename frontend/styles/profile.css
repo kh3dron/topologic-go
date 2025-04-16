@@ -1,0 +1,120 @@
+.profile-section {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-stats {
+  background-color: var(--background-dark);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid var(--border-color);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.stat-item {
+  background-color: var(--background-dark);
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.game-history {
+  background-color: var(--background-dark);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.games-list {
+  margin-top: 20px;
+}
+
+.game-item {
+  background-color: var(--background-dark);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  border: 1px solid var(--border-color);
+}
+
+.game-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.game-date {
+  color: var(--text-secondary);
+}
+
+.game-result {
+  font-weight: bold;
+}
+
+.game-result.win {
+  color: var(--accent-primary);
+}
+
+.game-result.loss {
+  color: #e74c3c;
+}
+
+.game-result.draw {
+  color: #f39c12;
+}
+
+.game-details {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-info a {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.user-info a:hover {
+  text-decoration: underline;
+  color: var(--accent-primary);
+} 
+
+.section-title {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
