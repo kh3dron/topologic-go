@@ -1,174 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Topologic Games</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        position: relative;
-      }
 
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: url("escher.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        opacity: 0.3;
-        z-index: -1;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Topologic Games</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 
-      .title {
-        color: #2c3e50;
-        text-align: center;
-        size: 100px;
-        margin-bottom: 2rem;
-        font-size: 2.5rem;
-      }
+<body>
+  <div class="container">
+    <h1>Topologic Games</h1>
 
-      .container {
-        max-width: 800px;
-        padding: 2rem;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 15px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(5px);
-      }
-
-      h1 {
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 2rem;
-        font-size: 2.5rem;
-      }
-
-      .section {
-        margin-bottom: 2rem;
-      }
-
-      .section-title {
-        color: #34495e;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #eee;
-      }
-
-      .game-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.75rem;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .game-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #2c3e50;
-        transition: transform 0.2s, box-shadow 0.2s;
-        text-align: center;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .game-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      }
-
-      .game-card h3 {
-        margin: 0;
-        font-size: 1.1rem;
-      }
-
-      .status {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.5rem;
-      }
-
-      .status.working {
-        color: #27ae60;
-      }
-
-      .status.partial {
-        color: #f39c12;
-      }
-
-      .status.not-working {
-        color: #e74c3c;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Topologic Games</h1>
-
-      <div class="section">
-        <h2 class="section-title">Working Games</h2>
-        <ul class="game-grid">
-          <li>
-            <a href="games/torus-reflected-chess/torus-reflected-chess.html" class="game-card">
-              <h3>Torus Reflected Chess</h3>
-              <p class="status working"> Fun and managable! </p>
-            </a>
-          </li>
-          <li>
-            <a href="games/torus-chess/torus-chess.html" class="game-card">
-              <h3>Torus Chess</h3>
-              <p class="status working"> Very quick games...</p>
-            </a>
-          </li>
-          <li>
-            <a href="games/spherical-chess/spherical-chess.html" class="game-card">
-              <h3>Spherical Chess</h3>
-              <p class="status working">"Windmill Chess"</p>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <h2 class="section-title">In Development</h2>
-        <ul class="game-grid">
-          <li>
-            <a href="games/torus-go/torus-go.html" class="game-card">
-              <h3>Torus Go</h3>
-              <div class="status partial">Partially Working</div>
-            </a>
-          </li>
-
-        </ul>
-      </div>
-
-      <div class="section">
-        <h2 class="section-title">Coming Soon</h2>
-        <ul class="game-grid">
-
-        </ul>
-      </div>
+    <div class="table-container">
+      <table class="games-table">
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Surface</th>
+            <th class="tooltip-header">
+              Interesting Games (?)
+              <span class="tooltip">"Interesting" means a game is not instantly winnable in the first couple of
+                moves.</span>
+            </th>
+            <th>Working?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="game-row working">
+            <td><a href="games/torus-chess/torus-chess.html">Chess</a></td>
+            <td>2-Torus</td>
+            <td>No</td>
+            <td><span class="status-badge working">Yes</span></td>
+          </tr>
+          <tr class="game-row working">
+            <td><a href="games/torus-reflected-chess/torus-reflected-chess.html">Chess</a></td>
+            <td>2-Torus + Reflection</td>
+            <td>Yes</td>
+            <td><span class="status-badge working">Yes</span></td>
+          </tr>
+          <tr class="game-row working">
+            <td><a href="games/spherical-chess/spherical-chess.html">Chess</a></td>
+            <td>Sphere</td>
+            <td>Yes</td>
+            <td><span class="status-badge partial">Partial</span></td>
+          </tr>
+          <tr class="game-row partial">
+            <td><a href="games/torus-go/torus-go.html">Go</a></td>
+            <td>2-Torus</td>
+            <td>Yes</td>
+            <td><span class="status-badge partial">Partial</span></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
+
+<!-- 
+GAME | SURFACE | INTERESTING GAMES | WORKING?
+Chess | 2-Torus | No | Yes
+Chess | 2-Torus + Reflection | Yes
+Chess | Sphere | Yes | Yes
+-->
