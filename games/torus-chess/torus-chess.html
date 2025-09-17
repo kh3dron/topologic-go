@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Topologic Chess</title>
-    <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="../../style.css">
 </head>
+
 <body>
     <div class="overlay" id="overlay"></div>
     <div class="info-popup" id="infoPopup">
@@ -34,34 +37,24 @@
     </div>
     <div class="game-container">
         <canvas id="chessBoard"></canvas>
-        
+
         <div class="sidebar">
-            <svg class="info-icon" id="infoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <div class="section-title">View Mode</div>
-            <div class="projection-selector">
-                <button id="tessellatedView" class="active">Tessellated View</button>
+            <div>View Mode</div>
+            <div>
+                <button id="tessellatedView">Tessellated View</button>
                 <button id="torusView">Torus View</button>
                 <button id="helpButton">Help</button>
                 <button id="topologicGo" onclick="window.location.href='index.html'">Topologic Go</button>
             </div>
-            
-            <div class="section-title">Game Controls</div>
+
+            <div>Game Controls</div>
             <button id="resetButton">New Game</button>
-            
-            <div class="game-info">
-                <div class="section-title">Game Status</div>
-                <div class="turn-indicator">
-                    <div id="turnIcon" class="turn-icon"></div>
-                    <p id="currentPlayer">Current Player: White</p>
-                </div>
-                
-                <div class="view-options">
-                    <div class="section-title">View Options</div>
-                    <label class="checkbox-container">
+
+            <div>
+
+                <div>
+                    <div>View Options</div>
+                    <label>
                         <input type="checkbox" id="showBoardEdges">
                         Show Board Edges
                     </label>
@@ -71,4 +64,5 @@
     </div>
     <script src="torus-chess.js"></script>
 </body>
+
 </html>

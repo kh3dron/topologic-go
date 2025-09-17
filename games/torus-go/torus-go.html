@@ -1,75 +1,45 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Topological Go</title>
-    <link rel="icon" href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml, <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22white%22/></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="../../style.css">
 </head>
+
 <body>
-    <div class="overlay" id="overlay"></div>
-    <div class="info-popup" id="infoPopup">
-        <h2>Welcome to Topological Go!</h2>
-        <ul>
-            <li>The board is embedded on a <a href="https://en.wikipedia.org/wiki/Torus">Torus</a>. </li>
-            <li>The edges of the board wrap around to connect to the opposite edge.</li>
-            <br>
-            <li>There are no star points, edges or corners. </li>
-            <br>
-            <li>Move around the infinite board by dragging the mouse.</li>
-            <li>Scroll to zoom in and out.</li>
-            <li>View the game board in 2D with the "Tessellated View" button.</li>
-            <li>View the game board in 3D with the "Torus View" button.</li>
-            <br>
-            <li>Multiplayer or AI opponents not yet implemented. #todo!</li>
-        </ul>
-        <button id="startGameBtn">Start Game</button>
-    </div>
-    <div class="game-over-popup" id="gameOverPopup">
-        <h2>Game Over!</h2>
-        <p id="winnerText"></p>
-        <button id="newGameBtn">New Game</button>
-    </div>
     <div class="game-container">
         <canvas id="goBoard"></canvas>
-        
+
         <div class="sidebar">
-            <svg class="info-icon" id="infoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <div class="section-title">View Mode</div>
-            <div class="projection-selector">
-                <button id="tessellatedView" class="active">Tessellated View</button>
+            <p>View Mode</p>
+            <div>
+                <button id="tessellatedView">Tessellated View</button>
                 <button id="torusView">Torus View</button>
-                <button id="helpButton">Help</button>
-                <button id="topologicChess" onclick="window.location.href='chess.html'">Topologic Chess</button>
             </div>
-            
-            <div class="section-title">Game Controls</div>
+
+            <p>Game Controls</p>
             <button id="passButton">Pass Turn</button>
             <button id="resetButton">New Game</button>
-            
-            <div class="game-info">
-                <div class="section-title">Game Status</div>
-                <p id="currentPlayer">Current Player: Black</p>
+
+            <div>
                 <p id="stoneCount">Black: 0 stones | White: 0 stones</p>
-                
-                <div class="view-options">
-                    <div class="section-title">View Options</div>
-                    <label class="checkbox-container">
+
+                <div>
+                    <label>
                         <input type="checkbox" id="showBoardEdges">
                         Show Board Edges
                     </label>
                 </div>
-                <div class="view-options">
-                    <div class="section-title">Board Size</div>
-                    <select id="boardSize" class="board-size-select">
+                <div>
+                    <p>Board Size</p>
+                    <select id="boardSize">
                         <option value="19">19x19</option>
                         <option value="13">13x13</option>
                         <option value="9">9x9</option>
@@ -80,4 +50,5 @@
     </div>
     <script src="torus-go.js"></script>
 </body>
+
 </html>
