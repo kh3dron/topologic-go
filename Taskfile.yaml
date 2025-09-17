@@ -1,0 +1,62 @@
+version: "3"
+
+tasks:
+  compose:
+    desc: Start all services (frontend, backend, database) with build
+    cmd: docker compose up --build
+
+  run:
+    desc: Start all services without rebuild
+    cmd: docker compose up
+
+  web:
+    desc: Start only the frontend development server
+    dir: frontend
+    cmd: npm start
+
+  backend:
+    desc: Start the Go backend server
+    dir: backend
+    cmd: go run main.go
+
+  frontend:
+    desc: Start the frontend development server (alias for web)
+    dir: frontend
+    cmd: npm start
+
+  install:
+    desc: Install frontend dependencies
+    dir: frontend
+    cmd: npm install
+
+  build-backend:
+    desc: Build the Go backend binary
+    dir: backend
+    cmd: go build -o main .
+
+  clean:
+    desc: Clean up Docker containers and images
+    cmd: docker compose down --volumes --remove-orphans
+
+  logs:
+    desc: View logs from all services
+    cmd: docker compose logs -f
+
+  db:
+    desc: Start only the PostgreSQL database
+    cmd: docker compose up db
+
+  test-backend:
+    desc: Run Go tests
+    dir: backend
+    cmd: go test ./...
+
+  fmt-backend:
+    desc: Format Go code
+    dir: backend
+    cmd: go fmt ./...
+
+  mod-tidy:
+    desc: Clean up Go module dependencies
+    dir: backend
+    cmd: go mod tidy
