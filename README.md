@@ -15,7 +15,7 @@ The goal of Go is to surround your opponent's stones, whcih makes the corners an
 <details open>
 <summary>Why does the board repeat?</summary>
 <br>
-If we map a torus to a flat surface, it looks like it repeats on all sides. Remember that you are still playing on a normally sized board and placing down one stone at a time, but you can see around the board in both directions. It's sort of like if you were to look around the entire planet and see the back of your own head. 
+If we map a torus to a flat surface, it looks like it repeats on all sides. Remember that you are still playing on a normally sized board and placing down one stone at a time, but you can see around the board in both directions. It's sort of like if you were to look around the entire planet and see the back of your own head.
 </details>
 <br>
 
@@ -32,12 +32,12 @@ So we can't just stick chess on a torus - at least not if we want interesting ga
 
 # Reflected Toroidal Chess
 
-If we mirror the board before we tessellate it, we avoid the back-to-back problem and get a workable game. 
-#todo! 
+If we mirror the board before we tessellate it, we avoid the back-to-back problem and get a workable game.
+# todo!
 
 # Spherical Chess
 
-We can't map chess smoothly onto a torus, but we can map it nicely onto a Sphere! how cool is that! 
+We can't map chess smoothly onto a torus, but we can map it nicely onto a Sphere! how cool is that!
 
 - The tesselation space will be 4 chessboards. These boards will be "pointing" clockwise: the bottom left board has white pieces at the bottom, black pieces at the top. The top left board is rotated to have white pieces against the left edge and black against the right edge, and so on.
 - this pattern creates a "windmill" shape of white pieces in the middle.
