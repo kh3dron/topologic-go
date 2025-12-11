@@ -1,66 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Topologic Games</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games</title>
+  <link rel="stylesheet" href="/src/style.css">
 </head>
-
 <body>
-  <div class="container">
-    <h1>Topologic Games</h1>
-
-    <div class="table-container">
-      <table class="games-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Game</th>
-            <th>Surface</th>
-            <th class="tooltip-header">
-              Interesting Games (?)
-              <span class="tooltip">"Interesting" means a game is not instantly winnable in the first couple of
-                moves.</span>
-            </th>
-            <th>Working?</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="game-row working">
-            <td><a href="games/torus-chess/torus-chess.html">Torus Chess</a></td>
-            <td>Chess</td>
-            <td>2-Torus</td>
-            <td>No</td>
-            <td><span class="status-badge working">Yes</span></td>
-          </tr>
-          <tr class="game-row working">
-            <td><a href="games/torus-reflected-chess/torus-reflected-chess.html">Torus Reflected Chess</a></td>
-            <td>Chess</td>
-            <td>2-Torus + Reflection</td>
-            <td>Yes</td>
-            <td><span class="status-badge working">Yes</span></td>
-          </tr>
-          </tr>
-          <tr class="game-row working">
-            <td><a href="games/spherical-chess/spherical-chess.html">Windmill Chess</a></td>
-            <td>Chess</td>
-            <td>Sphere</td>
-            <td>Yes</td>
-            <td><span class="status-badge partial">Partial</span></td>
-          </tr>
-          <tr class="game-row partial">
-            <td><a href="games/torus-go/torus-go.html">Torus Go</a></td>
-            <td>Go</td>
-            <td>2-Torus</td>
-            <td>Yes</td>
-            <td><span class="status-badge partial">Partial</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  <div id="app">
+    <nav id="sidebar">
+      <h1 id="game-title">Chess</h1>
+      <div id="game-selector">
+        <button id="game-chess" class="game-btn active">Chess</button>
+        <button id="game-go" class="game-btn">Go</button>
+      </div>
+      <div id="mode-selector">
+        <button id="mode-classic" class="mode-btn active">Classic</button>
+        <button id="mode-rollover" class="mode-btn">Torus</button>
+        <button id="mode-mirror" class="mode-btn">Mirror</button>
+      </div>
+      <div id="mode-description">Standard chess rules</div>
+      <label id="slide-control" class="checkbox-control">
+        <input type="checkbox" id="slide-board">
+        <span>Slide Board</span>
+      </label>
+      <button id="pass-btn" class="action-btn">Pass</button>
+      <button id="reset">New Game</button>
+    </nav>
+    <main id="game-area">
+      <div id="top-bar">
+        <div id="status">White's turn</div>
+        <div id="drag-hint">click to drag</div>
+      </div>
+      <div id="board-container">
+        <div id="board"></div>
+      </div>
+    </main>
   </div>
+  <script type="module" src="/src/main.ts"></script>
 </body>
-
 </html>

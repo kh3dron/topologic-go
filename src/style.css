@@ -1,0 +1,503 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Courier New", Courier, monospace;
+  background: #1a1a1a;
+  color: #ccc;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#app {
+  display: flex;
+  gap: 0;
+}
+
+#sidebar {
+  width: 140px;
+  background: #222;
+  border: 1px solid #444;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h1 {
+  font-size: 1.1rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #888;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+}
+
+#game-selector {
+  display: flex;
+  gap: 2px;
+}
+
+.game-btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #666;
+  border: 1px solid #444;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.game-btn:hover {
+  background: #333;
+  color: #aaa;
+}
+
+.game-btn.active {
+  background: #333;
+  color: #ccc;
+  border-bottom: 2px solid #888;
+}
+
+#mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: #2a2a2a;
+  color: #777;
+  border: 1px solid #444;
+  cursor: pointer;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mode-btn:hover {
+  background: #333;
+  color: #aaa;
+}
+
+.mode-btn.active {
+  background: #333;
+  color: #ccc;
+  border-left: 3px solid #888;
+}
+
+#mode-description {
+  font-size: 0.7rem;
+  color: #555;
+  line-height: 1.4;
+  border-top: 1px solid #333;
+  padding-top: 8px;
+}
+
+.checkbox-control {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 6px 0;
+  border-top: 1px solid #333;
+}
+
+.checkbox-control.visible {
+  display: flex;
+}
+
+.checkbox-control input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #888;
+  cursor: pointer;
+}
+
+.checkbox-control:hover {
+  color: #999;
+}
+
+.action-btn {
+  display: none;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #666;
+  border: 1px solid #444;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.action-btn.visible {
+  display: block;
+}
+
+.action-btn:hover {
+  background: #333;
+  color: #999;
+}
+
+#reset {
+  margin-top: auto;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #666;
+  border: 1px solid #444;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#reset:hover {
+  background: #333;
+  color: #999;
+}
+
+#game-area {
+  display: flex;
+  flex-direction: column;
+}
+
+#top-bar {
+  display: flex;
+  background: #222;
+  border: 1px solid #444;
+  border-left: none;
+  border-bottom: none;
+  padding: 6px 12px;
+  position: relative;
+}
+
+#status {
+  font-size: 0.8rem;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#drag-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: none;
+}
+
+#board-container.tessellated ~ #top-bar #drag-hint,
+#game-area:has(#board-container.tessellated) #drag-hint {
+  display: block;
+}
+
+#board-container {
+  width: 1200px;
+  height: 600px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #444;
+  border-left: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#board-container.tessellated {
+  cursor: grab;
+}
+
+#board-container.tessellated:active {
+  cursor: grabbing;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  margin: 0 auto;
+}
+
+#board.tessellated {
+  position: absolute;
+  display: grid;
+  grid-template-columns: repeat(40, 60px);
+  grid-template-rows: repeat(40, 60px);
+  margin: 0;
+}
+
+.square {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.square.light {
+  background: #e8e8e8;
+}
+
+.square.dark {
+  background: #888;
+}
+
+.square.selected {
+  background: #7a9a7a !important;
+}
+
+.square.moveable {
+  background: #c9c97a !important;
+}
+
+.square.capturable {
+  background: #b07070 !important;
+}
+
+.square:hover {
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.square.white {
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+.square.black {
+  color: #000;
+}
+
+/* Go Board Styles */
+#board.go-board {
+  grid-template-columns: repeat(19, 30px);
+  grid-template-rows: repeat(19, 30px);
+  background: #c9a86c;
+  position: relative;
+}
+
+#board.go-board.tessellated {
+  grid-template-columns: repeat(95, 30px);
+  grid-template-rows: repeat(95, 30px);
+}
+
+.go-intersection {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  background: #c9a86c;
+}
+
+.go-intersection::before {
+  content: '';
+  position: absolute;
+  background: #333;
+}
+
+/* Horizontal line */
+.go-intersection::after {
+  content: '';
+  position: absolute;
+  background: #333;
+}
+
+/* Default: center intersection (cross) */
+.go-intersection::before {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.go-intersection::after {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+/* Edge adjustments - top */
+.go-intersection.edge-top::after {
+  height: 50%;
+  top: 50%;
+}
+
+/* Edge adjustments - bottom */
+.go-intersection.edge-bottom::after {
+  height: 50%;
+  top: 0;
+}
+
+/* Edge adjustments - left */
+.go-intersection.edge-left::before {
+  width: 50%;
+  left: 50%;
+}
+
+/* Edge adjustments - right */
+.go-intersection.edge-right::before {
+  width: 50%;
+  left: 0;
+}
+
+/* Star points (hoshi) */
+.go-intersection.star-point::before {
+  z-index: 0;
+}
+
+.go-intersection.star-point .star-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Go stones */
+.go-stone {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+}
+
+.go-stone.black-stone {
+  background: radial-gradient(circle at 30% 30%, #444, #000);
+}
+
+.go-stone.white-stone {
+  background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+  border: 1px solid #aaa;
+}
+
+/* Go interaction states */
+.go-intersection:hover {
+  box-shadow: none;
+}
+
+.go-intersection.valid-move:hover::before,
+.go-intersection.valid-move:hover::after {
+  background: #666;
+}
+
+.go-intersection.valid-move:hover {
+  cursor: pointer;
+}
+
+.go-intersection.last-move .go-stone::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.go-intersection.last-move .go-stone.black-stone::after {
+  background: #fff;
+}
+
+.go-intersection.last-move .go-stone.white-stone::after {
+  background: #000;
+}
+
+/* Ghost stone preview on hover */
+.go-intersection.valid-move:not(.has-stone):hover::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  z-index: 2;
+  opacity: 0.4;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  box-shadow: none;
+}
+
+.go-intersection.valid-move.black-turn:not(.has-stone):hover .ghost-stone {
+  display: block;
+}
+
+.go-intersection.valid-move.white-turn:not(.has-stone):hover .ghost-stone {
+  display: block;
+}
+
+.ghost-stone {
+  display: none;
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  z-index: 2;
+  opacity: 0.4;
+}
+
+.ghost-stone.black-ghost {
+  background: radial-gradient(circle at 30% 30%, #444, #000);
+}
+
+.ghost-stone.white-ghost {
+  background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+  border: 1px solid #aaa;
+}
+
+/* Score display */
+#score-display {
+  display: none;
+  font-size: 0.7rem;
+  color: #666;
+  border-top: 1px solid #333;
+  padding-top: 8px;
+}
+
+#score-display.visible {
+  display: block;
+}
+
+#score-display .score-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
