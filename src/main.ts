@@ -19,7 +19,7 @@ let dragStartPanX = 0;
 let dragStartPanY = 0;
 let shouldResetPanPosition = true;
 
-// Slide board state
+// Animate state
 let isSliding = false;
 let slideAnimationId: number | null = null;
 const SLIDE_SPEED_X = 0.3;
@@ -59,6 +59,7 @@ let goCaptures: { black: number; white: number } = { black: 0, white: 0 };
 let goLastMove: [number, number] | null = null;
 let goPreviousBoardState: string | null = null; // For ko rule
 let goMoveHistory: string[] = []; // Track board states for superko
+let goHoveredIntersection: [number, number] | null = null; // Track hovered position for tessellated view
 
 // Star points for 19x19 board
 const STAR_POINTS = [
@@ -995,7 +996,7 @@ document.getElementById('mode-rollover')!.addEventListener('click', () => setGam
 document.getElementById('mode-mirror')!.addEventListener('click', () => setGameMode('mirror'));
 document.getElementById('pass-btn')!.addEventListener('click', passGoTurn);
 
-// Slide board checkbox
+// Animate checkbox
 document.getElementById('slide-board')!.addEventListener('change', (e) => {
   const checkbox = e.target as HTMLInputElement;
   if (checkbox.checked) {
