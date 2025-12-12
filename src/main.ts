@@ -770,6 +770,30 @@ function renderTessellatedGoBoard(boardEl: HTMLElement, resetPosition: boolean =
   updateBoardPosition();
 }
 
+function syncGoHoverState(row: number, col: number, isHovering: boolean): void {
+  // Find all intersections at the same board position and sync their hover state
+  const boardEl = document.getElementById('board')!;
+  const intersections = boardEl.querySelectorAll('.go-intersection');
+
+  // In tessellated view, intersections repeat every GO_SIZE cells
+  // We need to find all intersections that represent the same (row, col) position
+  intersections.forEach((el, index) => {
+    // Calculate the board position for this intersection
+    // In tessellated mode, the grid is GO_TILE_COUNT * GO_SIZE wide
+    const totalCols = GO_TILE_COUNT * GO_SIZE;
+    const intersectionRow = Math.floor(index / totalCols) % GO_SIZE;
+    const intersectionCol = index % GO_SIZE;
+
+    if (intersectionRow === row && intersectionCol === col) {
+      if (isHovering) {
+        el.classList.add('hover-synced');
+      } else {
+        el.classList.remove('hover-synced');
+      }
+    }
+  });
+}
+
 function createGoIntersection(row: number, col: number, showEdges: boolean): HTMLElement {
   const intersection = document.createElement('div');
   intersection.className = 'go-intersection';
@@ -818,6 +842,21 @@ function createGoIntersection(row: number, col: number, showEdges: boolean): HTM
 
   intersection.addEventListener('click', () => {
     handleGoIntersectionClick(row, col);
+  });
+
+  // Hover sync for tessellated view - show ghost stone on all repeated grids
+  intersection.addEventListener('mouseenter', () => {
+    if (gameMode !== 'classic') {
+      goHoveredIntersection = [row, col];
+      syncGoHoverState(row, col, true);
+    }
+  });
+
+  intersection.addEventListener('mouseleave', () => {
+    if (gameMode !== 'classic') {
+      goHoveredIntersection = null;
+      syncGoHoverState(row, col, false);
+    }
   });
 
   return intersection;
