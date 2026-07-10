@@ -547,15 +547,15 @@ export function updateStatus(): void {
     if (chessGameOver === 'draw') {
       statusEl.textContent = 'Stalemate - draw';
     } else if (chessGameOver) {
-      statusEl.textContent = `Checkmate - ${capitalize(chessGameOver)} wins!`;
+      statusEl.textContent = `Checkmate - ${capitalize(chessGameOver)} wins`;
     } else {
-      const check = isInCheck(chessCurrentTurn) ? ' - check!' : '';
+      const check = isInCheck(chessCurrentTurn) ? ' - check' : '';
       statusEl.textContent = `${capitalize(chessCurrentTurn)}'s turn${check}`;
     }
   } else {
     if (goGameOver) {
       const score = scoreGo();
-      const result = score.winner === 'draw' ? 'Draw' : `${capitalize(score.winner)} wins!`;
+      const result = score.winner === 'draw' ? 'Draw' : `${capitalize(score.winner)} wins`;
       statusEl.textContent = `Black ${score.blackTotal} : White ${score.whiteTotal} (komi ${KOMI}) - ${result}`;
     } else {
       statusEl.textContent = `${capitalize(goCurrentTurn)}'s turn - B: ${goCaptures.black} W: ${goCaptures.white}`;
