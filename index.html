@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Games</title>
+  <title>Topologic Games</title>
   <link rel="stylesheet" href="/src/style.css">
 </head>
 
@@ -16,12 +16,7 @@
         <button id="game-chess" class="game-btn active">Chess</button>
         <button id="game-go" class="game-btn">Go</button>
       </div>
-      <div id="mode-selector">
-        <button id="mode-classic" class="mode-btn active">Classic</button>
-        <button id="mode-rollover" class="mode-btn">Torus</button>
-        <button id="mode-mirror" class="mode-btn">Mirror</button>
-      </div>
-      <div id="mode-description">Standard chess rules</div>
+      <div id="mode-selector"></div>
       <label id="slide-control" class="checkbox-control">
         <input type="checkbox" id="slide-board">
         <span>Animate</span>
@@ -30,19 +25,50 @@
         <input type="checkbox" id="show-boundaries" checked>
         <span>Boundaries</span>
       </label>
-      <div id="seam-legend"></div>
       <button id="pass-btn" class="action-btn">Pass</button>
+      <a id="about-link" href="./about.html">About</a>
       <button id="reset">New Game</button>
     </nav>
     <main id="game-area">
       <div id="top-bar">
         <div id="status">White's turn</div>
         <div id="drag-hint">click to drag</div>
+        <div id="zoom-controls">
+          <button id="zoom-out" title="Zoom out">-</button>
+          <button id="zoom-level" title="Reset zoom">100%</button>
+          <button id="zoom-in" title="Zoom in">+</button>
+        </div>
       </div>
       <div id="board-container">
         <div id="board"></div>
       </div>
     </main>
+    <aside id="info-panel">
+      <div class="panel-section">
+        <div class="panel-label">Site</div>
+        <div id="site-blurb">Classic games on impossible boards. Each mode changes only what happens at the edges - wrap, reflect, rotate, or wall - and the whole game follows. <a href="./about.html">Read about the math</a>.</div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-label">Rules</div>
+        <div id="mode-description"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-label">Notes</div>
+        <div id="mode-article"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-label">References</div>
+        <div id="mode-links"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-label">Edge Spec</div>
+        <div id="mode-spec"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-label">Legend</div>
+        <div id="seam-legend"></div>
+      </div>
+    </aside>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

@@ -1,3 +1,8 @@
+:root {
+  --chess-cell: 72px;
+  --go-cell: 32px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -8,25 +13,26 @@ body {
   font-family: "Courier New", Courier, monospace;
   background: #1a1a1a;
   color: #f0f0f0;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #app {
-  display: flex;
-  gap: 0;
+  display: grid;
+  grid-template-columns: 200px 1fr 260px;
+  height: 100vh;
+  width: 100vw;
 }
 
+/* ==================== LEFT SIDEBAR ==================== */
 #sidebar {
-  width: 140px;
   background: #222;
-  border: 1px solid #444;
+  border-right: 1px solid #444;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
 }
 
 h1 {
@@ -98,14 +104,6 @@ h1 {
   border-left: 3px solid #888;
 }
 
-#mode-description {
-  font-size: 0.8rem;
-  color: #999;
-  line-height: 1.4;
-  border-top: 1px solid #333;
-  padding-top: 8px;
-}
-
 .checkbox-control {
   display: none;
   align-items: center;
@@ -174,17 +172,18 @@ h1 {
   color: #ddd;
 }
 
+/* ==================== CENTER: GAME AREA ==================== */
 #game-area {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 #top-bar {
   display: flex;
   background: #222;
-  border: 1px solid #444;
-  border-left: none;
-  border-bottom: none;
+  border-bottom: 1px solid #444;
   padding: 6px 12px;
   position: relative;
 }
@@ -207,53 +206,76 @@ h1 {
   display: none;
 }
 
-#board-container.tessellated ~ #top-bar #drag-hint,
-#game-area:has(#board-container.tessellated) #drag-hint {
+#zoom-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+
+#zoom-controls button {
+  font-family: inherit;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  cursor: pointer;
+  padding: 1px 8px;
+  letter-spacing: 1px;
+}
+
+#zoom-controls button:hover {
+  background: #333;
+  color: #ddd;
+}
+
+#zoom-level {
+  min-width: 52px;
+}
+
+#game-area:has(#board-container.pannable) #drag-hint {
   display: block;
 }
 
 #board-container {
-  width: 1200px;
-  height: 600px;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
-  border: 1px solid #444;
-  border-left: none;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-#board-container.tessellated {
+#board-container.pannable {
   cursor: grab;
 }
 
-#board-container.tessellated:active {
+#board-container.pannable:active {
   cursor: grabbing;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(8, 60px);
-  grid-template-rows: repeat(8, 60px);
-  margin: 0 auto;
-}
-
-#board.tessellated {
   position: absolute;
-  display: grid;
-  grid-template-columns: repeat(40, 60px);
-  grid-template-rows: repeat(40, 60px);
   margin: 0;
 }
 
+#board.go-board {
+  background: #c9a86c;
+}
+
+.void-cell {
+  background: #1a1a1a;
+}
+
+/* ==================== CHESS ==================== */
 .square {
-  width: 60px;
-  height: 60px;
+  width: var(--chess-cell);
+  height: var(--chess-cell);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 40px;
+  font-size: calc(var(--chess-cell) * 0.67);
   cursor: pointer;
   user-select: none;
 }
@@ -295,23 +317,10 @@ h1 {
   color: #000;
 }
 
-/* Go Board Styles */
-#board.go-board {
-  grid-template-columns: repeat(19, 30px);
-  grid-template-rows: repeat(19, 30px);
-  background: #c9a86c;
-  position: relative;
-}
-
-#board.go-board.tessellated {
-  position: absolute;
-  grid-template-columns: repeat(95, 30px);
-  grid-template-rows: repeat(95, 30px);
-}
-
+/* ==================== GO ==================== */
 .go-intersection {
-  width: 30px;
-  height: 30px;
+  width: var(--go-cell);
+  height: var(--go-cell);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -351,25 +360,21 @@ h1 {
   transform: translateX(-50%);
 }
 
-/* Edge adjustments - top */
 .go-intersection.edge-top::after {
   height: 50%;
   top: 50%;
 }
 
-/* Edge adjustments - bottom */
 .go-intersection.edge-bottom::after {
   height: 50%;
   top: 0;
 }
 
-/* Edge adjustments - left */
 .go-intersection.edge-left::before {
   width: 50%;
   left: 50%;
 }
 
-/* Edge adjustments - right */
 .go-intersection.edge-right::before {
   width: 50%;
   left: 0;
@@ -382,8 +387,8 @@ h1 {
 
 .go-intersection.star-point .star-dot {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: calc(var(--go-cell) * 0.25);
+  height: calc(var(--go-cell) * 0.25);
   background: #333;
   border-radius: 50%;
   z-index: 1;
@@ -391,8 +396,8 @@ h1 {
 
 /* Go stones */
 .go-stone {
-  width: 26px;
-  height: 26px;
+  width: calc(var(--go-cell) - 4px);
+  height: calc(var(--go-cell) - 4px);
   border-radius: 50%;
   position: relative;
   z-index: 2;
@@ -428,8 +433,8 @@ h1 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
+  width: calc(var(--go-cell) * 0.25);
+  height: calc(var(--go-cell) * 0.25);
   border-radius: 50%;
 }
 
@@ -439,22 +444,6 @@ h1 {
 
 .go-intersection.last-move .go-stone.white-stone::after {
   background: #000;
-}
-
-/* Ghost stone preview on hover */
-.go-intersection.valid-move:not(.has-stone):hover::after {
-  content: '';
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  z-index: 2;
-  opacity: 0.4;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: transparent;
-  box-shadow: none;
 }
 
 .go-intersection.valid-move.black-turn:not(.has-stone):hover .ghost-stone {
@@ -468,8 +457,8 @@ h1 {
 .ghost-stone {
   display: none;
   position: absolute;
-  width: 26px;
-  height: 26px;
+  width: calc(var(--go-cell) - 4px);
+  height: calc(var(--go-cell) - 4px);
   border-radius: 50%;
   z-index: 2;
   opacity: 0.4;
@@ -494,26 +483,7 @@ h1 {
   background: #666;
 }
 
-/* Score display */
-#score-display {
-  display: none;
-  font-size: 0.7rem;
-  color: #666;
-  border-top: 1px solid #333;
-  padding-top: 8px;
-}
-
-#score-display.visible {
-  display: block;
-}
-
-#score-display .score-line {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-/* Topology boundary overlay */
+/* ==================== TOPOLOGY OVERLAY ==================== */
 #topology-overlay {
   position: absolute;
   top: 0;
@@ -527,14 +497,44 @@ h1 {
   position: relative;
 }
 
-.topo-tile.edge-wrap {
+.topo-tile.seam-top-wrap {
   border-top: 2px dashed rgba(20, 20, 20, 0.45);
+}
+
+.topo-tile.seam-left-wrap {
   border-left: 2px dashed rgba(20, 20, 20, 0.45);
 }
 
-.topo-tile.edge-mirror {
+.topo-tile.seam-top-mirror {
   border-top: 3px solid #f40;
-  border-left: 2px dashed rgba(20, 20, 20, 0.45);
+}
+
+.topo-tile.seam-left-mirror {
+  border-left: 3px solid #f40;
+}
+
+.topo-tile.seam-top-rotation {
+  border-top: 3px dotted #f40;
+}
+
+.topo-tile.seam-left-rotation {
+  border-left: 3px dotted #f40;
+}
+
+.topo-tile.wall-top {
+  border-top: 4px solid #111;
+}
+
+.topo-tile.wall-bottom {
+  border-bottom: 4px solid #111;
+}
+
+.topo-tile.wall-left {
+  border-left: 4px solid #111;
+}
+
+.topo-tile.wall-right {
+  border-right: 4px solid #111;
 }
 
 .topo-tile.reflected {
@@ -551,14 +551,10 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 140px;
+  font-size: inherit;
   line-height: 1;
   color: rgba(20, 20, 20, 0.1);
   user-select: none;
-}
-
-.topo-tile.reflected .topo-glyph {
-  transform: scaleY(-1);
 }
 
 .topo-label {
@@ -573,19 +569,50 @@ h1 {
   border: 1px solid rgba(20, 20, 20, 0.6);
 }
 
-.topo-tile.reflected .topo-label {
+.topo-label.transformed {
   color: #f40;
   border-color: #f40;
 }
 
-/* Boundary legend in sidebar */
+/* ==================== RIGHT INFO PANEL ==================== */
+#info-panel {
+  background: #222;
+  border-left: 1px solid #444;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.panel-label {
+  font-size: 0.7rem;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+#mode-description {
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.4;
+}
+
+.spec-line {
+  font-size: 0.75rem;
+  color: #aaa;
+  letter-spacing: 1px;
+  padding: 2px 0;
+}
+
 #seam-legend {
   display: none;
   font-size: 0.7rem;
   color: #999;
   letter-spacing: 1px;
-  border-top: 1px solid #333;
-  padding: 6px 0;
 }
 
 #seam-legend.visible {
@@ -609,12 +636,217 @@ h1 {
   border-top: 3px solid #f40;
 }
 
+.legend-swatch.swatch-rotation {
+  border-top: 3px dotted #f40;
+}
+
 .legend-swatch.swatch-wrap {
   border-top: 2px dashed #888;
+}
+
+.legend-swatch.swatch-wall {
+  border-top: 4px solid #666;
 }
 
 .legend-swatch.swatch-hatch {
   height: 10px;
   border: 1px solid #555;
   background: repeating-linear-gradient(45deg, #888 0 2px, transparent 2px 6px);
+}
+
+/* ==================== INFO PANEL TEXT & LINKS ==================== */
+#site-blurb,
+#mode-article {
+  font-size: 0.75rem;
+  color: #999;
+  line-height: 1.5;
+}
+
+#site-blurb a,
+.link-line a,
+.catalog-links a {
+  color: #bbb;
+  text-decoration: underline;
+}
+
+#site-blurb a:hover,
+.link-line a:hover,
+.catalog-links a:hover {
+  color: #fff;
+}
+
+.link-line {
+  font-size: 0.75rem;
+  padding: 2px 0;
+}
+
+#about-link {
+  display: block;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#about-link:hover {
+  background: #333;
+  color: #ddd;
+}
+
+/* ==================== ABOUT / DOC PAGE ==================== */
+body.doc-page {
+  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+#doc {
+  max-width: 88ch;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+#doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+
+#doc-header h1 {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.doc-back,
+#doc-footer a {
+  color: #bbb;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: underline;
+}
+
+.doc-back:hover,
+#doc-footer a:hover {
+  color: #fff;
+}
+
+.doc-section {
+  margin-bottom: 28px;
+}
+
+.doc-section h2 {
+  font-size: 1rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ddd;
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+.doc-section p,
+.doc-section li {
+  font-size: 0.85rem;
+  color: #aaa;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.doc-section ul {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.doc-section code {
+  color: #ddd;
+  background: #2a2a2a;
+  padding: 0 4px;
+}
+
+.catalog-entry {
+  border: 1px solid #333;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.catalog-entry h3 {
+  font-size: 0.9rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ddd;
+  margin-bottom: 6px;
+}
+
+.catalog-entry p {
+  margin-bottom: 6px;
+}
+
+.catalog-spec {
+  margin-bottom: 8px;
+}
+
+.catalog-spec .spec-line {
+  display: inline-block;
+  border: 1px solid #444;
+  color: #aaa;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  margin: 0 4px 4px 0;
+}
+
+.catalog-links {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+#doc-footer {
+  border-top: 1px solid #444;
+  padding-top: 12px;
+}
+
+/* ==================== CENSUS TABLE ==================== */
+#census-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+}
+
+#census-table th,
+#census-table td {
+  border: 1px solid #333;
+  padding: 3px 6px;
+  text-align: left;
+  color: #aaa;
+}
+
+#census-table th {
+  background: #2a2a2a;
+  color: #ddd;
+  text-transform: uppercase;
+}
+
+#census-table td.verdict-ok {
+  color: #7a9a7a;
+}
+
+#census-table td.verdict-quirks {
+  color: #c9c97a;
+}
+
+#census-table td.verdict-dead {
+  color: #b07070;
 }

@@ -1,5 +1,4 @@
-import { Color, gameMode } from './state';
-import { wrap, wrapMirror } from './topology';
+import { Color, currentTopology } from './state';
 
 export type GoStone = Color | null;
 export type GoBoard = GoStone[][];
@@ -40,28 +39,12 @@ function boardToString(board: GoBoard): string {
   return board.map(row => row.map(cell => cell ? cell[0] : '.').join('')).join('|');
 }
 
-function getNeighbors(row: number, col: number): [number, number][] {
+export function getNeighbors(row: number, col: number): [number, number][] {
   const neighbors: [number, number][] = [];
-
-  if (gameMode === 'classic') {
-    if (row > 0) neighbors.push([row - 1, col]);
-    if (row < GO_SIZE - 1) neighbors.push([row + 1, col]);
-    if (col > 0) neighbors.push([row, col - 1]);
-    if (col < GO_SIZE - 1) neighbors.push([row, col + 1]);
-  } else if (gameMode === 'rollover') {
-    neighbors.push([wrap(row - 1, GO_SIZE), col]);
-    neighbors.push([wrap(row + 1, GO_SIZE), col]);
-    neighbors.push([row, wrap(col - 1, GO_SIZE)]);
-    neighbors.push([row, wrap(col + 1, GO_SIZE)]);
-  } else if (gameMode === 'mirror') {
-    const [upRow, upCol] = wrapMirror(row - 1, col, GO_SIZE);
-    const [downRow, downCol] = wrapMirror(row + 1, col, GO_SIZE);
-    neighbors.push([upRow, upCol]);
-    neighbors.push([downRow, downCol]);
-    neighbors.push([row, wrap(col - 1, GO_SIZE)]);
-    neighbors.push([row, wrap(col + 1, GO_SIZE)]);
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const p = currentTopology.project(row + dr, col + dc, GO_SIZE);
+    if (p) neighbors.push(p);
   }
-
   return neighbors;
 }
 

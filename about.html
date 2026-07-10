@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Topologic Games</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body class="doc-page">
+  <div id="doc">
+    <header id="doc-header">
+      <h1>Topologic Games</h1>
+      <a href="./index.html" class="doc-back">Back to the games</a>
+    </header>
+
+    <section class="doc-section">
+      <h2>1.0 What this is</h2>
+      <p>Chess and Go, played on surfaces other than a bounded square. The rules of each game are untouched - what changes is what happens when a piece, a stone, or a line of sight crosses the edge of the board. Depending on the mode, edges wrap around, reflect like mirrors, rotate into an adjacent copy, or stay solid walls.</p>
+      <p>Mathematically, every mode is the same construction: the game is played on a quotient of the infinite plane. Pick a group of symmetries (translations, reflections, rotations, glides), tile the plane with copies of the board related by those symmetries, and identify all the copies. The board you see repeated in the play view is that tiling; the seams drawn between tiles show which symmetry glues them together.</p>
+      <p>In the engine this is literally one function per mode: <code>project(row, col)</code> maps any coordinate of the infinite plane back onto the canonical board. Adjacency, move generation, capture logic, scoring, and the tiled rendering are all derived from it.</p>
+    </section>
+
+    <section class="doc-section">
+      <h2>2.0 Reading the board</h2>
+      <p>Enable BOUNDARIES in the sidebar to see the structure of the tiling:</p>
+      <ul>
+        <li>dashed seam - pure translation: the board repeats (wrap)</li>
+        <li>solid accent seam - reflection: the copies on either side are mirror images</li>
+        <li>dotted accent seam - rotation: the copy across the seam is turned 90 or 180 degrees</li>
+        <li>thick dark border - wall: the board simply ends</li>
+        <li>hatched tiles are reflected copies; each tile is labeled with its orientation and carries a faint triangle showing which way "up" points in that copy</li>
+      </ul>
+      <p>Hover a Go intersection and the ghost stone appears on every copy at once - all of them are the same point of the underlying surface.</p>
+    </section>
+
+    <section class="doc-section">
+      <h2>3.0 Census</h2>
+      <p>Every (game, topology) pair. GROUP and ORBIFOLD give the symmetry group of the tiling in IUC and Conway orbifold notation; SURFACE is the quotient you are actually playing on. MOVE-0 is evaluated by the engine: it sets up the standard position on that topology and checks whether the side to move has a legal move. SING. CELLS counts cells that are adjacent to themselves (cone points and mirror-boundary cells), computed from the projection map. VERDICT is derived, never assigned: DEAD if the game is decided at move zero, QUIRKS if singular cells exist or the surface is non-orientable, OK otherwise.</p>
+      <p>Degenerate games are kept exactly as they fall - see the design principle in the repository docs. Which topologies produce interesting games is this project's open research question; this table is the raw data.</p>
+      <table id="census-table"></table>
+    </section>
+
+    <section class="doc-section">
+      <h2>4.0 The topologies</h2>
+      <div id="catalog"></div>
+    </section>
+
+    <footer id="doc-footer">
+      <a href="./index.html">Back to the games</a>
+    </footer>
+  </div>
+  <script type="module" src="/src/about.ts"></script>
+</body>
+
+</html>

@@ -1,9 +1,10 @@
-import { GameMode, GameType, currentGame, setCurrentGame, setGameMode } from './state';
+import { GameType, currentGame, currentTopology, setCurrentGame, setTopology } from './state';
+import { TOPOLOGIES } from './topology';
 import { resetChess } from './chess';
 import { passGoTurn, resetGo } from './go';
 import {
-  initPanControls, renderBoard, requestPanReset, setShowBoundaries, startSliding, stopSliding,
-  updateModeDescription, updateStatus
+  initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries, startSliding,
+  stopSliding, updateModeDescription, updateStatus, zoomStep
 } from './render';
 
 function init(): void {
@@ -33,19 +34,19 @@ function switchGame(game: GameType): void {
   init();
 }
 
-function switchMode(mode: GameMode): void {
-  setGameMode(mode);
+function switchMode(id: string): void {
+  setTopology(id);
 
-  document.getElementById('mode-classic')!.classList.toggle('active', mode === 'classic');
-  document.getElementById('mode-rollover')!.classList.toggle('active', mode === 'rollover');
-  document.getElementById('mode-mirror')!.classList.toggle('active', mode === 'mirror');
+  for (const topo of TOPOLOGIES) {
+    document.getElementById(`mode-${topo.id}`)!.classList.toggle('active', topo.id === id);
+  }
 
   updateModeDescription();
 
   const slideControl = document.getElementById('slide-control')!;
   const slideCheckbox = document.getElementById('slide-board') as HTMLInputElement;
   const boundaryControl = document.getElementById('boundary-control')!;
-  if (mode === 'rollover' || mode === 'mirror') {
+  if (currentTopology.tessellated) {
     slideControl.classList.add('visible');
     boundaryControl.classList.add('visible');
   } else {
@@ -58,12 +59,24 @@ function switchMode(mode: GameMode): void {
   init();
 }
 
+// Mode buttons are generated from the topology registry: adding an entry to
+// TOPOLOGIES is all it takes to ship a new game variant.
+function buildModeButtons(): void {
+  const selector = document.getElementById('mode-selector')!;
+  for (const topo of TOPOLOGIES) {
+    const btn = document.createElement('button');
+    btn.id = `mode-${topo.id}`;
+    btn.className = 'mode-btn';
+    btn.textContent = topo.name;
+    if (topo.id === currentTopology.id) btn.classList.add('active');
+    btn.addEventListener('click', () => switchMode(topo.id));
+    selector.appendChild(btn);
+  }
+}
+
 document.getElementById('reset')!.addEventListener('click', init);
 document.getElementById('game-chess')!.addEventListener('click', () => switchGame('chess'));
 document.getElementById('game-go')!.addEventListener('click', () => switchGame('go'));
-document.getElementById('mode-classic')!.addEventListener('click', () => switchMode('classic'));
-document.getElementById('mode-rollover')!.addEventListener('click', () => switchMode('rollover'));
-document.getElementById('mode-mirror')!.addEventListener('click', () => switchMode('mirror'));
 document.getElementById('pass-btn')!.addEventListener('click', () => {
   passGoTurn();
   updateStatus();
@@ -83,5 +96,16 @@ document.getElementById('show-boundaries')!.addEventListener('change', (e) => {
   setShowBoundaries((e.target as HTMLInputElement).checked);
 });
 
+document.getElementById('zoom-in')!.addEventListener('click', () => zoomStep(1));
+document.getElementById('zoom-out')!.addEventListener('click', () => zoomStep(-1));
+document.getElementById('zoom-level')!.addEventListener('click', resetZoom);
+
+buildModeButtons();
 initPanControls();
+updateModeDescription();
 init();
+
+// Debug hook for automated browser tests
+(window as unknown as Record<string, unknown>).__topo = {
+  project: (r: number, c: number, size: number) => currentTopology.project(r, c, size),
+};
