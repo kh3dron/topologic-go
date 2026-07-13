@@ -29,6 +29,10 @@ let isPannable = false;
 let tilesX = 1;
 let tilesY = 1;
 
+// True while a real drag is in progress; gates hover-sync without touching
+// the DOM (any style flip scoped to the whole board recalcs every cell).
+let suppressHoverSync = false;
+
 let isSliding = false;
 let slideAnimationId: number | null = null;
 const SLIDE_SPEED_X = 0.3;
@@ -157,8 +161,10 @@ function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void
   const periodXPx = currentTopology.periodX ? currentTopology.periodX * board : null;
   const periodYPx = currentTopology.periodY ? currentTopology.periodY * board : null;
 
-  tilesX = periodXPx ? Math.ceil((containerW + 2 * periodXPx) / board) : 1;
-  tilesY = periodYPx ? Math.ceil((containerH + 2 * periodYPx) / board) : 1;
+  // Pan wrapping keeps left/top in [-period, 0), so one period of padding
+  // beyond the container fully covers the viewport.
+  tilesX = periodXPx ? Math.ceil((containerW + periodXPx) / board) : 1;
+  tilesY = periodYPx ? Math.ceil((containerH + periodYPx) / board) : 1;
 
   boardEl.style.gridTemplateColumns = `repeat(${tilesX * size}, ${cellPx()}px)`;
   boardEl.style.gridTemplateRows = `repeat(${tilesY * size}, ${cellPx()}px)`;
@@ -205,6 +211,7 @@ function createChessSquare(row: number, col: number, light: boolean): HTMLElemen
 
   if (selectedSquare && selectedSquare[0] === row && selectedSquare[1] === col) {
     square.classList.add('selected');
+    if (chessLegalDests && chessLegalDests.size === 0) square.classList.add('no-moves');
   } else if (chessLegalDests && chessLegalDests.has(`${row},${col}`)) {
     square.classList.add(chessBoard[row][col] ? 'capturable' : 'moveable');
   }
@@ -286,6 +293,7 @@ function createGoIntersection(row: number, col: number, walls: Walls): HTMLEleme
   });
 
   intersection.addEventListener('mouseenter', () => {
+    if (suppressHoverSync) return;
     if (currentTopology.tessellated) syncGoHoverState(row, col, true);
   });
 
@@ -437,8 +445,7 @@ export function updateBoardPosition(): void {
 
   lastLeft = left;
   lastTop = top;
-  boardEl.style.left = `${left}px`;
-  boardEl.style.top = `${top}px`;
+  boardEl.style.transform = `translate3d(${left}px, ${top}px, 0)`;
 
   isPannable = tess || extentX > w || extentY > h;
   containerEl.classList.toggle('pannable', isPannable);
@@ -466,6 +473,7 @@ export function initPanControls(): void {
     e.preventDefault();
   });
 
+  let panFrameId: number | null = null;
   document.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
     const dx = e.clientX - dragStartX;
@@ -473,11 +481,18 @@ export function initPanControls(): void {
     dragDistance = Math.max(dragDistance, Math.abs(dx), Math.abs(dy));
     panOffsetX = dragStartPanX + dx;
     panOffsetY = dragStartPanY + dy;
-    updateBoardPosition();
+    if (dragDistance > DRAG_CLICK_THRESHOLD) suppressHoverSync = true;
+    if (panFrameId === null) {
+      panFrameId = requestAnimationFrame(() => {
+        panFrameId = null;
+        updateBoardPosition();
+      });
+    }
   });
 
   document.addEventListener('mouseup', () => {
     isPanning = false;
+    suppressHoverSync = false;
   });
 
   // A release at the end of a real drag must not count as a move: swallow the

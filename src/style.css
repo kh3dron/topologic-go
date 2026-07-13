@@ -229,7 +229,10 @@ button:active,
 #board {
   display: grid;
   position: absolute;
+  left: 0;
+  top: 0;
   margin: 0;
+  will-change: transform;
 }
 
 #board.go-board {
@@ -264,12 +267,17 @@ button:active,
   background: #7a9a7a !important;
 }
 
+.square.selected.no-moves {
+  background: #a35c5c !important;
+  box-shadow: inset 0 0 0 3px #d98a8a;
+}
+
 .square.moveable {
-  background: #c9c97a !important;
+  background-image: linear-gradient(rgba(201, 201, 122, 0.5), rgba(201, 201, 122, 0.5));
 }
 
 .square.capturable {
-  background: #b07070 !important;
+  background-image: linear-gradient(rgba(176, 112, 112, 0.55), rgba(176, 112, 112, 0.55));
 }
 
 .square:hover {
