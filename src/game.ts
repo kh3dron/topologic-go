@@ -4,6 +4,9 @@ import { GAMES, usesTopology } from './engine';
 import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, sendMagicLink, signOut } from './net/auth';
 import { createGame, joinGame, listOpenGames } from './net/games';
+import { mountVersionBadge } from './version';
+
+mountVersionBadge();
 
 // Online-play entry (game.html): variant title, solo fallback, passwordless
 // sign-in, and a lobby (create a game or join an open one -> redirect into the

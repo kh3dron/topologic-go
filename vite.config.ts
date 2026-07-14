@@ -1,8 +1,20 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
+import { execSync } from 'node:child_process'
+
+function appVersion(): string {
+  try {
+    return execSync('git describe --tags --always --dirty', { encoding: 'utf8' }).trim()
+  } catch {
+    return 'dev'
+  }
+}
 
 export default defineConfig({
   base: './',
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion()),
+  },
   build: {
     rollupOptions: {
       input: {

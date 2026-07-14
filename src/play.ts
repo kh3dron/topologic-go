@@ -1,5 +1,5 @@
 import { GameType, currentGame, currentTopology, setCurrentGame, setTopology } from './state';
-import { TOPOLOGIES, TOPOLOGY_MAP } from './topology';
+import { TOPOLOGY_MAP } from './topology';
 import { VIEWS, viewFor } from './views';
 import { passGoTurn } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
@@ -8,8 +8,11 @@ import {
   initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries, startSliding,
   stopSliding, updateModeDescription, updateStatus, zoomStep
 } from './render';
+import { mountVersionBadge } from './version';
 
 const onlineId = new URLSearchParams(window.location.search).get('online');
+
+mountVersionBadge();
 
 // ==================== CONTROLS COMMON TO BOTH MODES ====================
 document.getElementById('pass-btn')!.addEventListener('click', () => {
@@ -45,7 +48,7 @@ if (onlineId) {
 // ==================== ONLINE MODE ====================
 async function bootOnline(id: string): Promise<void> {
   // Hide the offline chrome: game/topology are fixed by the game row.
-  for (const sel of ['#game-selector', '#mode-selector', '#reset', '#slide-control', '#boundary-control']) {
+  for (const sel of ['#game-selector', '#reset', '#slide-control', '#boundary-control']) {
     const el = document.querySelector<HTMLElement>(sel);
     if (el) el.style.display = 'none';
   }
@@ -81,7 +84,6 @@ function bootOffline(): void {
   document.getElementById('reset')!.addEventListener('click', init);
 
   buildGameButtons();
-  buildModeButtons();
   syncChrome();
   initPanControls();
   updateModeDescription();
@@ -118,12 +120,6 @@ function syncChrome(): void {
   document.getElementById('pass-btn')!.classList.toggle('visible', view.showsPassButton);
 
   const topo = view.usesTopology;
-  document.getElementById('mode-selector')!.classList.toggle('hidden', !topo);
-
-  for (const t of TOPOLOGIES) {
-    document.getElementById(`mode-${t.id}`)!.classList.toggle('active', t.id === currentTopology.id);
-  }
-
   const tess = topo && currentTopology.tessellated;
   const slideControl = document.getElementById('slide-control')!;
   const slideCheckbox = document.getElementById('slide-board') as HTMLInputElement;
@@ -149,14 +145,6 @@ function switchGame(game: GameType): void {
   init();
 }
 
-function switchMode(id: string): void {
-  setTopology(id);
-  syncChrome();
-  updateModeDescription();
-  updateUrl();
-  init();
-}
-
 // Game selector buttons are generated from the view registry: registering a
 // game (GAMES + VIEWS entry) ships its selector button with no markup change.
 function buildGameButtons(): void {
@@ -168,20 +156,6 @@ function buildGameButtons(): void {
     btn.textContent = view.shortName;
     if (view.id === currentGame) btn.classList.add('active');
     btn.addEventListener('click', () => switchGame(view.id as GameType));
-    selector.appendChild(btn);
-  }
-}
-
-// Mode buttons are generated from the topology registry.
-function buildModeButtons(): void {
-  const selector = document.getElementById('mode-selector')!;
-  for (const topo of TOPOLOGIES) {
-    const btn = document.createElement('button');
-    btn.id = `mode-${topo.id}`;
-    btn.className = 'mode-btn';
-    btn.textContent = topo.name;
-    if (topo.id === currentTopology.id) btn.classList.add('active');
-    btn.addEventListener('click', () => switchMode(topo.id));
     selector.appendChild(btn);
   }
 }

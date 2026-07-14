@@ -2,6 +2,9 @@ import { GameType } from './state';
 import { TOPOLOGIES, Topology } from './topology';
 import { GAMES, usesTopology } from './engine';
 import { variantHref, PlayMode } from './routes';
+import { mountVersionBadge } from './version';
+
+mountVersionBadge();
 
 // Topology-bearing games appear on every topology row; other geometries (hex)
 // get their own row. Both derive from the registry, so a new game lands here

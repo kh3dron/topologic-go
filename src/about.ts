@@ -3,6 +3,9 @@ import { setTopology } from './state';
 import { CHESS_SIZE } from './chess';
 import { GO_SIZE } from './go';
 import { chessMoveZero, singularCellCount, verdict } from './census';
+import { mountVersionBadge } from './version';
+
+mountVersionBadge();
 
 // ==================== CENSUS ====================
 // The classification helpers live in census.ts (shared with the landing
