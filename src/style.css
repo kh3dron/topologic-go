@@ -627,6 +627,33 @@ button:active,
   margin-bottom: 6px;
 }
 
+summary.panel-label {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0;
+}
+
+summary.panel-label::-webkit-details-marker {
+  display: none;
+}
+
+summary.panel-label::after {
+  content: "[+]";
+  letter-spacing: 0;
+  color: var(--line);
+}
+
+details.panel-section[open] > summary.panel-label {
+  margin-bottom: 6px;
+}
+
+details.panel-section[open] > summary.panel-label::after {
+  content: "[-]";
+}
+
 #mode-description {
   font-size: 0.8rem;
   color: var(--ink-dim);

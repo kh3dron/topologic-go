@@ -13,7 +13,6 @@
     <nav id="sidebar">
       <a id="catalog-link" href="./index.html">&larr; Catalog</a>
       <h1 id="game-title">Chess</h1>
-      <div id="game-selector"></div>
       <label id="slide-control" class="checkbox-control">
         <input type="checkbox" id="slide-board">
         <span>Animate</span>
@@ -41,30 +40,30 @@
       </div>
     </main>
     <aside id="info-panel">
-      <div class="panel-section">
-        <div class="panel-label">1.0 Site</div>
+      <details class="panel-section">
+        <summary class="panel-label">1.0 Site</summary>
         <div id="site-blurb">Classic games on impossible boards. Each mode changes only what happens at the edges - wrap, reflect, rotate, or wall - and the whole game follows. <a href="./about.html">Read about the math</a>.</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">2.0 Rules</div>
+      </details>
+      <details class="panel-section" open>
+        <summary class="panel-label">2.0 Rules</summary>
         <div id="mode-description"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">3.0 Notes</div>
+      </details>
+      <details class="panel-section">
+        <summary class="panel-label">3.0 Notes</summary>
         <div id="mode-article"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">4.0 References</div>
+      </details>
+      <details class="panel-section">
+        <summary class="panel-label">4.0 References</summary>
         <div id="mode-links"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">5.0 Edge Spec</div>
+      </details>
+      <details class="panel-section">
+        <summary class="panel-label">5.0 Edge Spec</summary>
         <div id="mode-spec"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">6.0 Legend</div>
+      </details>
+      <details class="panel-section">
+        <summary class="panel-label">6.0 Legend</summary>
         <div id="seam-legend"></div>
-      </div>
+      </details>
     </aside>
   </div>
   <script type="module" src="/src/play.ts"></script>

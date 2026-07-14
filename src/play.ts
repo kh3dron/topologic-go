@@ -1,6 +1,6 @@
-import { GameType, currentGame, currentTopology, setCurrentGame, setTopology } from './state';
+import { currentGame, currentTopology, setCurrentGame, setTopology } from './state';
 import { TOPOLOGY_MAP } from './topology';
-import { VIEWS, viewFor } from './views';
+import { viewFor } from './views';
 import { passGoTurn } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
 import { readVariantParams, variantSearch } from './routes';
@@ -48,7 +48,7 @@ if (onlineId) {
 // ==================== ONLINE MODE ====================
 async function bootOnline(id: string): Promise<void> {
   // Hide the offline chrome: game/topology are fixed by the game row.
-  for (const sel of ['#game-selector', '#reset', '#slide-control', '#boundary-control']) {
+  for (const sel of ['#reset', '#slide-control', '#boundary-control']) {
     const el = document.querySelector<HTMLElement>(sel);
     if (el) el.style.display = 'none';
   }
@@ -83,7 +83,6 @@ function bootOffline(): void {
 
   document.getElementById('reset')!.addEventListener('click', init);
 
-  buildGameButtons();
   syncChrome();
   initPanControls();
   updateModeDescription();
@@ -112,10 +111,6 @@ function init(): void {
 function syncChrome(): void {
   const view = viewFor(currentGame);
 
-  for (const id of VIEWS.keys()) {
-    document.getElementById(`game-${id}`)?.classList.toggle('active', id === currentGame);
-  }
-
   document.getElementById('game-title')!.textContent = view.name;
   document.getElementById('pass-btn')!.classList.toggle('visible', view.showsPassButton);
 
@@ -136,26 +131,3 @@ function updateUrl(): void {
   history.replaceState(null, '', variantSearch(currentGame, currentTopology.id));
 }
 
-function switchGame(game: GameType): void {
-  if (game === currentGame) return;
-  setCurrentGame(game);
-  syncChrome();
-  updateModeDescription();
-  updateUrl();
-  init();
-}
-
-// Game selector buttons are generated from the view registry: registering a
-// game (GAMES + VIEWS entry) ships its selector button with no markup change.
-function buildGameButtons(): void {
-  const selector = document.getElementById('game-selector')!;
-  for (const view of VIEWS.values()) {
-    const btn = document.createElement('button');
-    btn.id = `game-${view.id}`;
-    btn.className = 'game-btn';
-    btn.textContent = view.shortName;
-    if (view.id === currentGame) btn.classList.add('active');
-    btn.addEventListener('click', () => switchGame(view.id as GameType));
-    selector.appendChild(btn);
-  }
-}
