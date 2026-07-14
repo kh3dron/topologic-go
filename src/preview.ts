@@ -1,26 +1,37 @@
-// Board-fixed topology preview for the catalog picker. A short snake runs in a
-// straight plane line; project() maps each step onto a single board tile, so the
-// snake wraps / bounces / turns exactly the way it would in-game - the animation
-// is the real topology, never a canned per-mode effect. Travel direction is the
-// axis with the most interesting seam (reflect / rotate over plain wrap), derived
-// by probing project() via tileOrientation, so new topologies animate for free.
+// Particle-flow topology preview for the catalog picker. Streams of particles
+// fly in straight plane lines out through every glued edge; a continuous
+// extension of project() maps each sample onto the board, so a particle
+// leaving an edge re-enters at the exact glued cell with the correct flip or
+// rotation - the flow is the real topology, never a canned per-mode effect.
+// Particle color reuses the shared seam gradient and travels with the
+// particle, so exit and entry match by continuity; a self-glued (mirror)
+// crossing literally bounces the flight path back; wall edges absorb the
+// occasional stray particle with a flash. Derived entirely by probing
+// project(), so new topologies animate for free.
 
-import { SeamColoring, seamColor, seamColoring, Topology, tileOrientation } from './topology';
+import { seamColor, seamColoring, Topology, tileOrientation } from './topology';
 import { allHexCells, hexColorIndex } from './engine/games/hexchess';
 
 const SIZE = 8;
-const LEN = 4;
-const TICK_MS = 150;
-const DEAD_PAUSE = 7;   // ticks frozen on a wall hit before restarting
 const PAD = 10;
 const MID = Math.floor(SIZE / 2);
 
 const LIGHT = '#1c1c1c';
 const DARK = '#171717';
-const HEAD = '#7be3a2';
-const BODY = '#3c9a5f';
 const BG = '#141414';
 const HEX_COLORS = ['#e8e8e8', '#b0b0b0', '#7d7d7d'];   // Glinski 3-colouring
+const BOUNCE = '#d9d9d9';
+const DOOMED = '#757575';
+
+const SPEED = 2.4;       // cells per second
+const DEPTH = 2.3;       // flight distance on each side of the seam, in cells
+const FADE = 0.3;        // fade-in/out time, seconds
+const FLASH = 0.35;      // wall-hit flash duration, seconds
+const TRAIL = 5;         // ghost samples behind the head
+const TRAIL_DT = 0.075;  // seconds between ghost samples
+const HEAD_R = 0.13;     // head radius, in cells
+const WAVE_PAUSE = 0.9;  // rest between waves, seconds
+const WAVE_PERIOD = (2 * DEPTH) / SPEED + FLASH + WAVE_PAUSE;
 
 type Vec = [number, number];
 
@@ -33,8 +44,8 @@ type SeamType = 'wall' | 'wrap' | 'reflect' | 'rotate';
 interface Seam { score: number; type: SeamType; }
 
 // Classifies one axis by probing the neighbouring tile: a wall axis (null
-// period) scores 0, a plain wrap 1, and a reflect / rotate 2 so the demo
-// prefers to show off the more interesting glue.
+// period) scores 0, a plain wrap 1, and a reflect / rotate 2 so the caption
+// names the most interesting glue.
 function axisSeam(topo: Topology, axis: 'x' | 'y'): Seam {
   const period = axis === 'x' ? topo.periodX : topo.periodY;
   if (period == null) return { score: 0, type: 'wall' };
@@ -51,6 +62,82 @@ const CAPTION: Record<SeamType, string> = {
   rotate: 'EDGES ROTATE',
 };
 
+// One perpetually-recycling particle anchored to a single edge crossing. All
+// particles ride one global clock: every WAVE_PERIOD a synchronized wave
+// leaves every edge at once, so exits and their glued entries are trivially
+// matched by eye. Each flight is a pure function of time (seam point +
+// outward dir * dist), so no per-frame state is kept and the sim never
+// drifts.
+type ParticleKind = 'flow' | 'bounce' | 'doomed';
+interface Particle {
+  sy: number; sx: number;   // seam crossing point, continuous plane coords
+  dy: number; dx: number;   // outward unit direction
+  color: string;
+  kind: ParticleKind;
+  life: number;             // flight time, seconds
+}
+
+// Continuous extension of project(): maps a real-valued plane point (cell
+// units, cell (r,c) spans y in [r,r+1], x in [c,c+1]) to real-valued board
+// coordinates by applying the containing tile's isometry. Exact, because each
+// tile is one rigid copy of the board; null past a wall.
+function projectPoint(topo: Topology, y: number, x: number): Vec | null {
+  const R0 = Math.floor(y / SIZE) * SIZE;
+  const C0 = Math.floor(x / SIZE) * SIZE;
+  const p00 = topo.project(R0, C0, SIZE);
+  if (!p00) return null;
+  const p10 = topo.project(R0 + 1, C0, SIZE)!;
+  const p01 = topo.project(R0, C0 + 1, SIZE)!;
+  const er: Vec = [p10[0] - p00[0], p10[1] - p00[1]];
+  const ec: Vec = [p01[0] - p00[0], p01[1] - p00[1]];
+  const oy = y - R0 - 0.5;
+  const ox = x - C0 - 0.5;
+  return [p00[0] + 0.5 + er[0] * oy + ec[0] * ox, p00[1] + 0.5 + er[1] * oy + ec[1] * ox];
+}
+
+// One particle per outbound edge crossing: glued crossings spawn on the exit
+// side only (the projection produces the matching entry for free), self-glued
+// crossings bounce, wall crossings get a doomed particle that dies at the
+// boundary - the wave passes through glued edges and is absorbed by walls.
+function buildParticles(topo: Topology): Particle[] {
+  const coloring = seamColoring(topo, SIZE);
+  const out: Particle[] = [];
+  interface EdgeSpec {
+    seam(i: number): Vec; dir: Vec;
+    interior(i: number): Vec; exterior(i: number): Vec;
+  }
+  const edges: EdgeSpec[] = [
+    { seam: i => [i + 0.5, 0], dir: [0, -1], interior: i => [i, 0], exterior: i => [i, -1] },
+    { seam: i => [i + 0.5, SIZE], dir: [0, 1], interior: i => [i, SIZE - 1], exterior: i => [i, SIZE] },
+    { seam: i => [0, i + 0.5], dir: [-1, 0], interior: i => [0, i], exterior: i => [-1, i] },
+    { seam: i => [SIZE, i + 0.5], dir: [1, 0], interior: i => [SIZE - 1, i], exterior: i => [SIZE, i] },
+  ];
+  for (const e of edges) {
+    for (let i = 0; i < SIZE; i++) {
+      const a = topo.project(e.interior(i)[0], e.interior(i)[1], SIZE)!;
+      const b = topo.project(e.exterior(i)[0], e.exterior(i)[1], SIZE);
+      let kind: ParticleKind;
+      let color: string;
+      if (!b) {
+        kind = 'doomed';
+        color = DOOMED;
+      } else if (a[0] === b[0] && a[1] === b[1]) {
+        kind = 'bounce';
+        color = BOUNCE;
+      } else {
+        const col = coloring.lookup(a, b)!;
+        if (col.onto) continue;   // entry side: the partner crossing spawns
+        kind = 'flow';
+        color = seamColor(col.scheme, col.t);
+      }
+      const life = (kind === 'doomed' ? DEPTH : 2 * DEPTH) / SPEED;
+      const [sy, sx] = e.seam(i);
+      out.push({ sy, sx, dy: e.dir[0], dx: e.dir[1], color, kind, life });
+    }
+  }
+  return out;
+}
+
 export interface Preview {
   // Switches the animated board; pass null for a non-topology board (hex).
   // Returns a short caption describing the edge behaviour.
@@ -64,36 +151,11 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   const inkDim = cssVar('--ink-dim', '#9c9c9c');
 
   let topo: Topology | null = null;
-  let coloring: SeamColoring | null = null;
-  let dir: Vec = [0, 1];
-  let headPlane: Vec = [MID, MID];
-  let body: Vec[] = [];
-  let dead = 0;
+  let particles: Particle[] = [];
+  let raf = 0;
 
   let cw = 0;
   let ch = 0;
-
-  function reset(): void {
-    headPlane = [MID, MID];
-    dead = 0;
-    body = topo ? [topo.project(MID, MID, SIZE)!] : [];
-  }
-
-  function tick(): void {
-    if (!topo) return;
-    if (dead > 0) {
-      dead--;
-      if (dead === 0) reset();
-      return;
-    }
-    const nr = headPlane[0] + dir[0];
-    const nc = headPlane[1] + dir[1];
-    const p = topo.project(nr, nc, SIZE);
-    if (!p) { dead = DEAD_PAUSE; return; }   // ran into a wall
-    headPlane = [nr, nc];
-    body.unshift(p);
-    while (body.length > LEN) body.pop();
-  }
 
   function resize(): void {
     const rect = canvas.getBoundingClientRect();
@@ -104,13 +166,6 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     cw = rect.width;
     ch = rect.height;
-  }
-
-  function roundRect(x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
-    else ctx.rect(x, y, w, h);
-    ctx.fill();
   }
 
   function drawBoard(): void {
@@ -131,25 +186,14 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       }
     }
 
-    if (topo) drawSnake(ox, oy, cell);
-    drawEdges(ox, oy, boardPx, cell);
-    drawSeamArrows(ox, oy, boardPx, cell);
-  }
-
-  function drawSnake(ox: number, oy: number, cell: number): void {
-    for (let i = body.length - 1; i >= 0; i--) {
-      const [r, c] = body[i];
-      const head = i === 0;
-      ctx.fillStyle = head ? (dead > 0 ? accent : HEAD) : BODY;
-      const inset = head ? 2 : 3;
-      roundRect(ox + c * cell + inset, oy + r * cell + inset, cell - 2 * inset, cell - 2 * inset, head ? 5 : 3);
-    }
+    drawEdges(ox, oy, boardPx);
+    if (topo) drawParticles(ox, oy, cell);
   }
 
   // A board edge is a lethal wall if the plane cell just past it maps to null;
-  // otherwise it glues to another copy (wrap / reflect / rotate) and is drawn as
-  // a passable dashed seam.
-  function drawEdges(ox: number, oy: number, boardPx: number, _cell: number): void {
+  // otherwise it glues to another copy (wrap / reflect / rotate) and is drawn
+  // as a passable dashed seam.
+  function drawEdges(ox: number, oy: number, boardPx: number): void {
     if (!topo) return;
     const sides: { probe: Vec; a: Vec; b: Vec }[] = [
       { probe: [-1, MID], a: [ox, oy], b: [ox + boardPx, oy] },
@@ -176,77 +220,58 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     ctx.setLineDash([]);
   }
 
-  // Numbered gradient arrows along each glued edge. Color + number come from the
-  // seam's gluing key so the two cells an edge glues share both; the arrow points
-  // onto the grid on the entry edge and off it on the exit edge. On a Mobius board
-  // the left edge runs blue->red pointing in and the right runs red->blue pointing
-  // out - matching the in-game overlay. Same project()-derived logic on canvas.
-  function drawSeamArrows(ox: number, oy: number, boardPx: number, cell: number): void {
-    if (!topo || !coloring) return;
-    const s = Math.max(3, cell * 0.26);
-    const edgeGap = s + 2;         // glyph distance from the edge line
-    const numGap = s + 2;          // number offset inboard of the glyph
-    ctx.font = `700 ${Math.max(8, Math.round(s * 1.7))}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  function drawParticles(ox: number, oy: number, cell: number): void {
+    if (!topo) return;
+    const age = (performance.now() / 1000) % WAVE_PERIOD;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
 
-    for (const edge of ['left', 'right', 'top', 'bottom'] as const) {
-      for (const i of sampleEdgeIndices(SIZE)) {
-        // Side edges own the corners; drop the redundant top/bottom corner arrow
-        // when the sides wrap, so corner numbers don't overlap.
-        if ((edge === 'top' || edge === 'bottom') && (i === 0 || i === SIZE - 1) && topo.periodX !== null) continue;
+    for (const p of particles) {
+      if (p.kind === 'doomed' && age >= p.life && age < p.life + FLASH) {
+        const f = (age - p.life) / FLASH;
+        ctx.globalAlpha = (1 - f) * 0.45;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        ctx.arc(ox + p.sx * cell, oy + p.sy * cell, cell * (0.08 + 0.3 * f), 0, Math.PI * 2);
+        ctx.stroke();
+        continue;
+      }
+      if (age >= p.life) continue;
 
-        let inR: number, inC: number, outR: number, outC: number;
-        let cx: number, cy: number, nx: number, ny: number;
-        let dIn: 'right' | 'left' | 'down' | 'up', dOut: 'right' | 'left' | 'down' | 'up';
-        if (edge === 'left') {
-          inR = i; inC = 0; outR = i; outC = -1;
-          cx = ox + edgeGap; cy = oy + (i + 0.5) * cell; nx = cx + numGap; ny = cy;
-          dIn = 'right'; dOut = 'left';
-        } else if (edge === 'right') {
-          inR = i; inC = SIZE - 1; outR = i; outC = SIZE;
-          cx = ox + boardPx - edgeGap; cy = oy + (i + 0.5) * cell; nx = cx - numGap; ny = cy;
-          dIn = 'left'; dOut = 'right';
-        } else if (edge === 'top') {
-          inR = 0; inC = i; outR = -1; outC = i;
-          cx = ox + (i + 0.5) * cell; cy = oy + edgeGap; nx = cx; ny = cy + numGap;
-          dIn = 'down'; dOut = 'up';
+      for (let k = TRAIL; k >= 0; k--) {
+        const sampleAge = age - k * TRAIL_DT;
+        if (sampleAge < 0) continue;
+        const dist = SPEED * sampleAge - DEPTH;
+        const y = p.sy + p.dy * dist;
+        const x = p.sx + p.dx * dist;
+        const bp = projectPoint(topo, y, x);
+        if (!bp) continue;
+        const px = ox + bp[1] * cell;
+        const py = oy + bp[0] * cell;
+        const env = Math.min(1, sampleAge / FADE, p.kind === 'doomed' ? 1 : (p.life - sampleAge) / FADE);
+        if (env <= 0) continue;
+        const dim = p.kind === 'doomed' ? 0.55 : 1;
+        ctx.fillStyle = p.color;
+        if (k === 0) {
+          ctx.globalAlpha = env * 0.16 * dim;
+          ctx.beginPath();
+          ctx.arc(px, py, cell * HEAD_R * 2.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = env * 0.95 * dim;
+          ctx.beginPath();
+          ctx.arc(px, py, cell * HEAD_R, 0, Math.PI * 2);
+          ctx.fill();
         } else {
-          inR = SIZE - 1; inC = i; outR = SIZE; outC = i;
-          cx = ox + (i + 0.5) * cell; cy = oy + boardPx - edgeGap; nx = cx; ny = cy - numGap;
-          dIn = 'up'; dOut = 'down';
+          const shrink = 1 - k / (TRAIL + 1.5);
+          ctx.globalAlpha = env * 0.5 * shrink * dim;
+          ctx.beginPath();
+          ctx.arc(px, py, cell * HEAD_R * 0.8 * shrink, 0, Math.PI * 2);
+          ctx.fill();
         }
-        const col = coloring.lookup(topo.project(inR, inC, SIZE), topo.project(outR, outC, SIZE));
-        if (!col) continue;
-        const color = seamColor(col.scheme, col.t);
-        ctx.fillStyle = color;
-        arrowHead(cx, cy, s, col.onto ? dIn : dOut);
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.strokeText(String(col.label), nx, ny);
-        ctx.fillStyle = color;
-        ctx.fillText(String(col.label), nx, ny);
       }
     }
-  }
-
-  function arrowHead(cx: number, cy: number, s: number, dir: 'right' | 'left' | 'down' | 'up'): void {
-    ctx.beginPath();
-    if (dir === 'right') { ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx + s, cy); ctx.lineTo(cx - s, cy + s); }
-    else if (dir === 'left') { ctx.moveTo(cx + s, cy - s); ctx.lineTo(cx - s, cy); ctx.lineTo(cx + s, cy + s); }
-    else if (dir === 'down') { ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx, cy + s); ctx.lineTo(cx + s, cy - s); }
-    else { ctx.moveTo(cx - s, cy + s); ctx.lineTo(cx, cy - s); ctx.lineTo(cx + s, cy + s); }
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // Evenly-spaced, reflection-symmetric edge indices so flipped gluings land
-  // arrow-on-arrow and the preview stays uncluttered.
-  function sampleEdgeIndices(n: number): number[] {
-    const count = Math.min(n, 8);
-    const out = new Set<number>();
-    for (let k = 0; k < count; k++) out.add(Math.round((k * (n - 1)) / (count - 1)));
-    return [...out];
+    ctx.restore();
   }
 
   function render(): void {
@@ -254,34 +279,32 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     else drawHexBoard();
   }
 
-  const timer = window.setInterval(() => {
-    tick();
-    render();
-  }, TICK_MS);
+  function frame(): void {
+    drawBoard();
+    raf = requestAnimationFrame(frame);
+  }
 
   const ro = new ResizeObserver(() => { resize(); render(); });
   ro.observe(canvas);
 
   return {
     setBoard(next: Topology | null): string {
+      cancelAnimationFrame(raf);
       topo = next;
-      coloring = next ? seamColoring(next, SIZE) : null;
       if (next) {
+        particles = buildParticles(next);
+        frame();
         const sx = axisSeam(next, 'x');
         const sy = axisSeam(next, 'y');
-        const useX = sx.score >= sy.score;
-        dir = useX ? [0, 1] : [1, 0];
-        reset();
-        render();
-        return CAPTION[(useX ? sx : sy).type];
+        return CAPTION[(sx.score >= sy.score ? sx : sy).type];
       }
-      body = [];
+      particles = [];
       resize();
       render();
       return 'HEXAGONAL BOARD';
     },
     destroy(): void {
-      window.clearInterval(timer);
+      cancelAnimationFrame(raf);
       ro.disconnect();
     },
   };
