@@ -18,13 +18,11 @@ interface GameOption { id: GameType; name: string; }
 interface Entry {
   id: string;              // topology id, or game id for non-topology boards
   name: string;
-  meta: string;            // right-aligned list tag
   group: string;
   topo: Topology | null;
   games: GameOption[];
   topoId: string;          // value handed to variantHref / variantSearch
   surface: string;
-  article: string;
   spec: string[];
   search: string;
 }
@@ -50,13 +48,11 @@ for (const dim of [0, 1, 2]) {
     entries.push({
       id: topo.id,
       name: topo.name,
-      meta: `${dim}D`,
       group: DIM_GROUP[dim],
       topo,
       games: topoGames,
       topoId: topo.id,
       surface: topo.formal.surface,
-      article: topo.article,
       spec: topo.spec,
       search: topo.name.toLowerCase(),
     });
@@ -66,13 +62,11 @@ for (const m of otherGames) {
   entries.push({
     id: m.id,
     name: m.name,
-    meta: 'HEX',
     group: 'Hexagonal',
     topo: null,
     games: [{ id: m.id as GameType, name: m.name }],
     topoId: m.id,
     surface: 'Glinski hexagonal grid',
-    article: 'Glinski\'s hexagonal chess is played on a hexagon of 91 cells - a different board shape rather than a topology of the square, so the edge gluings above do not apply.',
     spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
     search: m.name.toLowerCase(),
   });
@@ -86,7 +80,6 @@ const searchInput = document.getElementById('catalog-search') as HTMLInputElemen
 const emptyEl = document.getElementById('catalog-empty')!;
 const nameEl = document.getElementById('detail-name')!;
 const surfaceEl = document.getElementById('detail-surface')!;
-const articleEl = document.getElementById('detail-article')!;
 const specEl = document.getElementById('detail-spec')!;
 const gameOptionsEl = document.getElementById('game-options')!;
 const verdictEl = document.getElementById('verdict-note')!;
@@ -135,7 +128,7 @@ function buildList(): void {
       const item = document.createElement('button');
       item.className = 'topo-item';
       item.dataset.id = e.id;
-      item.innerHTML = `<span class="topo-item-name">${e.name}</span><span class="topo-item-meta">${e.meta}</span>`;
+      item.innerHTML = `<span class="topo-item-name">${e.name}</span>`;
       item.addEventListener('click', () => select(e.id));
       itemsEl.appendChild(item);
       itemEls.set(e.id, item);
@@ -173,7 +166,6 @@ function select(id: string): void {
 
   nameEl.textContent = entry.name;
   surfaceEl.textContent = entry.surface;
-  articleEl.textContent = entry.article;
   specEl.innerHTML = entry.spec.map(s => `<span class="spec-chip">${s}</span>`).join('');
   badgeEl.textContent = preview.setBoard(entry.topo);
 
