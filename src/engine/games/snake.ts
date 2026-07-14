@@ -16,13 +16,19 @@ export const SNAKE_SIZE = 13;
 export type SnakeStatus = 'ready' | 'playing' | 'dead' | 'won';
 export type Cell = [number, number];
 
+// At most this many turns can be buffered ahead of the snake. A single-slot
+// buffer would collapse two rapid presses into only the last one, letting the
+// snake reverse straight into its neck in one tick; a short queue applies one
+// turn per tick so quick presses become successive turns instead.
+const MAX_QUEUE = 2;
+
 export interface SnakeState {
   topo: Topology;
   size: number;
   body: Cell[];             // board cells, head at index 0
   headPlane: Cell;          // plane coordinates of the head (unbounded)
   dir: Cell;                // committed plane direction, one of the 4 unit steps
-  pendingDir: Cell | null;  // queued direction, applied at the next tick
+  dirQueue: Cell[];         // buffered turns, one applied per tick (FIFO)
   food: Cell | null;        // board cell
   score: number;
   status: SnakeStatus;
@@ -65,7 +71,7 @@ export function initialSnakeState(topo: Topology, rand: number): SnakeState {
     body,
     headPlane: [mid, mid],
     dir: [0, 1],
-    pendingDir: null,
+    dirQueue: [],
     food: null,
     score: 0,
     status: 'ready',
@@ -73,26 +79,39 @@ export function initialSnakeState(topo: Topology, rand: number): SnakeState {
   return withFood(base, rand);
 }
 
-// Queues a direction. Reversing straight into the neck is rejected (unless the
-// snake is a single cell); the check is against the last queued direction so two
-// quick key presses in one tick can't compose into a reversal.
+// Buffers a turn. The reversal / no-op checks are against the last *queued*
+// direction (falling back to the committed one), so two rapid presses become
+// two successive turns rather than collapsing into a single-tick reversal into
+// the neck. Any directional press also starts a game that is still 'ready'.
 export function setSnakeDir(s: SnakeState, dir: Cell): SnakeState {
   if (s.status !== 'ready' && s.status !== 'playing') return s;
-  const cur = s.pendingDir ?? s.dir;
-  if (s.body.length > 1 && dir[0] === -cur[0] && dir[1] === -cur[1]) return s;
-  return { ...s, pendingDir: dir, status: s.status === 'ready' ? 'playing' : s.status };
+
+  const last = s.dirQueue.length ? s.dirQueue[s.dirQueue.length - 1] : s.dir;
+  const reversal = s.body.length > 1 && dir[0] === -last[0] && dir[1] === -last[1];
+  const noop = dir[0] === last[0] && dir[1] === last[1];
+  const full = s.dirQueue.length >= MAX_QUEUE;
+  const enqueue = !reversal && !noop && !full;
+
+  if (!enqueue && s.status === 'playing') return s;
+  return {
+    ...s,
+    status: 'playing',
+    dirQueue: enqueue ? [...s.dirQueue, dir] : s.dirQueue,
+  };
 }
 
-// Advances one tick. rand is only consumed if food gets eaten (respawn).
+// Advances one tick, consuming one buffered turn if present. rand is only
+// consumed if food gets eaten (respawn).
 export function stepSnake(s: SnakeState, rand: number): SnakeState {
   if (s.status !== 'playing') return s;
 
-  const dir = s.pendingDir ?? s.dir;
+  const dir = s.dirQueue.length ? s.dirQueue[0] : s.dir;
+  const dirQueue = s.dirQueue.slice(1);
   const nextPlane: Cell = [s.headPlane[0] + dir[0], s.headPlane[1] + dir[1]];
   const p = s.topo.project(nextPlane[0], nextPlane[1], s.size);
 
   // Ran off a wall edge.
-  if (!p) return { ...s, dir, pendingDir: null, status: 'dead' };
+  if (!p) return { ...s, dir, dirQueue, status: 'dead' };
 
   const [hr, hc] = p;
   const eating = s.food != null && s.food[0] === hr && s.food[1] === hc;
@@ -103,7 +122,7 @@ export function stepSnake(s: SnakeState, rand: number): SnakeState {
     const tail = s.body[s.body.length - 1];
     occ.delete(key(tail[0], tail[1]));
   }
-  if (occ.has(key(hr, hc))) return { ...s, dir, pendingDir: null, status: 'dead' };
+  if (occ.has(key(hr, hc))) return { ...s, dir, dirQueue, status: 'dead' };
 
   const body: Cell[] = [[hr, hc], ...s.body];
   if (!eating) body.pop();
@@ -113,7 +132,7 @@ export function stepSnake(s: SnakeState, rand: number): SnakeState {
     body,
     headPlane: nextPlane,
     dir,
-    pendingDir: null,
+    dirQueue,
     food: eating ? null : s.food,
     score: eating ? s.score + 1 : s.score,
     status: 'playing',
@@ -132,7 +151,7 @@ interface SnakeSnapshot {
   body: Cell[];
   headPlane: Cell;
   dir: Cell;
-  pendingDir: Cell | null;
+  dirQueue: Cell[];
   food: Cell | null;
   score: number;
   status: SnakeStatus;
@@ -155,7 +174,7 @@ export const snakeModule: GameModule<SnakeState, SnakeMove, Topology> = {
     body: state.body,
     headPlane: state.headPlane,
     dir: state.dir,
-    pendingDir: state.pendingDir,
+    dirQueue: state.dirQueue,
     food: state.food,
     score: state.score,
     status: state.status,
@@ -169,7 +188,7 @@ export const snakeModule: GameModule<SnakeState, SnakeMove, Topology> = {
       body: d.body,
       headPlane: d.headPlane,
       dir: d.dir,
-      pendingDir: d.pendingDir,
+      dirQueue: d.dirQueue ?? [],
       food: d.food,
       score: d.score,
       status: d.status,

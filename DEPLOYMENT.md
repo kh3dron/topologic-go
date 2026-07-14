@@ -55,11 +55,13 @@ The `kh3dron.net` hosted zone lives in Route 53. Leave the apex records alone (p
 Add one record for the subdomain:
 
 - Frontend on GitHub Pages (DONE — record live, custom domain bound):
+
   ```
   Name:  games.kh3dron.net
   Type:  CNAME
   Value: kh3dron.github.io
   ```
+
   The repo ships `public/CNAME` (→ `dist/CNAME`) so the Actions Pages deploy keeps the
   custom domain bound on every build; the domain is also set in repo Settings → Pages.
   GitHub provisions TLS automatically.
@@ -334,12 +336,14 @@ Three functions, each: verify the caller's JWT, do a guarded write with the serv
   4. If legal, `g.applyMove(...)` computes next state + result (mate / two-pass end + scoring /
      etc., each game's own logic). Persist `g.serialize(next.state)`.
   5. Apply atomically with an optimistic guard:
+
      ```sql
      update games set board_state=$next, turn=$nextturn, ply=ply+1,
         status=$status, winner=$winner, updated_at=now()
       where id=$1 and ply=$expected_ply;          -- 0 rows -> someone moved first, reject
      insert into moves (game_id, player_id, ply, move) values ($1,$me,$expected_ply,$move);
      ```
+
      (Do both in one RPC / plpgsql function so it's a single transaction with a row lock.)
   6. Return the new state; Realtime pushes it to the opponent.
 
@@ -384,4 +388,5 @@ the arbiter. They agree because it's literally the same code.
 5. Edge Functions: `create-game`, `join-game`, `submit-move` importing `src/engine/`.
 6. Online play: lobby → create/join → optimistic move + Realtime reconcile.
 7. Polish: history from the `moves` log, ratings, draw offers, reconnection, spectating.
+
 ```
