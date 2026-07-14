@@ -1,6 +1,8 @@
 import { currentGame, currentTopology } from './state';
-import { tileOrientation } from './topology';
+import { SEAM_SCHEME_COLORS, SeamColoring, seamColor, seamColoring, tileOrientation } from './topology';
 import { RenderDeps, VIEWS, viewFor } from './views';
+
+const MAX_ARROWS_PER_EDGE = 8;
 
 const ZOOM_LEVELS = [0.5, 0.67, 0.8, 1, 1.2, 1.5, 2];
 const DEFAULT_ZOOM_INDEX = 3;
@@ -247,6 +249,8 @@ function createTopologyOverlay(): HTMLElement {
   const hSeam = tilesY > 1 ? seamType(o00, tileOrientation(topo, 1, 0, size)) : null;
   const wallX = topo.periodX === null;
   const wallY = topo.periodY === null;
+  const coloring = seamColoring(topo, size);
+  const cell = cellPx();
 
   for (let tileRow = 0; tileRow < tilesY; tileRow++) {
     for (let tileCol = 0; tileCol < tilesX; tileCol++) {
@@ -274,11 +278,100 @@ function createTopologyOverlay(): HTMLElement {
       if (!orient.identity) label.classList.add('transformed');
       tile.appendChild(label);
 
+      appendSeamArrows(tile, tileRow, tileCol, size, cell, coloring);
+
       overlay.appendChild(tile);
     }
   }
 
   return overlay;
+}
+
+// Evenly-spaced cell indices along an edge, capped so large boards (Go) don't
+// draw a dense wall of arrows. The set is symmetric under i -> size-1-i, so
+// flipped gluings still land arrow-on-arrow.
+function edgeSampleIndices(size: number): number[] {
+  if (size <= MAX_ARROWS_PER_EDGE) return Array.from({ length: size }, (_, i) => i);
+  const out = new Set<number>();
+  for (let k = 0; k < MAX_ARROWS_PER_EDGE; k++) {
+    out.add(Math.round((k * (size - 1)) / (MAX_ARROWS_PER_EDGE - 1)));
+  }
+  return [...out];
+}
+
+// Inward/outward glyph per edge: `onto` (entry) points into the board, its
+// partner (exit) points off. Both sides of a gluing then read as one flow
+// direction (e.g. wrap: onto the left, off the right).
+const EDGE_GLYPH: Record<'left' | 'right' | 'top' | 'bottom', { on: string; off: string }> = {
+  left: { on: '▶', off: '◀' },
+  right: { on: '◀', off: '▶' },
+  top: { on: '▼', off: '▲' },
+  bottom: { on: '▲', off: '▼' },
+};
+
+// Numbered gradient arrows along each non-wall edge of one board copy. Color,
+// number and direction all come from the seam's canonical gluing key, so glued
+// cells (even across a flip or rotation) share a color + number and point as a
+// single flow — the wraparound reads at a glance.
+function appendSeamArrows(
+  tile: HTMLElement,
+  tileRow: number,
+  tileCol: number,
+  size: number,
+  cell: number,
+  coloring: SeamColoring,
+): void {
+  const board = size * cell;
+  const arrowPx = Math.max(9, Math.round(cell * 0.4));
+  const inset = Math.round(arrowPx * 0.72);
+  const indices = edgeSampleIndices(size);
+  const baseR = tileRow * size;
+  const baseC = tileCol * size;
+
+  for (const edge of ['left', 'right', 'top', 'bottom'] as const) {
+    for (const i of indices) {
+      // Corners belong to two glued edges; let the side edges own them (skip the
+      // top/bottom corner arrow) so the numbers don't pile up. Only when the
+      // sides actually wrap - otherwise (corridor etc.) keep the corner arrow.
+      if ((edge === 'top' || edge === 'bottom') && (i === 0 || i === size - 1) && currentTopology.periodX !== null) continue;
+
+      let inR: number, inC: number, outR: number, outC: number, x: number, y: number;
+      if (edge === 'left') {
+        inR = baseR + i; inC = baseC; outR = inR; outC = baseC - 1;
+        x = inset; y = (i + 0.5) * cell;
+      } else if (edge === 'right') {
+        inR = baseR + i; inC = baseC + size - 1; outR = inR; outC = baseC + size;
+        x = board - inset; y = (i + 0.5) * cell;
+      } else if (edge === 'top') {
+        inR = baseR; inC = baseC + i; outR = baseR - 1; outC = inC;
+        x = (i + 0.5) * cell; y = inset;
+      } else {
+        inR = baseR + size - 1; inC = baseC + i; outR = baseR + size; outC = inC;
+        x = (i + 0.5) * cell; y = board - inset;
+      }
+      const col = coloring.lookup(
+        currentTopology.project(inR, inC, size),
+        currentTopology.project(outR, outC, size),
+      );
+      if (!col) continue;
+
+      const el = document.createElement('div');
+      el.className = `seam-arrow sa-${edge}`;
+      el.style.color = seamColor(col.scheme, col.t);
+      el.style.fontSize = `${arrowPx}px`;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+
+      const glyph = document.createElement('span');
+      glyph.className = 'sa-glyph';
+      glyph.textContent = col.onto ? EDGE_GLYPH[edge].on : EDGE_GLYPH[edge].off;
+      const num = document.createElement('span');
+      num.className = 'sa-num';
+      num.textContent = String(col.label);
+      el.append(glyph, num);
+      tile.appendChild(el);
+    }
+  }
 }
 
 function updateSeamLegend(): void {
@@ -319,9 +412,23 @@ function updateSeamLegend(): void {
   }
   if (reflectedSeen) rows.push(['swatch-hatch', 'REFLECTED COPY']);
 
-  legendEl.innerHTML = rows
-    .map(([cls, text]) => `<div class="legend-row"><span class="legend-swatch ${cls}"></span>${text}</div>`)
-    .join('');
+  const coloring = seamColoring(topo, size);
+  const gradientRows: string[] = [];
+  for (let s = 0; s < coloring.schemeCount; s++) {
+    const [c0, c1] = SEAM_SCHEME_COLORS[s % SEAM_SCHEME_COLORS.length];
+    const text = coloring.schemeCount > 1 ? `GLUED EDGE PAIR ${s + 1}` : 'GLUED EDGES';
+    gradientRows.push(
+      `<div class="legend-row"><span class="legend-swatch swatch-gradient" style="background:linear-gradient(90deg, ${c0}, ${c1})"></span>${text}</div>`,
+    );
+  }
+  if (gradientRows.length) {
+    gradientRows.push('<div class="legend-note">ARROWS: MATCHING COLOR = GLUED CELLS</div>');
+  }
+
+  legendEl.innerHTML =
+    rows
+      .map(([cls, text]) => `<div class="legend-row"><span class="legend-swatch ${cls}"></span>${text}</div>`)
+      .join('') + gradientRows.join('');
 }
 
 // ==================== PAN & SLIDE ====================

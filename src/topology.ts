@@ -306,3 +306,111 @@ export function tileOrientation(topo: Topology, tileRow: number, tileCol: number
     key: `${er[0]},${er[1]},${ec[0]},${ec[1]}`,
   };
 }
+
+// Edge-gluing coloring. Each glued boundary crossing gets a gradient value t in
+// [0,1] and a scheme index, shared by the two cells the seam glues together, so
+// rendering can draw matching-colored inward arrows on both sides. A flipped
+// edge (Mobius) then shows its gradient reversed on the partner edge. Derived
+// purely from project(), so new topologies get correct arrows for free.
+
+// Two-color ramp per gluing pair (t=0 -> first, t=1 -> second). A square board
+// has at most two glued edge pairs, so two schemes suffice. Shared by every
+// renderer (board overlay + catalog preview) so gluing colors stay consistent.
+export const SEAM_SCHEME_COLORS: [string, string][] = [
+  ['#3b74ff', '#ff3b30'], // blue -> red
+  ['#22b573', '#b25de0'], // green -> purple
+];
+
+export function seamColor(scheme: number, t: number): string {
+  const [a, b] = SEAM_SCHEME_COLORS[scheme % SEAM_SCHEME_COLORS.length];
+  const ch = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const mix = (i: number) => Math.round(ch(a, i) + (ch(b, i) - ch(a, i)) * t);
+  return `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
+}
+
+export interface SeamColoring {
+  schemeCount: number;
+  // For a boundary crossing (board cell `interior` glued to board cell
+  // `exterior`): t/scheme give the gradient color, `label` is a number shared by
+  // the two glued cells (matching number = glued), and `onto` is true on the
+  // "entry" side (arrow points onto the grid) and false on the "exit" side
+  // (points off), so a piece leaves the exit edge and arrives at the entry edge.
+  lookup(
+    interior: [number, number] | null,
+    exterior: [number, number] | null,
+  ): { t: number; scheme: number; label: number; onto: boolean } | null;
+}
+
+type EdgeName = 'left' | 'right' | 'top' | 'bottom';
+const EDGE_PRIORITY: Record<EdgeName, number> = { left: 0, right: 1, top: 2, bottom: 3 };
+
+// interior/exterior plane cells for base-board edge `edge` at index i
+function edgePlaneCells(edge: EdgeName, i: number, size: number): [[number, number], [number, number]] {
+  switch (edge) {
+    case 'left': return [[i, 0], [i, -1]];
+    case 'right': return [[i, size - 1], [i, size]];
+    case 'top': return [[0, i], [-1, i]];
+    case 'bottom': return [[size - 1, i], [size, i]];
+  }
+}
+
+function seamKey(a: [number, number], b: [number, number]): string {
+  const ka = `${a[0]},${a[1]}`, kb = `${b[0]},${b[1]}`;
+  return ka <= kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+}
+
+export function seamColoring(topo: Topology, size: number): SeamColoring {
+  interface Crossing { edge: EdgeName; index: number; interior: string; }
+  // Board-cell pair {interior, exterior} identifies a seam crossing globally
+  // (independent of which tile draws it); both glued cells share this key.
+  const byKey = new Map<string, Crossing[]>();
+
+  for (const edge of ['left', 'right', 'top', 'bottom'] as EdgeName[]) {
+    for (let i = 0; i < size; i++) {
+      const [inCell, outCell] = edgePlaneCells(edge, i, size);
+      const a = topo.project(inCell[0], inCell[1], size);
+      const b = topo.project(outCell[0], outCell[1], size);
+      if (!a || !b) continue; // wall crossing: no arrow
+      const key = seamKey(a, b);
+      const crossing: Crossing = { edge, index: i, interior: `${a[0]},${a[1]}` };
+      const list = byKey.get(key);
+      if (list) list.push(crossing);
+      else byKey.set(key, [crossing]);
+    }
+  }
+
+  // Per key, the lowest-priority edge is "primary": it sets the gradient t, the
+  // shared label, and the entry (onto) side; the partner crossing inherits them.
+  // Scheme index groups the (at most two) gluing pairs by their primary edge so
+  // each pair gets its own two-color ramp.
+  const keyInfo = new Map<string, { t: number; label: number; primaryEdge: EdgeName; primaryInterior: string }>();
+  for (const [key, list] of byKey) {
+    let prim = list[0];
+    for (const c of list) if (EDGE_PRIORITY[c.edge] < EDGE_PRIORITY[prim.edge]) prim = c;
+    keyInfo.set(key, {
+      t: size <= 1 ? 0.5 : prim.index / (size - 1),
+      label: prim.index + 1,
+      primaryEdge: prim.edge,
+      primaryInterior: prim.interior,
+    });
+  }
+
+  const primaryEdges = [...new Set([...keyInfo.values()].map(v => v.primaryEdge))]
+    .sort((a, b) => EDGE_PRIORITY[a] - EDGE_PRIORITY[b]);
+  const schemeOf = new Map<EdgeName, number>(primaryEdges.map((e, i) => [e, i]));
+
+  return {
+    schemeCount: primaryEdges.length,
+    lookup(interior, exterior) {
+      if (!interior || !exterior) return null;
+      const info = keyInfo.get(seamKey(interior, exterior));
+      if (!info) return null;
+      return {
+        t: info.t,
+        scheme: schemeOf.get(info.primaryEdge)!,
+        label: info.label,
+        onto: `${interior[0]},${interior[1]}` === info.primaryInterior,
+      };
+    },
+  };
+}

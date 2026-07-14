@@ -669,6 +669,38 @@ button:active,
   border-color: var(--accent);
 }
 
+.seam-arrow {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1;
+  font-family: sans-serif;
+  user-select: none;
+}
+
+/* Number sits inboard of the glyph; glyph hugs the edge. */
+.seam-arrow.sa-left { flex-direction: row; }
+.seam-arrow.sa-right { flex-direction: row-reverse; }
+.seam-arrow.sa-top { flex-direction: column; }
+.seam-arrow.sa-bottom { flex-direction: column-reverse; }
+
+.sa-glyph {
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.75),
+    0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.sa-num {
+  font-size: 0.6em;
+  font-weight: 700;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 1px 1px rgba(0, 0, 0, 0.75);
+}
+
 /* ==================== RIGHT INFO PANEL ==================== */
 #info-panel {
   background: var(--panel);
@@ -774,6 +806,18 @@ details.panel-section[open] > summary.panel-label::after {
   height: 10px;
   border: 1px solid var(--line);
   background: repeating-linear-gradient(45deg, var(--line) 0 2px, transparent 2px 6px);
+}
+
+.legend-swatch.swatch-gradient {
+  height: 8px;
+  border-radius: 1px;
+}
+
+.legend-note {
+  font-size: 0.65rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.5px;
+  padding: 4px 0 2px;
 }
 
 /* ==================== INFO PANEL TEXT & LINKS ==================== */

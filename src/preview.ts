@@ -5,10 +5,10 @@
 // axis with the most interesting seam (reflect / rotate over plain wrap), derived
 // by probing project() via tileOrientation, so new topologies animate for free.
 
-import { Topology, tileOrientation } from './topology';
+import { SeamColoring, seamColor, seamColoring, Topology, tileOrientation } from './topology';
 import { allHexCells, hexColorIndex } from './engine/games/hexchess';
 
-const SIZE = 12;
+const SIZE = 8;
 const LEN = 4;
 const TICK_MS = 150;
 const DEAD_PAUSE = 7;   // ticks frozen on a wall hit before restarting
@@ -64,6 +64,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   const inkDim = cssVar('--ink-dim', '#9c9c9c');
 
   let topo: Topology | null = null;
+  let coloring: SeamColoring | null = null;
   let dir: Vec = [0, 1];
   let headPlane: Vec = [MID, MID];
   let body: Vec[] = [];
@@ -132,6 +133,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
 
     if (topo) drawSnake(ox, oy, cell);
     drawEdges(ox, oy, boardPx, cell);
+    drawSeamArrows(ox, oy, boardPx, cell);
   }
 
   function drawSnake(ox: number, oy: number, cell: number): void {
@@ -174,6 +176,79 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     ctx.setLineDash([]);
   }
 
+  // Numbered gradient arrows along each glued edge. Color + number come from the
+  // seam's gluing key so the two cells an edge glues share both; the arrow points
+  // onto the grid on the entry edge and off it on the exit edge. On a Mobius board
+  // the left edge runs blue->red pointing in and the right runs red->blue pointing
+  // out - matching the in-game overlay. Same project()-derived logic on canvas.
+  function drawSeamArrows(ox: number, oy: number, boardPx: number, cell: number): void {
+    if (!topo || !coloring) return;
+    const s = Math.max(3, cell * 0.26);
+    const edgeGap = s + 2;         // glyph distance from the edge line
+    const numGap = s + 2;          // number offset inboard of the glyph
+    ctx.font = `700 ${Math.max(8, Math.round(s * 1.7))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (const edge of ['left', 'right', 'top', 'bottom'] as const) {
+      for (const i of sampleEdgeIndices(SIZE)) {
+        // Side edges own the corners; drop the redundant top/bottom corner arrow
+        // when the sides wrap, so corner numbers don't overlap.
+        if ((edge === 'top' || edge === 'bottom') && (i === 0 || i === SIZE - 1) && topo.periodX !== null) continue;
+
+        let inR: number, inC: number, outR: number, outC: number;
+        let cx: number, cy: number, nx: number, ny: number;
+        let dIn: 'right' | 'left' | 'down' | 'up', dOut: 'right' | 'left' | 'down' | 'up';
+        if (edge === 'left') {
+          inR = i; inC = 0; outR = i; outC = -1;
+          cx = ox + edgeGap; cy = oy + (i + 0.5) * cell; nx = cx + numGap; ny = cy;
+          dIn = 'right'; dOut = 'left';
+        } else if (edge === 'right') {
+          inR = i; inC = SIZE - 1; outR = i; outC = SIZE;
+          cx = ox + boardPx - edgeGap; cy = oy + (i + 0.5) * cell; nx = cx - numGap; ny = cy;
+          dIn = 'left'; dOut = 'right';
+        } else if (edge === 'top') {
+          inR = 0; inC = i; outR = -1; outC = i;
+          cx = ox + (i + 0.5) * cell; cy = oy + edgeGap; nx = cx; ny = cy + numGap;
+          dIn = 'down'; dOut = 'up';
+        } else {
+          inR = SIZE - 1; inC = i; outR = SIZE; outC = i;
+          cx = ox + (i + 0.5) * cell; cy = oy + boardPx - edgeGap; nx = cx; ny = cy - numGap;
+          dIn = 'up'; dOut = 'down';
+        }
+        const col = coloring.lookup(topo.project(inR, inC, SIZE), topo.project(outR, outC, SIZE));
+        if (!col) continue;
+        const color = seamColor(col.scheme, col.t);
+        ctx.fillStyle = color;
+        arrowHead(cx, cy, s, col.onto ? dIn : dOut);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.strokeText(String(col.label), nx, ny);
+        ctx.fillStyle = color;
+        ctx.fillText(String(col.label), nx, ny);
+      }
+    }
+  }
+
+  function arrowHead(cx: number, cy: number, s: number, dir: 'right' | 'left' | 'down' | 'up'): void {
+    ctx.beginPath();
+    if (dir === 'right') { ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx + s, cy); ctx.lineTo(cx - s, cy + s); }
+    else if (dir === 'left') { ctx.moveTo(cx + s, cy - s); ctx.lineTo(cx - s, cy); ctx.lineTo(cx + s, cy + s); }
+    else if (dir === 'down') { ctx.moveTo(cx - s, cy - s); ctx.lineTo(cx, cy + s); ctx.lineTo(cx + s, cy - s); }
+    else { ctx.moveTo(cx - s, cy + s); ctx.lineTo(cx, cy - s); ctx.lineTo(cx + s, cy + s); }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Evenly-spaced, reflection-symmetric edge indices so flipped gluings land
+  // arrow-on-arrow and the preview stays uncluttered.
+  function sampleEdgeIndices(n: number): number[] {
+    const count = Math.min(n, 8);
+    const out = new Set<number>();
+    for (let k = 0; k < count; k++) out.add(Math.round((k * (n - 1)) / (count - 1)));
+    return [...out];
+  }
+
   function render(): void {
     if (topo) drawBoard();
     else drawHexBoard();
@@ -190,6 +265,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   return {
     setBoard(next: Topology | null): string {
       topo = next;
+      coloring = next ? seamColoring(next, SIZE) : null;
       if (next) {
         const sx = axisSeam(next, 'x');
         const sy = axisSeam(next, 'y');
