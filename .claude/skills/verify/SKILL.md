@@ -18,7 +18,9 @@ npm i --no-save playwright       # module for driver scripts
 
 ## Drive
 
-Playwright headless against `http://localhost:5199/`. Layout is a full-viewport grid (left sidebar / board / right info panel); viewport 1600x950 works well.
+The game UI lives at `http://localhost:5199/play.html` (query params `?g=chess|go|hexchess&t=<topologyId>` deep-link a variant). The site root `/` is now the catalog landing (`src/landing.ts`): a grid of `.variant-card` links, a `#catalog-search` box, `.filter-chip` toggles, and a `[Playground|Challenge]` `#mode-toggle`. Online play is a placeholder at `/game.html` (`src/game.ts`). Drive gameplay flows against `/play.html`.
+
+Playwright headless against `http://localhost:5199/play.html`. Layout is a full-viewport grid (left sidebar / board / right info panel); viewport 1600x950 works well. The sidebar has a `#catalog-link` back to the landing.
 
 - Status line: `#status`. Buttons: `#game-chess`, `#game-go`, `#mode-<topologyId>` (ids from `TOPOLOGIES` in `src/topology.ts`: classic, torus, mirror, windmill, pillowcase, cylinder, corridor, mobius, klein, projective), `#pass-btn`, `#reset`.
 - About page at `/about.html` (second Vite entry): `.catalog-entry` per topology, generated from the registry by `src/about.ts`. Info panel per-mode content: `#mode-description`, `#mode-article`, `#mode-links a`, `#mode-spec`.

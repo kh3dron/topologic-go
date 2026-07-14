@@ -1,234 +1,79 @@
-import { Color, currentTopology } from './state';
+// Stateful browser wrapper around the pure Go engine (engine/games/go.ts).
+// Preserves the renderer's surface (live bindings + handlers); in online mode
+// gates moves to one colour and reports committed moves (place / pass).
 
-export type GoStone = Color | null;
-export type GoBoard = GoStone[][];
+import { Color } from './engine/core';
+import { currentTopology } from './state';
+import {
+  GoState, GoBoard, GO_SIZE, KOMI, STAR_POINTS, goModule,
+  initialGoState, isValidGoMove as coreValid,
+  applyGoPlace, applyGoPass, scoreGo as coreScore, GoScore,
+} from './engine/games/go';
+import type { OnlineOpts } from './views/kit';
 
-export const GO_SIZE = 19;
-export const KOMI = 6.5;
+export { GO_SIZE, KOMI, STAR_POINTS };
+export type { GoStone, GoBoard, GoScore } from './engine/games/go';
 
-export const STAR_POINTS = [
-  [3, 3], [3, 9], [3, 15],
-  [9, 3], [9, 9], [9, 15],
-  [15, 3], [15, 9], [15, 15]
-];
+let state: GoState = initialGoState(currentTopology);
 
-export let goBoard: GoBoard;
-export let goCurrentTurn: Color = 'black';
-export let goGameOver: boolean = false;
-export let goPasses: number = 0;
-export let goCaptures: { black: number; white: number } = { black: 0, white: 0 };
-export let goLastMove: [number, number] | null = null;
+// Live bindings read by render.ts.
+export let goBoard: GoBoard = state.board;
+export let goCurrentTurn: Color = state.turn;
+export let goGameOver: boolean = state.gameOver;
+export let goPasses: number = state.passes;
+export let goCaptures: { black: number; white: number } = state.captures;
+export let goLastMove: [number, number] | null = state.lastMove;
 
-let seenPositions = new Set<string>();
+let engaged = false;
+let lockColor: Color | null = null;
+let onCommit: ((move: unknown) => void) | null = null;
 
-function createInitialGoBoard(): GoBoard {
-  return Array(GO_SIZE).fill(null).map(() => Array(GO_SIZE).fill(null));
+function sync(): void {
+  goBoard = state.board;
+  goCurrentTurn = state.turn;
+  goGameOver = state.gameOver;
+  goPasses = state.passes;
+  goCaptures = state.captures;
+  goLastMove = state.lastMove;
 }
 
 export function resetGo(): void {
-  goBoard = createInitialGoBoard();
-  goCurrentTurn = 'black';
-  goGameOver = false;
-  goPasses = 0;
-  goCaptures = { black: 0, white: 0 };
-  goLastMove = null;
-  seenPositions = new Set([boardToString(goBoard)]);
+  state = initialGoState(currentTopology);
+  sync();
 }
 
-function boardToString(board: GoBoard): string {
-  return board.map(row => row.map(cell => cell ? cell[0] : '.').join('')).join('|');
+export function loadGoState(serialized: unknown): void {
+  state = goModule.deserialize(serialized);
+  sync();
 }
 
-export function getNeighbors(row: number, col: number): [number, number][] {
-  const neighbors: [number, number][] = [];
-  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-    const p = currentTopology.project(row + dr, col + dc, GO_SIZE);
-    if (p) neighbors.push(p);
-  }
-  return neighbors;
-}
-
-function getGroup(board: GoBoard, row: number, col: number): Set<string> {
-  const color = board[row][col];
-  if (!color) return new Set();
-
-  const group = new Set<string>();
-  const stack: [number, number][] = [[row, col]];
-
-  while (stack.length > 0) {
-    const [r, c] = stack.pop()!;
-    const key = `${r},${c}`;
-    if (group.has(key)) continue;
-    if (board[r][c] !== color) continue;
-
-    group.add(key);
-
-    for (const [nr, nc] of getNeighbors(r, c)) {
-      if (!group.has(`${nr},${nc}`) && board[nr][nc] === color) {
-        stack.push([nr, nc]);
-      }
-    }
-  }
-
-  return group;
-}
-
-function getLiberties(board: GoBoard, group: Set<string>): number {
-  const liberties = new Set<string>();
-
-  for (const pos of group) {
-    const [row, col] = pos.split(',').map(Number);
-    for (const [nr, nc] of getNeighbors(row, col)) {
-      if (board[nr][nc] === null) {
-        liberties.add(`${nr},${nc}`);
-      }
-    }
-  }
-
-  return liberties.size;
-}
-
-function removeGroup(board: GoBoard, group: Set<string>): number {
-  let count = 0;
-  for (const pos of group) {
-    const [row, col] = pos.split(',').map(Number);
-    board[row][col] = null;
-    count++;
-  }
-  return count;
+export function setGoOnline(opts: OnlineOpts): void {
+  engaged = opts.engaged;
+  lockColor = opts.lockColor;
+  onCommit = opts.engaged ? opts.onCommit : null;
 }
 
 export function isValidGoMove(row: number, col: number, color: Color): boolean {
-  if (goBoard[row][col] !== null) return false;
-
-  const testBoard = goBoard.map(r => [...r]);
-  testBoard[row][col] = color;
-
-  const opponent = color === 'black' ? 'white' : 'black';
-  let capturedAny = false;
-
-  for (const [nr, nc] of getNeighbors(row, col)) {
-    if (testBoard[nr][nc] === opponent) {
-      const group = getGroup(testBoard, nr, nc);
-      if (getLiberties(testBoard, group) === 0) {
-        removeGroup(testBoard, group);
-        capturedAny = true;
-      }
-    }
-  }
-
-  const ourGroup = getGroup(testBoard, row, col);
-  if (getLiberties(testBoard, ourGroup) === 0 && !capturedAny) {
-    return false; // Suicide
-  }
-
-  // Positional superko: a move may not recreate any earlier board position
-  if (seenPositions.has(boardToString(testBoard))) {
-    return false;
-  }
-
-  return true;
+  return coreValid(state, row, col, color);
 }
 
 export function placeGoStone(row: number, col: number): boolean {
-  if (!isValidGoMove(row, col, goCurrentTurn)) return false;
-
-  goBoard[row][col] = goCurrentTurn;
-
-  const opponent = goCurrentTurn === 'black' ? 'white' : 'black';
-  let totalCaptured = 0;
-
-  for (const [nr, nc] of getNeighbors(row, col)) {
-    if (goBoard[nr][nc] === opponent) {
-      const group = getGroup(goBoard, nr, nc);
-      if (getLiberties(goBoard, group) === 0) {
-        totalCaptured += removeGroup(goBoard, group);
-      }
-    }
-  }
-
-  if (totalCaptured > 0) {
-    goCaptures[goCurrentTurn] += totalCaptured;
-  }
-
-  goLastMove = [row, col];
-  seenPositions.add(boardToString(goBoard));
-  goPasses = 0;
-
-  goCurrentTurn = goCurrentTurn === 'black' ? 'white' : 'black';
+  if (engaged && (lockColor === null || state.turn !== lockColor)) return false;
+  if (!coreValid(state, row, col, state.turn)) return false;
+  state = applyGoPlace(state, row, col);
+  sync();
+  onCommit?.({ kind: 'place', row, col });
   return true;
 }
 
 export function passGoTurn(): void {
-  if (goGameOver) return;
-
-  goPasses++;
-  goLastMove = null;
-
-  if (goPasses >= 2) {
-    goGameOver = true;
-    return;
-  }
-
-  goCurrentTurn = goCurrentTurn === 'black' ? 'white' : 'black';
-}
-
-// ==================== SCORING ====================
-export interface GoScore {
-  blackTerritory: number;
-  whiteTerritory: number;
-  blackTotal: number;
-  whiteTotal: number;
-  winner: Color | 'draw';
+  if (state.gameOver) return;
+  if (engaged && (lockColor === null || state.turn !== lockColor)) return;
+  state = applyGoPass(state);
+  sync();
+  onCommit?.({ kind: 'pass' });
 }
 
 export function scoreGo(): GoScore {
-  const territory = { black: 0, white: 0 };
-  const visited = new Set<string>();
-
-  for (let row = 0; row < GO_SIZE; row++) {
-    for (let col = 0; col < GO_SIZE; col++) {
-      const key = `${row},${col}`;
-      if (goBoard[row][col] !== null || visited.has(key)) continue;
-
-      const region: [number, number][] = [];
-      const borderColors = new Set<Color>();
-      const stack: [number, number][] = [[row, col]];
-      visited.add(key);
-
-      while (stack.length > 0) {
-        const [r, c] = stack.pop()!;
-        region.push([r, c]);
-
-        for (const [nr, nc] of getNeighbors(r, c)) {
-          const stone = goBoard[nr][nc];
-          if (stone) {
-            borderColors.add(stone);
-          } else {
-            const nKey = `${nr},${nc}`;
-            if (!visited.has(nKey)) {
-              visited.add(nKey);
-              stack.push([nr, nc]);
-            }
-          }
-        }
-      }
-
-      if (borderColors.size === 1) {
-        const owner = borderColors.values().next().value!;
-        territory[owner] += region.length;
-      }
-    }
-  }
-
-  const blackTotal = territory.black + goCaptures.black;
-  const whiteTotal = territory.white + goCaptures.white + KOMI;
-
-  return {
-    blackTerritory: territory.black,
-    whiteTerritory: territory.white,
-    blackTotal,
-    whiteTotal,
-    winner: blackTotal > whiteTotal ? 'black' : blackTotal < whiteTotal ? 'white' : 'draw',
-  };
+  return coreScore(state);
 }

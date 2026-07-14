@@ -1,16 +1,6 @@
 import { currentGame, currentTopology } from './state';
 import { tileOrientation } from './topology';
-import {
-  CHESS_SIZE, PIECE_SYMBOLS, chessBoard, chessCurrentTurn, selectedSquare, chessGameOver,
-  clickChessSquare, getLegalDestinations, isInCheck
-} from './chess';
-import {
-  GO_SIZE, KOMI, STAR_POINTS, goBoard, goCurrentTurn, goGameOver, goCaptures, goLastMove,
-  isValidGoMove, placeGoStone, scoreGo
-} from './go';
-
-export const CHESS_CELL = 72;
-export const GO_CELL = 32;
+import { RenderDeps, VIEWS, viewFor } from './views';
 
 const ZOOM_LEVELS = [0.5, 0.67, 0.8, 1, 1.2, 1.5, 2];
 const DEFAULT_ZOOM_INDEX = 3;
@@ -29,6 +19,10 @@ let isPannable = false;
 let tilesX = 1;
 let tilesY = 1;
 
+// On-screen pixel size of a custom-rendered board (hex) from the last render
+let customExtentW = 0;
+let customExtentH = 0;
+
 // True while a real drag is in progress; gates hover-sync without touching
 // the DOM (any style flip scoped to the whole board recalcs every cell).
 let suppressHoverSync = false;
@@ -38,15 +32,29 @@ let slideAnimationId: number | null = null;
 const SLIDE_SPEED_X = 0.3;
 const SLIDE_SPEED_Y = 0.2;
 
-// Per-render caches
-let chessLegalDests: Set<string> | null = null;
-let goValidCache: boolean[][] = [];
-const goIntersectionMap = new Map<string, HTMLElement[]>();
-
 let showBoundaries = true;
 
+// Handed to view methods so cell/board renderers can trigger re-render + read
+// live shell state without importing render.ts (keeps render -> views one-way).
+const deps: RenderDeps = {
+  rerender: () => renderBoard(),
+  refreshStatus: () => updateStatus(),
+  tessellated: () => currentTopology.tessellated,
+  hoverSuppressed: () => suppressHoverSync,
+};
+
+function currentView() {
+  return viewFor(currentGame);
+}
+
+// True when the current game renders through the shared tessellated CSS-grid
+// path (topology overlay + pan apply); false for custom-render games (hex).
+function isGrid(): boolean {
+  return currentView().family === 'square-grid';
+}
+
 function boardSize(): number {
-  return currentGame === 'chess' ? CHESS_SIZE : GO_SIZE;
+  return currentView().size;
 }
 
 function zoomedCell(base: number): number {
@@ -54,11 +62,20 @@ function zoomedCell(base: number): number {
 }
 
 function cellPx(): number {
-  return zoomedCell(currentGame === 'chess' ? CHESS_CELL : GO_CELL);
+  return zoomedCell(currentView().cellBase);
 }
 
 function boardPx(): number {
   return boardSize() * cellPx();
+}
+
+// On-screen board size (width, height). Custom games report a measured extent;
+// square games are the tiled board. Used by pan/zoom so all games share one
+// placement path.
+function boardExtent(): [number, number] {
+  if (!isGrid()) return [customExtentW, customExtentH];
+  const b = boardPx();
+  return [tilesX * b, tilesY * b];
 }
 
 export function requestPanReset(): void {
@@ -73,8 +90,14 @@ export function setShowBoundaries(value: boolean): void {
 // ==================== ZOOM ====================
 function applyCellVars(): void {
   const rootStyle = document.documentElement.style;
-  rootStyle.setProperty('--chess-cell', `${zoomedCell(CHESS_CELL)}px`);
-  rootStyle.setProperty('--go-cell', `${zoomedCell(GO_CELL)}px`);
+  // Each square-grid game derives its CSS sizing from a --<id>-cell custom
+  // property (e.g. --chess-cell, --go-cell), pushed here so CSS calc() stays
+  // in sync with the zoomed pixel size.
+  for (const view of VIEWS.values()) {
+    if (view.family === 'square-grid') {
+      rootStyle.setProperty(`--${view.id}-cell`, `${zoomedCell(view.cellBase)}px`);
+    }
+  }
 }
 
 function updateZoomLabel(): void {
@@ -89,13 +112,13 @@ export function zoomStep(delta: number, anchorX?: number, anchorY?: number): voi
   const containerEl = document.getElementById('board-container')!;
   const ax = anchorX ?? containerEl.clientWidth / 2;
   const ay = anchorY ?? containerEl.clientHeight / 2;
-  const oldBoard = boardPx();
+  const oldCell = cellPx();
 
   zoomIndex = next;
   applyCellVars();
 
-  // Keep the board point under the anchor fixed
-  const ratio = boardPx() / oldBoard;
+  // Keep the board point under the anchor fixed (zoom scales cells uniformly)
+  const ratio = cellPx() / oldCell;
   panOffsetX = Math.round(ax - (ax - lastLeft) * ratio);
   panOffsetY = Math.round(ay - (ay - lastTop) * ratio);
 
@@ -111,42 +134,38 @@ export function resetZoom(): void {
 export function renderBoard(): void {
   const boardEl = document.getElementById('board')!;
   const containerEl = document.getElementById('board-container')!;
+  const view = currentView();
+
   boardEl.innerHTML = '';
-  goIntersectionMap.clear();
+  boardEl.style.width = '';
+  boardEl.style.height = '';
+  boardEl.style.display = '';
+  boardEl.className = `${view.id}-board`;
 
-  boardEl.classList.toggle('go-board', currentGame === 'go');
-
-  if (currentGame === 'chess') {
-    chessLegalDests = selectedSquare
-      ? getLegalDestinations(selectedSquare[0], selectedSquare[1])
-      : null;
+  if (view.family === 'custom') {
+    tilesX = 1;
+    tilesY = 1;
+    const ext = view.renderCustom!(boardEl, cellPx(), deps);
+    customExtentW = ext.w;
+    customExtentH = ext.h;
   } else {
-    const size = GO_SIZE;
-    goValidCache = Array(size).fill(null).map(() => Array(size).fill(false));
-    if (!goGameOver) {
-      for (let row = 0; row < size; row++) {
-        for (let col = 0; col < size; col++) {
-          if (!goBoard[row][col]) {
-            goValidCache[row][col] = isValidGoMove(row, col, goCurrentTurn);
-          }
-        }
-      }
+    view.prepareRender?.();
+
+    if (currentTopology.tessellated) {
+      renderTessellated(boardEl, containerEl);
+    } else {
+      tilesX = 1;
+      tilesY = 1;
+      boardEl.style.gridTemplateColumns = `repeat(${boardSize()}, ${cellPx()}px)`;
+      boardEl.style.gridTemplateRows = `repeat(${boardSize()}, ${cellPx()}px)`;
+      renderPlaneCells(boardEl, 1, 1);
     }
   }
 
-  if (currentTopology.tessellated) {
-    renderTessellated(boardEl, containerEl);
-  } else {
-    tilesX = 1;
-    tilesY = 1;
-    boardEl.style.gridTemplateColumns = `repeat(${boardSize()}, ${cellPx()}px)`;
-    boardEl.style.gridTemplateRows = `repeat(${boardSize()}, ${cellPx()}px)`;
-    renderPlaneCells(boardEl, 1, 1);
-  }
-
   if (shouldResetPanPosition) {
-    panOffsetX = Math.round((containerEl.clientWidth - boardPx()) / 2);
-    panOffsetY = Math.round((containerEl.clientHeight - boardPx()) / 2);
+    const [ex, ey] = boardExtent();
+    panOffsetX = Math.round((containerEl.clientWidth - ex) / 2);
+    panOffsetY = Math.round((containerEl.clientHeight - ey) / 2);
     shouldResetPanPosition = false;
   }
   updateBoardPosition();
@@ -176,11 +195,13 @@ function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void
   }
 }
 
-// Renders every plane cell of the (tilesX x tilesY)-board region through
-// project(). Works identically for the single classic board (1x1, where
-// project is the identity on the board and null outside).
+// Renders every plane cell of the (tx x ty)-board region through project(),
+// delegating each cell's DOM to the active view. Works identically for the
+// single classic board (1x1, where project is the identity on the board and
+// null outside).
 function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
   const size = boardSize();
+  const view = currentView();
   for (let R = 0; R < ty * size; R++) {
     for (let C = 0; C < tx * size; C++) {
       const p = currentTopology.project(R, C, size);
@@ -191,125 +212,16 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
         continue;
       }
       const [row, col] = p;
-      if (currentGame === 'chess') {
-        boardEl.appendChild(createChessSquare(row, col, (R + C) % 2 === 0));
-      } else {
-        boardEl.appendChild(createGoIntersection(row, col, {
+      boardEl.appendChild(view.createCell!(row, col, {
+        light: (R + C) % 2 === 0,
+        walls: {
           top: !currentTopology.project(R - 1, C, size),
           bottom: !currentTopology.project(R + 1, C, size),
           left: !currentTopology.project(R, C - 1, size),
           right: !currentTopology.project(R, C + 1, size),
-        }));
-      }
+        },
+      }, deps));
     }
-  }
-}
-
-function createChessSquare(row: number, col: number, light: boolean): HTMLElement {
-  const square = document.createElement('div');
-  square.className = 'square ' + (light ? 'light' : 'dark');
-
-  if (selectedSquare && selectedSquare[0] === row && selectedSquare[1] === col) {
-    square.classList.add('selected');
-    if (chessLegalDests && chessLegalDests.size === 0) square.classList.add('no-moves');
-  } else if (chessLegalDests && chessLegalDests.has(`${row},${col}`)) {
-    square.classList.add(chessBoard[row][col] ? 'capturable' : 'moveable');
-  }
-
-  const piece = chessBoard[row][col];
-  if (piece) {
-    square.textContent = PIECE_SYMBOLS[piece.color][piece.type];
-    square.classList.add(piece.color);
-  }
-
-  square.addEventListener('click', () => {
-    clickChessSquare(row, col);
-    updateStatus();
-    renderBoard();
-  });
-
-  return square;
-}
-
-interface Walls {
-  top: boolean;
-  bottom: boolean;
-  left: boolean;
-  right: boolean;
-}
-
-function createGoIntersection(row: number, col: number, walls: Walls): HTMLElement {
-  const intersection = document.createElement('div');
-  intersection.className = 'go-intersection';
-
-  const key = `${row},${col}`;
-  const mapped = goIntersectionMap.get(key);
-  if (mapped) {
-    mapped.push(intersection);
-  } else {
-    goIntersectionMap.set(key, [intersection]);
-  }
-
-  if (walls.top) intersection.classList.add('edge-top');
-  if (walls.bottom) intersection.classList.add('edge-bottom');
-  if (walls.left) intersection.classList.add('edge-left');
-  if (walls.right) intersection.classList.add('edge-right');
-
-  const isStarPoint = STAR_POINTS.some(([r, c]) => r === row && c === col);
-  if (isStarPoint && !goBoard[row][col]) {
-    intersection.classList.add('star-point');
-    const starDot = document.createElement('div');
-    starDot.className = 'star-dot';
-    intersection.appendChild(starDot);
-  }
-
-  const stone = goBoard[row][col];
-  if (stone) {
-    intersection.classList.add('has-stone');
-    const stoneEl = document.createElement('div');
-    stoneEl.className = `go-stone ${stone}-stone`;
-    intersection.appendChild(stoneEl);
-  }
-
-  if (goLastMove && goLastMove[0] === row && goLastMove[1] === col) {
-    intersection.classList.add('last-move');
-  }
-
-  if (!stone && goValidCache[row][col]) {
-    intersection.classList.add('valid-move');
-    intersection.classList.add(`${goCurrentTurn}-turn`);
-
-    const ghostStone = document.createElement('div');
-    ghostStone.className = `ghost-stone ${goCurrentTurn}-ghost`;
-    intersection.appendChild(ghostStone);
-  }
-
-  intersection.addEventListener('click', () => {
-    if (goGameOver) return;
-    if (placeGoStone(row, col)) {
-      updateStatus();
-      renderBoard();
-    }
-  });
-
-  intersection.addEventListener('mouseenter', () => {
-    if (suppressHoverSync) return;
-    if (currentTopology.tessellated) syncGoHoverState(row, col, true);
-  });
-
-  intersection.addEventListener('mouseleave', () => {
-    if (currentTopology.tessellated) syncGoHoverState(row, col, false);
-  });
-
-  return intersection;
-}
-
-function syncGoHoverState(row: number, col: number, isHovering: boolean): void {
-  const elements = goIntersectionMap.get(`${row},${col}`);
-  if (!elements) return;
-
-  for (const el of elements) {
-    el.classList.toggle('hover-synced', isHovering);
   }
 }
 
@@ -371,7 +283,7 @@ function createTopologyOverlay(): HTMLElement {
 
 function updateSeamLegend(): void {
   const legendEl = document.getElementById('seam-legend')!;
-  const active = showBoundaries && currentTopology.tessellated;
+  const active = showBoundaries && currentTopology.tessellated && isGrid();
   legendEl.classList.toggle('visible', active);
   if (!active) {
     legendEl.innerHTML = '';
@@ -420,12 +332,11 @@ function clamp(value: number, min: number, max: number): number {
 export function updateBoardPosition(): void {
   const boardEl = document.getElementById('board')!;
   const containerEl = document.getElementById('board-container')!;
+  const tess = currentTopology.tessellated && isGrid();
   const board = boardPx();
-  const tess = currentTopology.tessellated;
   const periodXPx = tess && currentTopology.periodX ? currentTopology.periodX * board : null;
   const periodYPx = tess && currentTopology.periodY ? currentTopology.periodY * board : null;
-  const extentX = tilesX * board;
-  const extentY = tilesY * board;
+  const [extentX, extentY] = boardExtent();
   const w = containerEl.clientWidth;
   const h = containerEl.clientHeight;
 
@@ -464,7 +375,8 @@ export function initPanControls(): void {
   containerEl.addEventListener('mousedown', (e) => {
     dragDistance = 0;
     if (!isPannable) return;
-    if (currentGame === 'chess' && selectedSquare) return; // Lock board when piece is selected
+    // Lock the board while a piece/cell is selected so a drag doesn't misfire.
+    if (currentView().selectionActive?.()) return;
     isPanning = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -551,31 +463,8 @@ export function stopSliding(): void {
 }
 
 // ==================== STATUS & INFO PANEL ====================
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 export function updateStatus(): void {
-  const statusEl = document.getElementById('status')!;
-
-  if (currentGame === 'chess') {
-    if (chessGameOver === 'draw') {
-      statusEl.textContent = 'Stalemate - draw';
-    } else if (chessGameOver) {
-      statusEl.textContent = `Checkmate - ${capitalize(chessGameOver)} wins`;
-    } else {
-      const check = isInCheck(chessCurrentTurn) ? ' - check' : '';
-      statusEl.textContent = `${capitalize(chessCurrentTurn)}'s turn${check}`;
-    }
-  } else {
-    if (goGameOver) {
-      const score = scoreGo();
-      const result = score.winner === 'draw' ? 'Draw' : `${capitalize(score.winner)} wins`;
-      statusEl.textContent = `Black ${score.blackTotal} : White ${score.whiteTotal} (komi ${KOMI}) - ${result}`;
-    } else {
-      statusEl.textContent = `${capitalize(goCurrentTurn)}'s turn - B: ${goCaptures.black} W: ${goCaptures.white}`;
-    }
-  }
+  document.getElementById('status')!.textContent = currentView().status();
 }
 
 export function updateModeDescription(): void {
@@ -584,12 +473,13 @@ export function updateModeDescription(): void {
   const articleEl = document.getElementById('mode-article')!;
   const linksEl = document.getElementById('mode-links')!;
 
-  descEl.textContent = currentGame === 'chess' ? currentTopology.chessDesc : currentTopology.goDesc;
-  specEl.innerHTML = currentTopology.spec
+  const info = currentView().infoPanel(currentTopology);
+  descEl.textContent = info.description;
+  articleEl.textContent = info.article;
+  specEl.innerHTML = info.spec
     .map(line => `<div class="spec-line">${line}</div>`)
     .join('');
-  articleEl.textContent = currentTopology.article;
-  linksEl.innerHTML = currentTopology.links
+  linksEl.innerHTML = info.links
     .map(link => `<div class="link-line"><a href="${link.url}" target="_blank" rel="noopener">${link.label}</a></div>`)
     .join('');
 }

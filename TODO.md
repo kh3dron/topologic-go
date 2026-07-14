@@ -7,6 +7,7 @@
 - [ ] Persist game state in localStorage (survive refresh)
 - [ ] Per-topology komi (torus Go has no corners; territory is much harder to make)
 - [ ] More topologies from the ideas list in `TOPOLOGIES.md`
+- [ ] Hex chess on glued edges (hex torus / Klein / etc.) — the natural cross-product of the topology idea with the new `hexchess` geometry. Not a quick follow-on: a hexagon board does not tile the plane by translation the way a square does, so the gluings need real design (likely a rhombus/parallelogram fundamental domain of hexes, not the hexagon-shaped board). Engine is adjacency-based already; needs a hex-quotient renderer. Deferred for now
 - [ ] Playability theory (research): prove which topologies give non-degenerate games from the standard setup — see "Future work" in `TOPOLOGIES.md`. Rules are never patched per topology; degenerate starts (torus chess = checkmate at move zero) are findings, not bugs
 
 ## UX

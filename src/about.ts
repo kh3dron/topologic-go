@@ -1,42 +1,13 @@
-import { TOPOLOGIES, Topology } from './topology';
+import { TOPOLOGIES } from './topology';
 import { setTopology } from './state';
-import { CHESS_SIZE, chessGameOver, resetChess } from './chess';
+import { CHESS_SIZE } from './chess';
 import { GO_SIZE } from './go';
+import { chessMoveZero, singularCellCount, verdict } from './census';
 
 // ==================== CENSUS ====================
-// MOVE-0 is evaluated by actually running the chess engine on each topology;
-// singular cells are counted from project(). Only the formal classification
-// is authored by hand. Verdict is derived, never assigned.
-
-function singularCellCount(topo: Topology, size: number): number {
-  let count = 0;
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-        const p = topo.project(r + dr, c + dc, size);
-        if (p && p[0] === r && p[1] === c) {
-          count++;
-          break;
-        }
-      }
-    }
-  }
-  return count;
-}
-
-function chessMoveZero(topo: Topology): string {
-  setTopology(topo.id);
-  resetChess();
-  if (chessGameOver === 'draw') return 'STALEMATE AT MOVE 0';
-  if (chessGameOver) return `${chessGameOver.toUpperCase()} WINS AT MOVE 0`;
-  return 'PLAYABLE';
-}
-
-function verdict(dead: boolean, singular: number, orientable: boolean): string {
-  if (dead) return 'DEAD';
-  if (singular > 0 || !orientable) return 'QUIRKS';
-  return 'OK';
-}
+// The classification helpers live in census.ts (shared with the landing
+// catalog). This page renders the full table; verdict is derived, never
+// assigned.
 
 function buildCensus(): void {
   const table = document.getElementById('census-table')!;

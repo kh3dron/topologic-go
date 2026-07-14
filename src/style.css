@@ -107,6 +107,10 @@ button:active,
   gap: 2px;
 }
 
+#mode-selector.hidden {
+  display: none;
+}
+
 .mode-btn {
   text-align: left;
 }
@@ -463,6 +467,54 @@ button:active,
   background: #666;
 }
 
+/* ==================== HEX CHESS ==================== */
+.hex-svg {
+  display: block;
+  user-select: none;
+}
+
+.hex {
+  stroke: var(--paper);
+  stroke-width: 1;
+}
+
+/* Three cell colours (light / mid / dark) */
+.hex-c0 { fill: #e8e8e8; }
+.hex-c1 { fill: #b0b0b0; }
+.hex-c2 { fill: #7d7d7d; }
+
+.hex.sel { fill: #7a9a7a; }
+.hex.cap { fill: #b06f6f; }
+.hex.check { fill: #a35c5c; stroke: var(--accent); stroke-width: 2; }
+
+.hexcell { cursor: pointer; }
+
+.hexcell:hover .hex {
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.hex-move-dot {
+  fill: rgba(20, 20, 20, 0.4);
+  pointer-events: none;
+}
+
+.hex-piece {
+  pointer-events: none;
+  font-family: inherit;
+}
+
+.hex-piece.white {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 1px;
+  paint-order: stroke;
+}
+
+.hex-piece.black {
+  fill: #111;
+}
+
 /* ==================== TOPOLOGY OVERLAY ==================== */
 #topology-overlay {
   position: absolute;
@@ -812,3 +864,505 @@ body.doc-page {
 #census-table td.verdict-dead {
   color: var(--accent);
 }
+
+/* ==================== PLAY PAGE: CATALOG BACK-LINK ==================== */
+#catalog-link {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+
+#catalog-link:hover {
+  color: var(--ink);
+}
+
+/* ==================== LANDING / CATALOG ==================== */
+body.catalog-page {
+  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+#catalog {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+#catalog-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.catalog-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.catalog-title-row h1 {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.catalog-about {
+  color: var(--ink);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: underline;
+}
+
+.catalog-about:hover {
+  color: #fff;
+}
+
+#catalog-blurb {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  max-width: 80ch;
+}
+
+#catalog-blurb a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+#catalog-blurb a:hover {
+  color: #fff;
+}
+
+#catalog-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  width: fit-content;
+}
+
+.seg-btn {
+  border: none;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-dim);
+  padding: 6px 16px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.seg-btn:last-child {
+  border-right: none;
+}
+
+.seg-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+#catalog.challenge-mode .seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+#mode-note {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.5px;
+  margin-top: -4px;
+}
+
+#catalog-search {
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  width: 100%;
+  max-width: 360px;
+}
+
+#catalog-search:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+#catalog-search::placeholder {
+  color: var(--ink-dim);
+}
+
+#catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.geo-group[hidden] {
+  display: none;
+}
+
+.geo-group-title {
+  font-size: 0.8rem;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+
+.geo-group-note {
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.5px;
+  margin: 6px 0 4px;
+}
+
+.geo-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(136, 136, 136, 0.2);
+}
+
+.geo-row[hidden] {
+  display: none;
+}
+
+.geo-name {
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.geo-games {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.geo-link {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  padding: 3px 12px;
+}
+
+.geo-link:hover {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+#catalog.challenge-mode .geo-link:hover {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+#catalog-empty {
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+  padding: 24px 0;
+}
+
+/* ==================== CHALLENGE (ONLINE PLACEHOLDER) ==================== */
+body.challenge-page {
+  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+#challenge {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#challenge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.challenge-back {
+  color: var(--ink-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+
+.challenge-back:hover {
+  color: var(--ink);
+}
+
+.challenge-tag {
+  font-size: 0.7rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#challenge-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.challenge-card {
+  border: 1px solid var(--accent);
+  background: var(--panel);
+  padding: 28px;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+
+.challenge-kicker {
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+#challenge-variant {
+  font-size: 1.4rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: none;
+  margin-bottom: 10px;
+}
+
+#challenge-lede {
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.lobby-mock {
+  border: 1px dashed var(--line);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0.6;
+}
+
+.lobby-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.lobby-seat {
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  color: var(--ink);
+}
+
+.lobby-open,
+.lobby-vs {
+  color: var(--ink-dim);
+}
+
+.lobby-btn {
+  width: 100%;
+  cursor: not-allowed;
+}
+
+.challenge-detail {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.challenge-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.challenge-primary {
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 8px 16px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.85rem;
+}
+
+.challenge-primary:hover {
+  filter: brightness(1.1);
+}
+
+.challenge-secondary {
+  color: var(--ink-dim);
+  text-decoration: underline;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.challenge-secondary:hover {
+  color: var(--ink);
+}
+
+/* ==================== ONLINE AUTH PANEL (game.html) ==================== */
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.auth-heading {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+
+.auth-form {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-form input {
+  flex: 1;
+  padding: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.auth-panel .lobby-btn {
+  width: auto;
+  cursor: pointer;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+}
+
+.auth-panel .lobby-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-msg {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  min-height: 1em;
+}
+
+/* ==================== ONLINE BANNER + LOBBY ==================== */
+#online-banner {
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+}
+
+#online-banner.active { border-left: 3px solid var(--accent); }
+#online-banner.waiting { color: var(--ink-dim); }
+#online-banner.done { color: var(--accent); font-weight: bold; }
+#online-banner.error { color: #fff; background: var(--accent); }
+#online-banner a { color: inherit; text-decoration: underline; }
+
+.lobby-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.lobby-subhead {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink-dim);
+}
+
+.lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lobby-game {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+}
+
+.lobby-game-label {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.lobby-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+.lobby-link:disabled { opacity: 0.5; cursor: default; }

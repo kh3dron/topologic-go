@@ -22,6 +22,7 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Double-wide fundamental domain — two boards side by side glued into any of the above; games with 2x material
 - Alice variants — two stacked boards; a piece/stone teleports to the other layer after each move (not a plane quotient; needs a layer dimension, but project() generalizes to (layer, r, c))
 - Hex Go on a torus — hexagonal adjacency with wrap; needs a hex grid renderer, logic already adjacency-agnostic
+- Hex chess on glued edges (hex torus / Klein / projective) — cross the topology idea with the Gliński `hexchess` geometry (see `src/hexchess.ts`). Caveat: the hexagon-shaped board does not tile by translation, so the fundamental domain is likely a rhombus of hexes rather than the playing board itself; the gluings and a hex-quotient renderer are the real work. Engine adjacency is already coordinate-based. Planned, deferred
 - Small boards — 9x9 / 13x13 Go, 5x5 mini chess; topology math is size-generic already
 - Asymmetric komi / handicap presets per topology (torus Go has no corners, so territory is much harder to make — komi should probably differ)
 
