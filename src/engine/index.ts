@@ -7,6 +7,7 @@ import { GameModule } from './core.ts';
 import { chessModule } from './games/chess.ts';
 import { goModule } from './games/go.ts';
 import { hexModule } from './games/hexchess.ts';
+import { snakeModule } from './games/snake.ts';
 
 export type AnyGameModule = GameModule<any, any, any>;
 
@@ -14,6 +15,7 @@ export const GAMES = new Map<string, AnyGameModule>([
   [chessModule.id, chessModule],
   [goModule.id, goModule],
   [hexModule.id, hexModule],
+  [snakeModule.id, snakeModule],
 ]);
 
 // The board family whose members are the TOPOLOGIES quotients. A game "uses
@@ -26,5 +28,5 @@ export function usesTopology(gameId: string): boolean {
   return GAMES.get(gameId)?.boardFamily === TOPOLOGY_FAMILY;
 }
 
-export { chessModule, goModule, hexModule };
+export { chessModule, goModule, hexModule, snakeModule };
 export * from './core.ts';

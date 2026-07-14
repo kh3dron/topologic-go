@@ -29,6 +29,9 @@ export function variantSearch(game: GameType, topoId: string): string {
 }
 
 export function variantHref(mode: PlayMode, game: GameType, topoId: string): string {
-  const page = mode === 'challenge' ? 'game.html' : 'play.html';
+  // Single-player games have no online lobby, so they always land on the sandbox
+  // even when the catalog is in challenge mode.
+  const solo = GAMES.get(game)?.soloOnly ?? false;
+  const page = mode === 'challenge' && !solo ? 'game.html' : 'play.html';
   return `${page}${variantSearch(game, topoId)}`;
 }

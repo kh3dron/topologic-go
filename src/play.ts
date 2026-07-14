@@ -3,6 +3,7 @@ import { TOPOLOGY_MAP } from './topology';
 import { viewFor } from './views';
 import { passGoTurn } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
+import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
 import { readVariantParams, variantSearch } from './routes';
 import {
   initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries, startSliding,
@@ -95,6 +96,17 @@ function bootOffline(): void {
     board: () => Object.fromEntries(hexBoard),
     turn: () => hexCurrentTurn,
     over: () => hexGameOver,
+  };
+
+  // Snake debug hook: read state and drive the sim deterministically in tests.
+  (window as unknown as Record<string, unknown>).__snake = {
+    status: () => snakeStatus,
+    score: () => snakeScore,
+    head: () => snakeHeadKey,
+    body: () => [...snakeBodySet],
+    food: () => snakeFood,
+    steer: (dr: number, dc: number) => steerSnake([dr, dc]),
+    tick: () => tickSnake(),
   };
 }
 

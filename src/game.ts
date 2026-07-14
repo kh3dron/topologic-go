@@ -36,6 +36,10 @@ function renderUnavailable(): void {
   panel.replaceChildren(el('p', 'auth-msg', 'Online play is not configured in this build.'));
 }
 
+function renderSolo(): void {
+  panel.replaceChildren(el('p', 'auth-msg', `${gameLabel} is single-player - play it in the sandbox.`));
+}
+
 function renderSignedOut(): void {
   panel.replaceChildren();
   panel.appendChild(el('div', 'auth-heading', 'Sign in to play online'));
@@ -119,7 +123,9 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   }
 }
 
-if (!hasSupabase) {
+if (GAMES.get(game)?.soloOnly) {
+  renderSolo();
+} else if (!hasSupabase) {
   renderUnavailable();
 } else {
   onAuthChange(async (session) => {

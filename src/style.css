@@ -1,6 +1,7 @@
 :root {
   --chess-cell: 72px;
   --go-cell: 32px;
+  --snake-cell: 34px;
 
   --paper: #1a1a1a;
   --panel: #222;
@@ -243,8 +244,70 @@ button:active,
   background: #c9a86c;
 }
 
+#board.snake-board {
+  background: #101010;
+}
+
 .void-cell {
   background: var(--paper);
+}
+
+/* ==================== SNAKE ==================== */
+.snake-cell {
+  width: var(--snake-cell);
+  height: var(--snake-cell);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  user-select: none;
+}
+
+.snake-cell.light {
+  background: #1c1c1c;
+}
+
+.snake-cell.dark {
+  background: #171717;
+}
+
+/* Lethal wall edges (only appear on wall axes: classic, cylinder, corridor). */
+.snake-cell.edge-top {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+.snake-cell.edge-bottom {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+
+.snake-cell.edge-left {
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
+
+.snake-cell.edge-right {
+  box-shadow: inset -2px 0 0 0 var(--accent);
+}
+
+.snake-cell.snake-body::after,
+.snake-cell.snake-head::after,
+.snake-cell.snake-food::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+}
+
+.snake-cell.snake-body::after {
+  background: #3c9a5f;
+  border-radius: 3px;
+}
+
+.snake-cell.snake-head::after {
+  background: #7be3a2;
+  border-radius: 6px;
+}
+
+.snake-cell.snake-food::after {
+  inset: 6px;
+  background: var(--accent);
+  border-radius: 50%;
 }
 
 /* ==================== CHESS ==================== */

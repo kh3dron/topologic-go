@@ -30,6 +30,9 @@ export interface GameModule<S, M, B> {
   id: string;
   name: string;
   boardFamily: string;
+  // Single-player games (Snake): they appear in the catalog but never route to
+  // the online lobby (game.html); routes.ts keeps their links on the sandbox.
+  soloOnly?: boolean;
   initialState(board: B): S;
   isLegalMove(state: S, move: M): boolean;
   applyMove(state: S, move: M): { state: S; result: GameResult };

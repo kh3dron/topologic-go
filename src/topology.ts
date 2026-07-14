@@ -23,6 +23,7 @@ export interface Topology {
   name: string;
   chessDesc: string;
   goDesc: string;
+  snakeDesc: string;
   article: string;
   links: TopologyLink[];
   formal: TopologyFormal;
@@ -44,6 +45,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Classic',
     chessDesc: 'Standard chess rules.',
     goDesc: 'Standard Go rules on a 19x19 board.',
+    snakeDesc: 'Every edge is a lethal wall - run into any boundary and it is game over. Plain snake.',
     article: 'The baseline: a bounded board where edges and corners are real. Every other mode on this site changes only one thing - what happens when you cross an edge - and keeps the rules of the game itself intact.',
     links: [
       { label: 'Chess (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Chess' },
@@ -63,6 +65,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Torus',
     chessDesc: 'Both edge pairs wrap around - the board is a torus.',
     goDesc: 'Stones wrap around all edges - a boundless board.',
+    snakeDesc: 'No walls anywhere: cross any edge and reappear on the opposite side. The only way to die is to bite yourself.',
     article: 'Glue the left edge to the right and the top to the bottom and you get a flat torus - the surface of a donut with no curvature. There are no corners and no edges at all: in Go the cheap corner territory disappears entirely, and in chess there is no back rank to hide a king on.',
     links: [
       { label: 'Torus (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Torus' },
@@ -82,6 +85,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Mirror',
     chessDesc: 'Columns wrap; rows reflect at top and bottom - white backs white, black backs black.',
     goDesc: 'Columns wrap; the board reflects at top and bottom edges.',
+    snakeDesc: 'The sides wrap; the top and bottom are mirrors. Leave the top heading up and you re-enter the top heading down.',
     article: 'The top and bottom edges are mirrors: cross one and you re-enter the same board flipped upside down, so the tiling alternates between the board and its reflection. Columns still wrap normally. In chess each army stands back-to-back with its own mirror image.',
     links: [
       { label: 'Reflection symmetry (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Reflection_symmetry' },
@@ -102,6 +106,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Windmill',
     chessDesc: 'Copies of the board rotate 90 degrees around shared corners - the p4 windmill tiling.',
     goDesc: 'Copies of the board rotate 90 degrees around shared corners - the p4 windmill tiling.',
+    snakeDesc: 'Every edge rotates a quarter-turn: steer straight off an edge and the snake re-enters turning 90 degrees, threading the shared corners.',
     article: 'The plane is tiled by copies of the board rotated 90 degrees around shared corners - the wallpaper group p4, orbifold signature 442. The playing surface is the quotient orbifold S2(4,4,2): a sphere with two cone points of angle pi/2 and one of angle pi. The cone points are why two opposite corners of the board are adjacent to themselves (only 2 distinct liberties in Go) and the other two corners are glued to each other.',
     links: [
       { label: 'Wallpaper group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Wallpaper_group' },
@@ -127,6 +132,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Pillowcase',
     chessDesc: 'Copies rotate 180 degrees at the side edges; top and bottom wrap - the pillowcase orbifold.',
     goDesc: 'Copies rotate 180 degrees at the side edges; top and bottom wrap - the pillowcase orbifold.',
+    snakeDesc: 'The sides rotate 180 degrees while the top and bottom wrap: exit a side edge and you re-enter it upside down.',
     article: 'The half-turn sibling of the windmill: side-by-side copies are rotated 180 degrees, rows wrap normally - the wallpaper group p2, orbifold signature 2222. The quotient is the "pillowcase": a sphere with four cone points of angle pi, a surface that also shows up in the theory of translation surfaces. Cells at the cone points are adjacent to themselves.',
     links: [
       { label: 'Wallpaper group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Wallpaper_group' },
@@ -148,6 +154,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Cylinder',
     chessDesc: 'Left and right edges wrap; top and bottom are walls.',
     goDesc: 'Left and right edges wrap; top and bottom are walls.',
+    snakeDesc: 'The sides wrap into an endless loop; the top and bottom are lethal walls. Circle forever, but do not drift into an end.',
     article: 'Only the sides are glued: the board becomes a tube. This is the oldest topology variant of chess - cylinder chess was analyzed as early as the medieval shatranj era. Rook and queen gain enormous power on the open ring; in Go the side territory vanishes but the top and bottom edges still behave classically.',
     links: [
       { label: 'Cylinder chess (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Cylinder_chess' },
@@ -167,6 +174,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Corridor',
     chessDesc: 'Two facing mirrors: the board reflects endlessly at top and bottom; the sides are walls.',
     goDesc: 'Two facing mirrors: the board reflects endlessly at top and bottom; the sides are walls.',
+    snakeDesc: 'The top and bottom are mirrors and the sides are walls: bounce vertically forever, but the left and right edges still kill.',
     article: 'The board stands between two facing mirrors, like a barbershop corridor: crossing the top or bottom edge re-enters the same board reflected, over and over, while the left and right edges stay solid walls. The vertical direction behaves like the Mirror mode; the horizontal direction like Classic.',
     links: [
       { label: 'Reflection symmetry (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Reflection_symmetry' },
@@ -188,6 +196,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Mobius',
     chessDesc: 'Left and right edges glue with a vertical flip; top and bottom are walls - a Mobius strip.',
     goDesc: 'Left and right edges glue with a vertical flip; top and bottom are walls - a Mobius strip.',
+    snakeDesc: 'The sides wrap with a flip; the top and bottom are walls. Leave the right edge low and you re-enter the left edge high.',
     article: 'A cylinder with a half-twist: travel once around the strip and you come back mirror-imaged. The Mobius strip is one-sided and non-orientable - there is no consistent notion of clockwise. A rook circling the board returns to its own rank reflected.',
     links: [
       { label: 'Mobius strip (Wikipedia)', url: 'https://en.wikipedia.org/wiki/M%C3%B6bius_strip' },
@@ -208,6 +217,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Klein',
     chessDesc: 'Left and right edges glue with a vertical flip; top and bottom wrap - a Klein bottle.',
     goDesc: 'Left and right edges glue with a vertical flip; top and bottom wrap - a Klein bottle.',
+    snakeDesc: 'The sides wrap with a flip and the top and bottom wrap plainly: no walls at all, but one lap across the flip axis returns you mirrored.',
     article: 'Take the Mobius gluing and additionally wrap top to bottom: the result is the Klein bottle, a closed surface with no inside or outside that cannot be built in 3D space without passing through itself. Like the torus it has no edges anywhere, but it is non-orientable: one loop around the board flips you.',
     links: [
       { label: 'Klein bottle (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Klein_bottle' },
@@ -227,6 +237,7 @@ export const TOPOLOGIES: Topology[] = [
     name: 'Projective',
     chessDesc: 'Both edge pairs glue with a flip - the projective plane.',
     goDesc: 'Both edge pairs glue with a flip - the projective plane.',
+    snakeDesc: 'Both edge pairs glue with a flip: no walls, and every straight run eventually returns to its start reversed.',
     article: 'Both pairs of opposite edges are glued with a flip - the classical square model of the real projective plane, the space of lines through the origin. Every straight path eventually returns to its start reversed. As a flat quotient it carries two cone points, so two corner cells touch themselves.',
     links: [
       { label: 'Real projective plane (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Real_projective_plane' },
