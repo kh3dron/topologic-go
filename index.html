@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/src/style.css">
 </head>
 
-<body class="catalog-page">
+<body class="catalog-page picker-page">
   <div id="catalog">
     <header id="catalog-header">
       <div class="catalog-title-row">
@@ -18,17 +18,45 @@
       <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes only what happens at the edges - wrap, reflect, rotate, or wall - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
     </header>
 
-    <div id="catalog-controls">
-      <div id="mode-toggle" class="segmented">
-        <button class="seg-btn active" data-mode="playground">Playground</button>
-        <button class="seg-btn" data-mode="challenge">Challenge</button>
-      </div>
-      <p id="mode-note"></p>
-      <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off" spellcheck="false">
-    </div>
+    <div class="picker">
+      <aside class="picker-list">
+        <span class="step-label">1 &middot; Choose a board</span>
+        <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off" spellcheck="false">
+        <div id="topo-list"></div>
+        <p id="catalog-empty" hidden>No geometries match.</p>
+      </aside>
 
-    <div id="catalog-list"></div>
-    <p id="catalog-empty" hidden>No geometries match.</p>
+      <section class="picker-detail">
+        <div class="preview-frame">
+          <canvas id="preview-canvas"></canvas>
+          <div class="preview-badge" id="preview-badge"></div>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-head">
+            <h2 id="detail-name"></h2>
+            <span id="detail-surface" class="detail-surface"></span>
+          </div>
+          <p id="detail-article"></p>
+          <div id="detail-spec" class="detail-spec"></div>
+
+          <div class="picker-step">
+            <span class="step-label">2 &middot; Choose a game</span>
+            <div id="game-options" class="game-options"></div>
+            <p id="verdict-note" class="verdict-note"></p>
+          </div>
+
+          <div class="picker-launch">
+            <div id="mode-toggle" class="segmented">
+              <button class="seg-btn active" data-mode="playground">Playground</button>
+              <button class="seg-btn" data-mode="challenge">Challenge</button>
+            </div>
+            <a id="play-btn" class="play-btn" href="#">Play <span aria-hidden="true">&rarr;</span></a>
+          </div>
+          <p id="mode-note"></p>
+        </div>
+      </section>
+    </div>
   </div>
   <script type="module" src="/src/landing.ts"></script>
 </body>

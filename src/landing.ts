@@ -1,151 +1,277 @@
 import { GameType } from './state';
 import { TOPOLOGIES, Topology } from './topology';
 import { GAMES, usesTopology } from './engine';
-import { variantHref, PlayMode } from './routes';
+import { variantHref, variantSearch, PlayMode } from './routes';
+import { createPreview } from './preview';
 import { mountVersionBadge } from './version';
 
 mountVersionBadge();
 
-// Topology-bearing games appear on every topology row; other geometries (hex)
-// get their own row. Both derive from the registry, so a new game lands here
-// automatically.
-const topoGames = [...GAMES.values()].filter(m => usesTopology(m.id));
+// A Mario-Kart-style picker: choose a board (topology) from the scrollable list,
+// see it animate in the preview, then pick a game and launch. Everything derives
+// from the registries, so a new topology or game appears here automatically.
+
+interface GameOption { id: GameType; name: string; }
+
+// One selectable board. Topology boards share the chess/go/snake lineup; the hex
+// family (no project()) is its own board with a single game.
+interface Entry {
+  id: string;              // topology id, or game id for non-topology boards
+  name: string;
+  meta: string;            // right-aligned list tag
+  group: string;
+  topo: Topology | null;
+  games: GameOption[];
+  topoId: string;          // value handed to variantHref / variantSearch
+  surface: string;
+  article: string;
+  spec: string[];
+  search: string;
+}
+
+const topoGames: GameOption[] = [...GAMES.values()]
+  .filter(m => usesTopology(m.id))
+  .map(m => ({ id: m.id as GameType, name: m.name }));
 const otherGames = [...GAMES.values()].filter(m => !usesTopology(m.id));
 
-// The catalog is a plain list of geometries grouped by how the board tessellates
-// the plane: bounded (classic), one wrapped axis (cylinder / corridor / Möbius),
-// or two (torus / Klein / ...). Each geometry links out per game; all the detail
-// lives on the play page.
-
-interface GameLink { game: GameType; topoId: string; label: string; }
-
-interface GeoRow {
-  search: string;
-  row: HTMLElement;
-  anchors: HTMLAnchorElement[];
+function tessDim(t: Topology): number {
+  return (t.periodX != null ? 1 : 0) + (t.periodY != null ? 1 : 0);
 }
 
-interface Group {
-  rows: GeoRow[];
-  section: HTMLElement;
-}
-
-function tessDim(topo: Topology): number {
-  return (topo.periodX != null ? 1 : 0) + (topo.periodY != null ? 1 : 0);
-}
-
-const DIM_META: Record<number, { title: string; note: string }> = {
-  0: { title: 'Bounded board', note: 'Classic edges — the board simply ends.' },
-  1: { title: 'Tessellated in one dimension', note: 'One axis wraps or reflects; the other stays a wall.' },
-  2: { title: 'Tessellated in two dimensions', note: 'Both edge pairs glue — a closed surface with no boundary.' },
+const DIM_GROUP: Record<number, string> = {
+  0: 'Bounded',
+  1: 'Tessellated - one axis',
+  2: 'Tessellated - two axes',
 };
 
-const groups: Group[] = [];
-const listEl = document.getElementById('catalog-list')!;
-
-function makeGroup(title: string, note: string): Group {
-  const section = document.createElement('section');
-  section.className = 'geo-group';
-  section.innerHTML = `<h2 class="geo-group-title">${title}</h2><p class="geo-group-note">${note}</p>`;
-  listEl.appendChild(section);
-  const group: Group = { rows: [], section };
-  groups.push(group);
-  return group;
-}
-
-function addRow(group: Group, name: string, links: GameLink[]): void {
-  const row = document.createElement('div');
-  row.className = 'geo-row';
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'geo-name';
-  nameEl.textContent = name;
-  row.appendChild(nameEl);
-
-  const games = document.createElement('span');
-  games.className = 'geo-games';
-  const anchors: HTMLAnchorElement[] = [];
-  for (const link of links) {
-    const a = document.createElement('a');
-    a.className = 'geo-link';
-    a.textContent = link.label;
-    a.dataset.game = link.game;
-    a.dataset.topo = link.topoId;
-    a.href = variantHref('playground', link.game, link.topoId);
-    games.appendChild(a);
-    anchors.push(a);
-  }
-  row.appendChild(games);
-
-  group.section.appendChild(row);
-  group.rows.push({ search: name.toLowerCase(), row, anchors });
-}
-
-function buildList(): void {
-  for (const dim of [0, 1, 2]) {
-    const topos = TOPOLOGIES.filter(t => tessDim(t) === dim);
-    if (topos.length === 0) continue;
-    const meta = DIM_META[dim];
-    const group = makeGroup(meta.title, meta.note);
-    for (const topo of topos) {
-      addRow(group, topo.name, topoGames.map(m => ({ game: m.id as GameType, topoId: topo.id, label: m.name })));
-    }
-  }
-
-  if (otherGames.length > 0) {
-    const other = makeGroup('Other geometries', 'A different board shape, not a topology of the square.');
-    for (const m of otherGames) {
-      addRow(other, m.name, [{ game: m.id as GameType, topoId: m.id, label: 'Play' }]);
-    }
+const entries: Entry[] = [];
+for (const dim of [0, 1, 2]) {
+  for (const topo of TOPOLOGIES.filter(t => tessDim(t) === dim)) {
+    entries.push({
+      id: topo.id,
+      name: topo.name,
+      meta: `${dim}D`,
+      group: DIM_GROUP[dim],
+      topo,
+      games: topoGames,
+      topoId: topo.id,
+      surface: topo.formal.surface,
+      article: topo.article,
+      spec: topo.spec,
+      search: topo.name.toLowerCase(),
+    });
   }
 }
+for (const m of otherGames) {
+  entries.push({
+    id: m.id,
+    name: m.name,
+    meta: 'HEX',
+    group: 'Hexagonal',
+    topo: null,
+    games: [{ id: m.id as GameType, name: m.name }],
+    topoId: m.id,
+    surface: 'Glinski hexagonal grid',
+    article: 'Glinski\'s hexagonal chess is played on a hexagon of 91 cells - a different board shape rather than a topology of the square, so the edge gluings above do not apply.',
+    spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
+    search: m.name.toLowerCase(),
+  });
+}
 
-// ==================== SEARCH ====================
+const entryById = new Map(entries.map(e => [e.id, e]));
+
+// ==================== ELEMENTS ====================
+const listEl = document.getElementById('topo-list')!;
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement;
 const emptyEl = document.getElementById('catalog-empty')!;
+const nameEl = document.getElementById('detail-name')!;
+const surfaceEl = document.getElementById('detail-surface')!;
+const articleEl = document.getElementById('detail-article')!;
+const specEl = document.getElementById('detail-spec')!;
+const gameOptionsEl = document.getElementById('game-options')!;
+const verdictEl = document.getElementById('verdict-note')!;
+const playBtn = document.getElementById('play-btn') as HTMLAnchorElement;
+const modeNote = document.getElementById('mode-note')!;
+const badgeEl = document.getElementById('preview-badge')!;
+const preview = createPreview(document.getElementById('preview-canvas') as HTMLCanvasElement);
 
-function applySearch(): void {
-  const q = searchInput.value.trim().toLowerCase();
-  let shown = 0;
-  for (const g of groups) {
-    let groupShown = 0;
-    for (const r of g.rows) {
-      const visible = q === '' || r.search.includes(q);
-      r.row.hidden = !visible;
-      if (visible) groupShown++;
+// ==================== STATE ====================
+let selectedId = 'classic';
+let selectedGame: GameType = 'chess';
+let mode: PlayMode = 'playground';
+
+const itemEls = new Map<string, HTMLButtonElement>();
+const groupEls = new Map<string, HTMLElement>();
+const collapsedState = new Map<string, boolean>();
+
+// entries arrive already grouped; keep that order for the accordion.
+const groupOrder: string[] = [];
+const groupEntries = new Map<string, Entry[]>();
+for (const e of entries) {
+  if (!groupEntries.has(e.group)) { groupEntries.set(e.group, []); groupOrder.push(e.group); }
+  groupEntries.get(e.group)!.push(e);
+}
+
+// ==================== LIST (two-tier accordion) ====================
+function buildList(): void {
+  for (const group of groupOrder) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'topo-group collapsed';
+    collapsedState.set(group, true);
+
+    const header = document.createElement('button');
+    header.className = 'topo-group-header';
+    header.setAttribute('aria-expanded', 'false');
+    header.innerHTML =
+      '<span class="topo-group-caret" aria-hidden="true">&#9656;</span>' +
+      `<span class="topo-group-name">${group}</span>` +
+      `<span class="topo-group-count">${groupEntries.get(group)!.length}</span>`;
+    header.addEventListener('click', () => toggleGroup(group));
+    groupEl.appendChild(header);
+
+    const itemsEl = document.createElement('div');
+    itemsEl.className = 'topo-group-items';
+    for (const e of groupEntries.get(group)!) {
+      const item = document.createElement('button');
+      item.className = 'topo-item';
+      item.dataset.id = e.id;
+      item.innerHTML = `<span class="topo-item-name">${e.name}</span><span class="topo-item-meta">${e.meta}</span>`;
+      item.addEventListener('click', () => select(e.id));
+      itemsEl.appendChild(item);
+      itemEls.set(e.id, item);
     }
-    g.section.hidden = groupShown === 0;
-    shown += groupShown;
+    groupEl.appendChild(itemsEl);
+
+    listEl.appendChild(groupEl);
+    groupEls.set(group, groupEl);
   }
-  emptyEl.hidden = shown !== 0;
+}
+
+function setCollapsed(group: string, collapsed: boolean): void {
+  const el = groupEls.get(group)!;
+  el.classList.toggle('collapsed', collapsed);
+  el.querySelector('.topo-group-header')!.setAttribute('aria-expanded', String(!collapsed));
+}
+
+function toggleGroup(group: string): void {
+  collapsedState.set(group, !collapsedState.get(group));
+  refreshList();
+}
+
+// ==================== SELECTION ====================
+function select(id: string): void {
+  const entry = entryById.get(id);
+  if (!entry) return;
+  selectedId = id;
+  if (!entry.games.some(g => g.id === selectedGame)) selectedGame = entry.games[0].id;
+
+  // Always reveal the group holding the active board.
+  collapsedState.set(entry.group, false);
+  setCollapsed(entry.group, false);
+
+  for (const [eid, el] of itemEls) el.classList.toggle('active', eid === id);
+
+  nameEl.textContent = entry.name;
+  surfaceEl.textContent = entry.surface;
+  articleEl.textContent = entry.article;
+  specEl.innerHTML = entry.spec.map(s => `<span class="spec-chip">${s}</span>`).join('');
+  badgeEl.textContent = preview.setBoard(entry.topo);
+
+  buildGameOptions(entry);
+  updateLaunch();
+}
+
+function buildGameOptions(entry: Entry): void {
+  gameOptionsEl.innerHTML = '';
+  for (const g of entry.games) {
+    const btn = document.createElement('button');
+    btn.className = 'game-btn';
+    btn.textContent = g.name;
+    btn.classList.toggle('active', g.id === selectedGame);
+    btn.addEventListener('click', () => {
+      selectedGame = g.id;
+      for (const el of gameOptionsEl.querySelectorAll('.game-btn')) el.classList.remove('active');
+      btn.classList.add('active');
+      updateLaunch();
+    });
+    gameOptionsEl.appendChild(btn);
+  }
+}
+
+function updateLaunch(): void {
+  const entry = entryById.get(selectedId)!;
+  const gameName = entry.games.find(g => g.id === selectedGame)?.name ?? 'game';
+  playBtn.href = variantHref(mode, selectedGame, entry.topoId);
+  playBtn.innerHTML = `Play ${gameName} <span aria-hidden="true">&rarr;</span>`;
+
+  if (selectedGame === 'snake') {
+    verdictEl.textContent = 'Single-player - steer with arrow keys or WASD';
+  } else if (!entry.topo) {
+    verdictEl.textContent = 'A different board, not a square topology';
+  } else {
+    verdictEl.textContent = '';
+  }
+
+  history.replaceState(null, '', variantSearch(selectedGame, entry.topoId));
+}
+
+// ==================== SEARCH + COLLAPSE ====================
+// A search overrides the collapsed state: groups with matches force-expand so
+// hits are visible; clearing the box restores each group's own state.
+function refreshList(): void {
+  const q = searchInput.value.trim().toLowerCase();
+  const searching = q !== '';
+  let anyVisible = false;
+
+  for (const group of groupOrder) {
+    const groupEl = groupEls.get(group)!;
+    let hasVisible = false;
+    for (const e of groupEntries.get(group)!) {
+      const vis = !searching || e.search.includes(q);
+      itemEls.get(e.id)!.hidden = !vis;
+      if (vis) hasVisible = true;
+    }
+    groupEl.hidden = searching && !hasVisible;
+    setCollapsed(group, searching ? !hasVisible : collapsedState.get(group)!);
+    if (!groupEl.hidden && hasVisible) anyVisible = true;
+  }
+  emptyEl.hidden = anyVisible;
 }
 
 // ==================== MODE TOGGLE ====================
-const modeNote = document.getElementById('mode-note')!;
-
-function setMode(mode: PlayMode): void {
-  document.getElementById('catalog')!.classList.toggle('challenge-mode', mode === 'challenge');
+function setMode(next: PlayMode): void {
+  mode = next;
+  document.getElementById('catalog')!.classList.toggle('challenge-mode', next === 'challenge');
   for (const btn of document.querySelectorAll<HTMLElement>('#mode-toggle .seg-btn')) {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
+    btn.classList.toggle('active', btn.dataset.mode === next);
   }
-  for (const g of groups) {
-    for (const r of g.rows) {
-      for (const a of r.anchors) {
-        a.href = variantHref(mode, a.dataset.game as GameType, a.dataset.topo!);
-      }
-    }
-  }
-  modeNote.textContent = mode === 'challenge'
+  modeNote.textContent = next === 'challenge'
     ? 'Play a friend or bot online. Accounts + live games coming soon.'
-    : 'Play both sides yourself in a stateless sandbox — no account needed.';
+    : 'Play both sides yourself in a stateless sandbox - no account needed.';
+  updateLaunch();
 }
 
 // ==================== BOOT ====================
-buildList();
-for (const btn of document.querySelectorAll<HTMLElement>('#mode-toggle .seg-btn')) {
-  btn.addEventListener('click', () => setMode(btn.dataset.mode as PlayMode));
-}
-searchInput.addEventListener('input', applySearch);
+function boot(): void {
+  buildList();
 
-setMode('playground');
-applySearch();
+  const params = new URLSearchParams(window.location.search);
+  const g = params.get('g');
+  const t = params.get('t');
+  if (g && GAMES.has(g)) selectedGame = g as GameType;
+
+  let startId = 'classic';
+  if (g && GAMES.has(g) && !usesTopology(g)) startId = g;
+  else if (t && entryById.has(t)) startId = t;
+
+  for (const btn of document.querySelectorAll<HTMLElement>('#mode-toggle .seg-btn')) {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode as PlayMode));
+  }
+  searchInput.addEventListener('input', refreshList);
+
+  setMode('playground');
+  select(startId);
+  refreshList();
+}
+
+boot();
