@@ -1,6 +1,6 @@
 # DEPLOYMENT.md — online play + hosting design
 
-Design doc for putting topologic-go on `games.kedron.net` with user accounts and
+Design doc for putting topologic-go on `games.kh3dron.net` with user accounts and
 online games, using **server-authoritative move validation**. Scoped to a low-traffic
 hobby deployment.
 
@@ -15,7 +15,7 @@ hobby deployment.
 ## Architecture
 
 ```
-  kedron.net              games.kedron.net                    *.supabase.co
+  kh3dron.net              games.kh3dron.net                    *.supabase.co
   ┌──────────────┐        ┌──────────────────┐                ┌────────────────────────┐
   │ personal site │        │ topologic-go SPA │  read (WSS)    │ Supabase               │
   │ GitHub Pages  │        │ static build     │ ◄───────────── │  Postgres + Realtime   │
@@ -23,14 +23,14 @@ hobby deployment.
   └──────────────┘        │  - optimistic UI │  write (HTTPS) │  Edge Functions (Deno) │
         ▲                  └──────────────────┘ ─────────────► │   - shared engine      │
         │ Route 53                   ▲                         │   - sole writer        │
-        └────────────────────────────┴── kedron.net zone (AWS) └────────────────────────┘
+        └────────────────────────────┴── kh3dron.net zone (AWS) └────────────────────────┘
 ```
 
 - Clients never write game tables directly. They call Edge Functions; the functions validate
   with the engine and write as the only privileged writer.
 - Clients read game state over Realtime (WebSocket) and render optimistically for instant feel.
 - Nothing "migrates into AWS." The personal site stays on GitHub Pages. Route 53 already hosts
-  the `kedron.net` zone, so adding the game is one new DNS record.
+  the `kh3dron.net` zone, so adding the game is one new DNS record.
 
 ## Hosting decisions
 
@@ -51,21 +51,22 @@ Cost: $0 to start (Pages free + Supabase free tier: 500 MB Postgres, ~50k MAU au
 
 ## DNS (Route 53)
 
-The `kedron.net` hosted zone lives in Route 53. Leave the apex records alone (personal site).
+The `kh3dron.net` hosted zone lives in Route 53. Leave the apex records alone (personal site).
 Add one record for the subdomain:
 
-- Frontend on GitHub Pages:
+- Frontend on GitHub Pages (DONE — record live, custom domain bound):
   ```
-  Name:  games.kedron.net
+  Name:  games.kh3dron.net
   Type:  CNAME
-  Value: <gh-user>.github.io
+  Value: kh3dron.github.io
   ```
-  Then add a `CNAME` file containing `games.kedron.net` to this repo (or set it in
-  repo Settings → Pages → custom domain). GitHub provisions TLS automatically.
-- Vercel: `CNAME games.kedron.net → cname.vercel-dns.com`.
+  The repo ships `public/CNAME` (→ `dist/CNAME`) so the Actions Pages deploy keeps the
+  custom domain bound on every build; the domain is also set in repo Settings → Pages.
+  GitHub provisions TLS automatically.
+- Vercel: `CNAME games.kh3dron.net → cname.vercel-dns.com`.
 - Cloudflare Pages: add the custom domain in the CF Pages dashboard; it manages the record.
 
-`games.kedron.net` is a subdomain, so a plain CNAME is valid (apex-CNAME restriction does not
+`games.kh3dron.net` is a subdomain, so a plain CNAME is valid (apex-CNAME restriction does not
 apply). Supabase (`<project-ref>.supabase.co`) needs no DNS entry; the SPA calls it directly.
 
 ## The refactor this requires: a shared, pure engine core
@@ -377,7 +378,7 @@ the arbiter. They agree because it's literally the same code.
    chess/go/hexchess; collapse the scattered `currentGame === ...` branches into `GAMES.get(id)`
    dispatch; keep local play working; add a headless test evaluating each topology from move
    zero. (No backend yet — pure prerequisite, and independently useful.)
-2. DNS + hosting: point `games.kedron.net` at the current build; ship offline-only.
+2. DNS + hosting: point `games.kh3dron.net` at the current build; ship offline-only.
 3. Supabase project: tables, RLS, trigger, realtime publication (SQL above as a migration).
 4. Auth: sign-in + profile creation.
 5. Edge Functions: `create-game`, `join-game`, `submit-move` importing `src/engine/`.
