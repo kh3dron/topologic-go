@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      friendships: {
+        Row: {
+          addressee: string
+          created_at: string
+          requester: string
+          status: string
+        }
+        Insert: {
+          addressee: string
+          created_at?: string
+          requester: string
+          status?: string
+        }
+        Update: {
+          addressee?: string
+          created_at?: string
+          requester?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_fkey"
+            columns: ["addressee"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_fkey"
+            columns: ["requester"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_types: {
         Row: {
           board_family: string
@@ -38,6 +74,7 @@ export type Database = {
           board_state: Json
           created_at: string
           id: string
+          invited_player: string | null
           ply: number
           status: Database["public"]["Enums"]["game_status"]
           topology: string | null
@@ -53,6 +90,7 @@ export type Database = {
           board_state: Json
           created_at?: string
           id?: string
+          invited_player?: string | null
           ply?: number
           status?: Database["public"]["Enums"]["game_status"]
           topology?: string | null
@@ -68,6 +106,7 @@ export type Database = {
           board_state?: Json
           created_at?: string
           id?: string
+          invited_player?: string | null
           ply?: number
           status?: Database["public"]["Enums"]["game_status"]
           topology?: string | null
@@ -82,6 +121,13 @@ export type Database = {
           {
             foreignKeyName: "games_black_player_fkey"
             columns: ["black_player"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_invited_player_fkey"
+            columns: ["invited_player"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -184,7 +230,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_move: {
+        Args: {
+          p_board_state: Json
+          p_expected_ply: number
+          p_game_id: string
+          p_move: Json
+          p_player: string
+          p_status: Database["public"]["Enums"]["game_status"]
+          p_turn: string
+          p_winner: string
+        }
+        Returns: {
+          black_player: string | null
+          board_state: Json
+          created_at: string
+          id: string
+          invited_player: string | null
+          ply: number
+          status: Database["public"]["Enums"]["game_status"]
+          topology: string | null
+          turn: string | null
+          updated_at: string
+          variant: string
+          variant_id: string | null
+          white_player: string | null
+          winner: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "games"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       game_status: "waiting" | "active" | "done"

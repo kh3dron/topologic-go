@@ -22,12 +22,23 @@ async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T
   return data as T;
 }
 
-export function createGame(variant: string, topology: string | null): Promise<{ game: GameRow }> {
-  return invoke('create-game', { variant, topology });
+// `opponent` (a profile id) turns the game into a directed challenge: only
+// that player may claim the open seat.
+export function createGame(
+  variant: string,
+  topology: string | null,
+  opponent?: string,
+): Promise<{ game: GameRow }> {
+  return invoke('create-game', { variant, topology, opponent: opponent ?? null });
 }
 
 export function joinGame(gameId: string): Promise<{ game: GameRow }> {
   return invoke('join-game', { game_id: gameId });
+}
+
+// Creator cancels a waiting game; an invited player declines a challenge.
+export function cancelGame(gameId: string): Promise<{ ok: true }> {
+  return invoke('cancel-game', { game_id: gameId });
 }
 
 export function submitMove(gameId: string, expectedPly: number, move: unknown): Promise<{ game: GameRow }> {
@@ -39,13 +50,28 @@ export async function fetchGame(gameId: string): Promise<GameRow | null> {
   return data;
 }
 
+// Open games anyone may join — challenges (invited_player set) are excluded.
 export async function listOpenGames(): Promise<GameRow[]> {
   const { data } = await requireClient()
     .from('games')
     .select('*')
     .eq('status', 'waiting')
+    .is('invited_player', null)
     .order('created_at', { ascending: false })
     .limit(20);
+  return data ?? [];
+}
+
+// Everything on my plate: games I'm seated in (waiting or active) plus
+// challenges directed at me. Callers partition by status/invite.
+export async function listMyGames(userId: string): Promise<GameRow[]> {
+  const { data } = await requireClient()
+    .from('games')
+    .select('*')
+    .or(`white_player.eq.${userId},black_player.eq.${userId},invited_player.eq.${userId}`)
+    .in('status', ['waiting', 'active'])
+    .order('updated_at', { ascending: false })
+    .limit(50);
   return data ?? [];
 }
 

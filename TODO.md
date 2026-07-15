@@ -28,15 +28,16 @@
 ## Backend / game server
 
 Goal: behave like a small game web server - two people play the same board from different browsers.
+Shipped on Supabase (see `docs/online.md` + `DEPLOYMENT.md`): accounts (password + username
+registration, magic-link fallback), friends list, challenges, share-link joins, account hub,
+server-authoritative validation with the shared engine, Realtime sync.
 
-- [ ] Extract the engine (`topology.ts`, `chess.ts`, `go.ts`, minus DOM) into a shared package that runs in Node; the modules are already DOM-free except `render.ts`
-- [ ] Backend service (Node/TS): game rooms, move relay over WebSockets, server-authoritative validation using the same engine code
-- [ ] Persistence: games and move lists (SQLite to start; Postgres if it grows)
-- [ ] Lobby / matchmaking: create game with chosen game + topology, share invite link, join by URL
-- [ ] Spectator mode and replay from move history
-- [ ] Sessions: anonymous tokens first; accounts only if needed later
-- [ ] Hosting: static frontend stays on Pages; API on Fly.io/Render; CORS + WebSocket origin config
-- [ ] Rate limiting and input validation at the API boundary
+- [ ] Replay from the `moves` history (spectating live games already works)
+- [ ] Ratings: update `profiles.rating` on game end (column exists, never written)
+- [ ] Draw offers; resign button in the UI (server accepts `{kind:'resign'}` already)
+- [ ] Per-move notifications (email or push) for async games
+- [ ] Rate limiting at the Edge Function boundary
+- [ ] Supabase free tier pauses after ~1 week idle - keep-alive ping or accept the thaw delay
 
 ## Chores
 
@@ -50,3 +51,4 @@ Goal: behave like a small game web server - two people play the same board from 
 - [x] Topologies: torus, mirror, windmill (p4), pillowcase (p2), cylinder, corridor, Mobius, Klein, projective
 - [x] Full-page layout; topology overlay + legend; zoom (50%-200%, cursor-anchored) and universal drag-pan
 - [x] About page (`about.html`) with per-topology articles + references, generated from the registry
+- [x] Online play on Supabase: accounts + registration, friends, challenges, share-link joins, account hub, server-authoritative moves + Realtime sync (`docs/online.md`)

@@ -63,8 +63,8 @@ async function bootOnline(id: string): Promise<void> {
     const handle = await enterOnlineGame(id);
     const view = viewFor(handle.game.variant);
     document.getElementById('game-title')!.textContent = view.name;
-    // Pass is a Go move; show it only to a seated player.
-    document.getElementById('pass-btn')!.classList.toggle('visible', view.id === 'go' && handle.myColor !== null);
+    // Pass-button visibility is owned by online.ts (the seat can be claimed
+    // from the banner after load).
     updateModeDescription();
   } catch (err) {
     const status = document.getElementById('status')!;

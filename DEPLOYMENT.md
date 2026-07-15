@@ -319,7 +319,9 @@ alter publication supabase_realtime add table games, moves;
 
 ## Edge Functions (the only writers)
 
-Three functions, each: verify the caller's JWT, do a guarded write with the service role.
+Four functions, each: verify the caller's JWT, do a guarded write with the service role.
+(`cancel-game(game_id)` is the fourth: deletes a `waiting` game — creator cancels, invitee
+declines a challenge.)
 
 - `create-game(variant, topology)`
   - Sets `board_state` from the engine's canonical initial position (clients can't inject a
@@ -376,17 +378,37 @@ the arbiter. They agree because it's literally the same code.
   Local hotseat play stays as the default offline mode.
 - `base: './'` stays. If staying on GitHub Pages, add the `CNAME` file.
 
+## Social layer (shipped): registration, friends, challenges
+
+Additions on top of the base design (see `docs/online.md` for the user-facing shape):
+
+- Registration: email + password + chosen username (magic link stays as fallback). The
+  username rides in signup metadata; `handle_new_user` retries with a suffix on collision so
+  a taken name never aborts signup. Format check + `lower(username)` unique index in the DB.
+- `friendships` table — the one client-written table. RLS: participants read, requester
+  inserts `pending`, only the addressee flips to `accepted`, either side deletes. A
+  `least/greatest` unique index keeps one edge per pair regardless of direction. No Edge
+  Function: a friend edge carries no game state, so there is nothing to arbitrate.
+- Challenges reuse `games`: `invited_player uuid` on the row. `create-game` takes an optional
+  `opponent`, `join-game` enforces the invite, and a fourth function `cancel-game` deletes a
+  `waiting` game (creator cancels, invitee declines). Challenges are excluded from the public
+  open-games list (`invited_player is null` filter).
+- Share-a-link joins: `play.html?online=<id>` offers the open seat to any signed-in visitor
+  from the banner; signed-out visitors bounce through `game.html?join=<id>` (sign in/register,
+  claim seat, land back on the board).
+- The account hub (`home.html`) lists games in progress, challenges both ways, and friends,
+  live-refreshed over one Realtime channel (`friendships` + my `games` rows).
+
 ## Rollout phases
 
-1. Engine refactor: extract `src/engine/` with the `GAMES` registry and pure `GameModule`s for
-   chess/go/hexchess; collapse the scattered `currentGame === ...` branches into `GAMES.get(id)`
-   dispatch; keep local play working; add a headless test evaluating each topology from move
-   zero. (No backend yet — pure prerequisite, and independently useful.)
-2. DNS + hosting: point `games.kh3dron.net` at the current build; ship offline-only.
-3. Supabase project: tables, RLS, trigger, realtime publication (SQL above as a migration).
-4. Auth: sign-in + profile creation.
-5. Edge Functions: `create-game`, `join-game`, `submit-move` importing `src/engine/`.
-6. Online play: lobby → create/join → optimistic move + Realtime reconcile.
-7. Polish: history from the `moves` log, ratings, draw offers, reconnection, spectating.
+1. DONE — Engine refactor: `src/engine/` with the `GAMES` registry and pure `GameModule`s.
+2. DONE — DNS + hosting: `games.kh3dron.net` on GitHub Pages.
+3. DONE — Supabase project: tables, RLS, trigger, realtime publication (`supabase/migrations/`).
+4. DONE — Auth: registration (password + username) and magic-link sign-in, profile creation.
+5. DONE — Edge Functions: `create-game`, `join-game`, `submit-move`, `cancel-game`.
+6. DONE — Online play: lobby → create/join/share-link/challenge → optimistic move + Realtime
+   reconcile; friends + account hub.
+7. Polish: history from the `moves` log, ratings, draw offers, reconnection UX, per-move
+   notifications (email/push).
 
 ```

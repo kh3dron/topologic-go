@@ -8,7 +8,7 @@ import { GameType, setCurrentGame, setTopology } from '../state';
 import { viewFor } from '../views';
 import { renderBoard, updateStatus } from '../render';
 import { currentUser } from './auth';
-import { fetchGame, submitMove, subscribeGame, type GameRow } from './games';
+import { fetchGame, joinGame, submitMove, subscribeGame, type GameRow } from './games';
 
 export interface OnlineHandle {
   game: GameRow;
@@ -35,9 +35,12 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
   if (!game) throw new Error('Game not found.');
 
   const myId = user?.id ?? null;
-  const myColor: Color | null =
-    myId && game.white_player === myId ? 'white' :
-    myId && game.black_player === myId ? 'black' : null;
+  // Recomputed on every server update: a viewer can claim the open seat from
+  // the banner (join-by-link), which flips them from spectator to player.
+  const seatOf = (g: GameRow): Color | null =>
+    myId && g.white_player === myId ? 'white' :
+    myId && g.black_player === myId ? 'black' : null;
+  let myColor: Color | null = seatOf(game);
 
   setCurrentGame(game.variant as GameType);
   if (game.topology) setTopology(game.topology);
@@ -68,12 +71,47 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
     onCommit: submitLocalMove,
   });
 
+  function bannerButton(label: string, run: (btn: HTMLButtonElement) => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'lobby-link';
+    btn.textContent = label;
+    btn.addEventListener('click', () => run(btn));
+    return btn;
+  }
+
   function updateBanner(g: GameRow): void {
+    banner.replaceChildren();
     if (g.status === 'waiting') {
-      banner.textContent = myColor
-        ? 'Waiting for an opponent to join — share this page’s link.'
-        : 'This game is waiting for players.';
       banner.className = 'online-banner waiting';
+      if (myColor) {
+        banner.append(g.invited_player
+          ? 'Challenge sent — waiting for your friend to accept.'
+          : 'Waiting for an opponent — share this page’s link.');
+        banner.appendChild(bannerButton('Copy link', (btn) => {
+          navigator.clipboard.writeText(location.href)
+            .then(() => { btn.textContent = 'Copied'; })
+            .catch(() => { btn.textContent = location.href; });
+        }));
+      } else if (g.invited_player && g.invited_player !== myId) {
+        banner.append('This game is a private challenge, waiting for its player.');
+      } else if (myId) {
+        banner.append('This game is waiting for an opponent.');
+        banner.appendChild(bannerButton('Join this game', (btn) => {
+          btn.disabled = true;
+          joinGame(g.id)
+            .then((res) => applyServer(res.game))
+            .catch((err) => {
+              btn.disabled = false;
+              banner.append(` ${err instanceof Error ? err.message : String(err)}`);
+            });
+        }));
+      } else {
+        banner.append('This game is waiting for an opponent. ');
+        const a = document.createElement('a');
+        a.href = `./game.html?join=${g.id}`;
+        a.textContent = 'Sign in to join';
+        banner.appendChild(a);
+      }
     } else if (g.status === 'done') {
       const outcome = g.winner === null ? 'Draw.'
         : g.winner === myId ? 'You win.'
@@ -92,11 +130,16 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
   function applyServer(g: GameRow): void {
     serverPly = g.ply;
     lastBoard = g.board_state;
+    myColor = seatOf(g);
     view.loadState(g.board_state);
     view.setOnline(gateFor(g));
     renderBoard();
     updateStatus();
     updateBanner(g);
+    // Pass is a Go move; only a seated player gets the button (seat can be
+    // claimed after load, so this tracks every update).
+    document.getElementById('pass-btn')
+      ?.classList.toggle('visible', g.variant === 'go' && myColor !== null);
   }
 
   // initial paint

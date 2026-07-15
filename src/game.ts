@@ -2,25 +2,25 @@ import { readVariantParams, variantSearch } from './routes';
 import { TOPOLOGY_MAP } from './topology';
 import { GAMES, usesTopology } from './engine';
 import { hasSupabase } from './net/client';
-import { fetchProfile, onAuthChange, sendMagicLink, signOut } from './net/auth';
-import { createGame, joinGame, listOpenGames } from './net/games';
+import { fetchProfile, onAuthChange, signOut } from './net/auth';
+import { renderAuthPanel } from './net/auth-ui';
+import { createGame, fetchGame, joinGame, listOpenGames, type GameRow } from './net/games';
+import { fetchProfiles, listFriendships } from './net/social';
 import { mountVersionBadge } from './version';
 
 mountVersionBadge();
 
-// Online-play entry (game.html): variant title, solo fallback, passwordless
-// sign-in, and a lobby (create a game or join an open one -> redirect into the
-// live board on play.html?online=<id>).
+// Online-play entry (game.html), two modes:
+//   * lobby (default): sign in / register, start an open game, challenge a
+//     friend, or join a listed open game.
+//   * join handoff (?join=<id>): the landing spot for a shared game link when
+//     the visitor isn't signed in yet - sign in, claim the seat, and land on
+//     the live board.
+
+const params = new URLSearchParams(window.location.search);
+const joinId = params.get('join');
 
 const { game, topoId } = readVariantParams();
-
-const gameLabel = GAMES.get(game)?.name ?? 'Chess';
-const title = usesTopology(game)
-  ? `${gameLabel} · ${TOPOLOGY_MAP.get(topoId)?.name ?? 'Classic'}`
-  : gameLabel;
-
-document.getElementById('challenge-variant')!.textContent = title;
-document.getElementById('challenge-solo')!.setAttribute('href', `./play.html${variantSearch(game, topoId)}`);
 
 const panel = document.getElementById('auth-panel')!;
 const online = (id: string) => `./play.html?online=${id}`;
@@ -32,56 +32,43 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return node;
 }
 
+function setTitle(gameKey: string, topo: string | null): void {
+  const gameLabel = GAMES.get(gameKey)?.name ?? gameKey;
+  const title = topo && usesTopology(gameKey)
+    ? `${gameLabel} · ${TOPOLOGY_MAP.get(topo)?.name ?? topo}`
+    : gameLabel;
+  document.getElementById('challenge-variant')!.textContent = title;
+}
+
 function renderUnavailable(): void {
   panel.replaceChildren(el('p', 'auth-msg', 'Online play is not configured in this build.'));
 }
 
 function renderSolo(): void {
+  const gameLabel = GAMES.get(game)?.name ?? game;
   panel.replaceChildren(el('p', 'auth-msg', `${gameLabel} is single-player - play it in the sandbox.`));
 }
 
-function renderSignedOut(): void {
-  panel.replaceChildren();
-  panel.appendChild(el('div', 'auth-heading', 'Sign in to play online'));
-
-  const form = el('form', 'auth-form');
-  const email = el('input');
-  email.type = 'email';
-  email.required = true;
-  email.placeholder = 'you@example.com';
-  email.autocomplete = 'email';
-  const btn = el('button', 'lobby-btn', 'Send magic link');
-  btn.type = 'submit';
-  form.append(email, btn);
-
-  const msg = el('p', 'auth-msg');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    btn.disabled = true;
-    msg.textContent = 'Sending…';
-    try {
-      await sendMagicLink(email.value.trim(), `${location.origin}${location.pathname}${location.search}`);
-      msg.textContent = 'Check your email for a sign-in link.';
-    } catch (err) {
-      msg.textContent = `Could not send link: ${err instanceof Error ? err.message : String(err)}`;
-      btn.disabled = false;
-    }
-  });
-
-  panel.append(form, msg);
-}
+// ==================== LOBBY MODE ====================
 
 async function renderLobby(userId: string, name: string): Promise<void> {
+  const gameLabel = GAMES.get(game)?.name ?? game;
   panel.replaceChildren();
 
   const head = el('div', 'lobby-head');
   head.append(el('span', 'auth-heading', `Signed in as ${name}`));
+  const links = el('span', 'hub-head-actions');
+  const account = el('a', 'lobby-link', 'Account');
+  account.setAttribute('href', './home.html');
   const out = el('button', 'lobby-link', 'Sign out');
   out.addEventListener('click', () => signOut());
-  head.appendChild(out);
+  links.append(account, out);
+  head.appendChild(links);
   panel.appendChild(head);
 
-  const create = el('button', 'lobby-btn', `Start a new ${gameLabel} game`);
+  const msg = el('p', 'auth-msg');
+
+  const create = el('button', 'lobby-btn', `Start an open ${gameLabel} game`);
   create.addEventListener('click', async () => {
     create.disabled = true;
     try {
@@ -89,11 +76,50 @@ async function renderLobby(userId: string, name: string): Promise<void> {
       location.href = online(g.id);
     } catch (err) {
       create.disabled = false;
-      panel.appendChild(el('p', 'auth-msg', `Could not create game: ${err instanceof Error ? err.message : String(err)}`));
+      msg.textContent = `Could not create game: ${err instanceof Error ? err.message : String(err)}`;
     }
   });
   panel.appendChild(create);
+  panel.appendChild(el('p', 'auth-msg', 'Anyone with the link (or the list below) can take the other seat.'));
 
+  // -------- challenge a friend --------
+  const friends = (await listFriendships(userId).catch(() => []))
+    .filter((f) => f.status === 'accepted');
+  panel.appendChild(el('div', 'lobby-subhead', 'Challenge a friend'));
+  if (friends.length === 0) {
+    const p = el('p', 'auth-msg');
+    p.append('No friends yet - add some on your ');
+    const a = el('a', undefined, 'account page');
+    a.setAttribute('href', './home.html');
+    p.append(a, '.');
+    panel.appendChild(p);
+  } else {
+    const row = el('div', 'lobby-form-row');
+    const select = el('select');
+    for (const f of friends) {
+      const opt = el('option', undefined, f.other.username);
+      opt.value = f.other.id;
+      select.appendChild(opt);
+    }
+    const challenge = el('button', 'lobby-btn', 'Challenge');
+    challenge.addEventListener('click', async () => {
+      challenge.disabled = true;
+      try {
+        const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, select.value);
+        location.href = online(g.id);
+      } catch (err) {
+        challenge.disabled = false;
+        msg.textContent = `Could not create challenge: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    });
+    row.append(select, challenge);
+    panel.appendChild(row);
+    panel.appendChild(el('p', 'auth-msg', 'Only the challenged player can take the seat; they see it on their account page.'));
+  }
+
+  panel.appendChild(msg);
+
+  // -------- open games --------
   panel.appendChild(el('div', 'lobby-subhead', 'Open games'));
   const list = el('div', 'lobby-list');
   panel.appendChild(list);
@@ -123,17 +149,77 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   }
 }
 
-if (GAMES.get(game)?.soloOnly) {
-  renderSolo();
-} else if (!hasSupabase) {
+// ==================== JOIN-HANDOFF MODE ====================
+
+async function renderJoin(id: string, userId: string | null, name: string | null): Promise<void> {
+  let g: GameRow | null = null;
+  try {
+    g = await fetchGame(id);
+  } catch { /* fall through to not-found */ }
+  if (!g) {
+    panel.replaceChildren(el('p', 'auth-msg', 'This game no longer exists.'));
+    return;
+  }
+  setTitle(g.variant, g.topology);
+
+  if (!userId) {
+    renderAuthPanel(panel, { heading: 'Sign in to join this game' });
+    return;
+  }
+
+  panel.replaceChildren();
+  panel.appendChild(el('div', 'auth-heading', `Signed in as ${name}`));
+
+  const seated = g.white_player === userId || g.black_player === userId;
+  if (seated || g.status !== 'waiting') {
+    // Already in it, or it started/finished - just go watch/play.
+    const a = el('a', 'lobby-btn', seated ? 'Open your game' : 'Watch this game');
+    a.setAttribute('href', online(g.id));
+    panel.appendChild(a);
+    return;
+  }
+  if (g.invited_player && g.invited_player !== userId) {
+    panel.appendChild(el('p', 'auth-msg', 'This game is a private challenge for another player.'));
+    return;
+  }
+
+  const creator = g.white_player ? (await fetchProfiles([g.white_player])).get(g.white_player) : null;
+  panel.appendChild(el('p', 'auth-msg', `${creator?.username ?? 'A player'} is waiting for an opponent.`));
+  const btn = el('button', 'lobby-btn', 'Join this game');
+  const msg = el('p', 'auth-msg');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      await joinGame(g.id);
+      location.href = online(g.id);
+    } catch (err) {
+      btn.disabled = false;
+      msg.textContent = err instanceof Error ? err.message : String(err);
+    }
+  });
+  panel.append(btn, msg);
+}
+
+// ==================== BOOT ====================
+
+if (!joinId) setTitle(game, topoId);
+document.getElementById('challenge-solo')!.setAttribute('href', `./play.html${variantSearch(game, topoId)}`);
+
+if (!hasSupabase) {
   renderUnavailable();
+} else if (!joinId && GAMES.get(game)?.soloOnly) {
+  renderSolo();
 } else {
   onAuthChange(async (session) => {
     if (session?.user) {
       const profile = await fetchProfile(session.user.id).catch(() => null);
-      renderLobby(session.user.id, profile?.username ?? session.user.email ?? 'player');
+      const name = profile?.username ?? session.user.email ?? 'player';
+      if (joinId) renderJoin(joinId, session.user.id, name);
+      else renderLobby(session.user.id, name);
+    } else if (joinId) {
+      renderJoin(joinId, null, null);
     } else {
-      renderSignedOut();
+      renderAuthPanel(panel);
     }
   });
 }

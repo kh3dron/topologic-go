@@ -22,6 +22,9 @@ Deno.serve(async (req) => {
     if (loadErr || !game) return json({ error: 'not found' }, 404);
     if (game.status !== 'waiting' || game.black_player) return json({ error: 'not joinable' }, 409);
     if (game.white_player === user.id) return json({ error: 'cannot join your own game' }, 409);
+    if (game.invited_player && game.invited_player !== user.id) {
+      return json({ error: 'this game is a private challenge' }, 403);
+    }
 
     // First mover's seat: white -> creator (white_player); black -> joiner.
     const firstMover: string = game.board_state?.turn ?? 'white';

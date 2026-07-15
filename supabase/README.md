@@ -7,8 +7,8 @@ personal-account project — do NOT provision it in any company Supabase org.
 
 - `migrations/` — SQL migrations, applied in filename order. `20260713120000_init.sql`
   is the initial schema (game-agnostic tables, RLS, signup trigger, realtime).
-- `functions/` — Edge Functions (Deno) will live here: `create-game`, `join-game`,
-  `submit-move`. They import the pure engine from `../../src/engine`. (Not added yet.)
+- `functions/` — Edge Functions (Deno): `create-game`, `join-game`, `submit-move`,
+  `cancel-game`, plus `_shared/`. They import the pure engine from `../../src/engine`.
 
 ## Applying to your personal project
 

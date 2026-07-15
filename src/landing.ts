@@ -244,7 +244,7 @@ function setMode(next: PlayMode): void {
     btn.classList.toggle('active', btn.dataset.mode === next);
   }
   modeNote.textContent = next === 'challenge'
-    ? 'Play a friend or bot online. Accounts + live games coming soon.'
+    ? 'Play a friend online - open a game, share the link, or challenge from your friends list.'
     : 'Play both sides yourself in a stateless sandbox - no account needed.';
   updateLaunch();
 }
@@ -267,7 +267,7 @@ function boot(): void {
   }
   searchInput.addEventListener('input', refreshList);
 
-  setMode('playground');
+  setMode(params.get('mode') === 'challenge' ? 'challenge' : 'playground');
   select(startId);
   refreshList();
 }
