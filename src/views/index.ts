@@ -5,12 +5,14 @@ import { GameView } from './kit';
 import { chessView } from './chess';
 import { goView } from './go';
 import { hexView } from './hexchess';
+import { hyperView } from './hyperchess';
 import { snakeView } from './snake';
 
 export const VIEWS = new Map<string, GameView>([
   [chessView.id, chessView],
   [goView.id, goView],
   [hexView.id, hexView],
+  [hyperView.id, hyperView],
   [snakeView.id, snakeView],
 ]);
 

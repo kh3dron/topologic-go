@@ -301,7 +301,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       particles = [];
       resize();
       render();
-      return 'HEXAGONAL BOARD';
+      return ''; // non-topology boards caption themselves (module catalog badge)
     },
     destroy(): void {
       cancelAnimationFrame(raf);

@@ -5,8 +5,8 @@ Layered: pure engine at the bottom, DOM at the top. Dependencies point down only
 ```
 pages:      landing.ts   play.ts   game.ts   about.ts        (one per HTML entry)
 shell:      render.ts   preview.ts   routes.ts   version.ts
-views:      views/kit.ts  views/{chess,go,hexchess,snake}.ts  (VIEWS registry)
-wrappers:   chess.ts  go.ts  hexchess.ts  snake.ts  state.ts  (module-global live state)
+views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,snake}.ts  (VIEWS registry)
+wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  snake.ts  state.ts  (module-global live state)
 net:        net/{client,auth,games,online}.ts                 (optional Supabase)
 engine:     engine/core.ts  engine/index.ts  engine/games/*   (pure, DOM-free)
 math:       topology.ts  census.ts                            (pure, DOM-free)
@@ -22,9 +22,10 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - 13 entries: classic, torus, mirror, windmill, pillowcase, pivot, cylinder, corridor, mirrorbox, mobius, klein, mobiusmirror, projective
 - `GAMES` in `src/engine/index.ts`
   - One `GameModule<S, M, B>` per game: `initialState / isLegalMove / applyMove / serialize / deserialize`
-  - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'` takes none
+  - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'` and `'hyperbolic-46'` take none
   - `usesTopology(gameId)` gates the topology picker and the `t=` URL param
   - `soloOnly` (snake) keeps a game off the online lobby
+  - `catalog` (optional) describes the landing-picker board card for non-topology games (group, surface, spec chips, preview badge)
 
 ## Layer responsibilities
 
@@ -37,6 +38,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - chess: one topology-generic move generator; sliders walk the plane step-by-step projecting each step (`SLIDE_CAP`); promotion rows 0/7; no castling/en passant
   - go: `getNeighbors()` projects the four plane neighbors; groups/liberties/capture/superko/scoring build on it; set-based so self-adjacent cells (orbifolds) work
   - hexchess: Glinski geometry, own coordinate system, no topology
+  - hyperchess: chess on a 1352-cell patch of the {4,6} hyperbolic tiling (after Hawksley's "Non-Euclidean Chess, Part 2"); cells are Mobius transforms generated at module load, moves walk precomputed adjacency/diagonal/knight tables; pawns carry a parallel-transported heading
   - snake: deterministic; RNG injected by the wrapper
 - `src/census.ts` — DOM-free, stateless classification of (game, topology): `variantVerdict`, `chessMoveZero`, `singularCellCount`, `verdict`. Shared by about page, landing badges, and `scripts/census.ts`
 - Stateful wrappers (`src/chess.ts`, `go.ts`, `hexchess.ts`, `snake.ts`)
@@ -46,7 +48,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/state.ts` — `currentGame` + `currentTopology` globals, mutated only via setters
 - `src/views/` — per-game view adapters (`GameView` in `kit.ts`), registry in `index.ts`
   - Encapsulate game-specific DOM: cell creation, status text, info panel copy, sizing
-  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` (hex) renders itself via `renderCustom`
+  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan)
   - Direction: render.ts -> views -> wrappers; views never import render.ts
 - `src/render.ts` — the shell; all shared DOM
   - Immediate mode: `renderBoard()` clears `#board` and rebuilds on every state change

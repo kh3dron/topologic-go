@@ -25,6 +25,7 @@ interface Entry {
   surface: string;
   spec: string[];
   search: string;
+  badge: string;           // preview caption for boards without a topology
 }
 
 const topoGames: GameOption[] = [...GAMES.values()]
@@ -55,20 +56,24 @@ for (const dim of [0, 1, 2]) {
       surface: topo.formal.surface,
       spec: topo.spec,
       search: topo.name.toLowerCase(),
+      badge: '',
     });
   }
 }
+// Boards outside the topology family (hex, hyperbolic) describe their own card
+// via the module's catalog metadata.
 for (const m of otherGames) {
   entries.push({
     id: m.id,
     name: m.name,
-    group: 'Hexagonal',
+    group: m.catalog?.group ?? 'Other boards',
     topo: null,
     games: [{ id: m.id as GameType, name: m.name }],
     topoId: m.id,
-    surface: 'Glinski hexagonal grid',
-    spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
+    surface: m.catalog?.surface ?? '',
+    spec: m.catalog?.spec ?? [],
     search: m.name.toLowerCase(),
+    badge: m.catalog?.badge ?? 'CUSTOM BOARD',
   });
 }
 
@@ -167,7 +172,8 @@ function select(id: string): void {
   nameEl.textContent = entry.name;
   surfaceEl.textContent = entry.surface;
   specEl.innerHTML = entry.spec.map(s => `<span class="spec-chip">${s}</span>`).join('');
-  badgeEl.textContent = preview.setBoard(entry.topo);
+  const caption = preview.setBoard(entry.topo);
+  badgeEl.textContent = entry.topo ? caption : entry.badge;
 
   buildGameOptions(entry);
   updateLaunch();

@@ -3,6 +3,7 @@ import { TOPOLOGY_MAP } from './topology';
 import { viewFor } from './views';
 import { passGoTurn } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
+import { clickHyper, hyperBoard, hyperCurrentTurn, hyperGameOver, HYPER_CELL_COUNT } from './hyperchess';
 import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
 import { readVariantParams, variantSearch } from './routes';
 import {
@@ -96,6 +97,15 @@ function bootOffline(): void {
     board: () => Object.fromEntries(hexBoard),
     turn: () => hexCurrentTurn,
     over: () => hexGameOver,
+  };
+
+  // Hyperbolic chess debug hook: cells are engine ids (the canvas has no DOM cells).
+  (window as unknown as Record<string, unknown>).__hyper = {
+    click: (cell: number) => clickHyper(cell),
+    board: () => Object.fromEntries(hyperBoard),
+    turn: () => hyperCurrentTurn,
+    over: () => hyperGameOver,
+    cellCount: () => HYPER_CELL_COUNT,
   };
 
   // Snake debug hook: read state and drive the sim deterministically in tests.

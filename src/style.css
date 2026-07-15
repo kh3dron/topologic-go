@@ -578,6 +578,13 @@ button:active,
   fill: #111;
 }
 
+/* ==================== HYPERBOLIC CHESS ==================== */
+.hyper-canvas {
+  display: block;
+  user-select: none;
+  touch-action: none;
+}
+
 /* ==================== TOPOLOGY OVERLAY ==================== */
 #topology-overlay {
   position: absolute;

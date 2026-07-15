@@ -31,6 +31,15 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Small boards — 9x9 / 13x13 Go, 5x5 mini chess; topology math is size-generic already
 - Asymmetric komi / handicap presets per topology (torus Go has no corners, so territory is much harder to make — komi should probably differ)
 
+## Beyond the plane: other geometries
+
+Not every board on the site is a quotient of the Euclidean plane. These live outside `project()`/`TOPOLOGIES` as their own board families in the `GAMES` registry:
+
+- Hexagonal chess (`hexchess`) — Gliński's game on the 91-cell hex board
+- Hyperbolic chess (`hyperchess`) — chess on a 1352-cell patch of the {4,6} tiling of the hyperbolic plane, following [Andrea Hawksley's "Non-Euclidean Chess, Part 2"](https://andreahawksley.com/non-euclidean-chess-part-2/). Six squares meet at every vertex, so the checkerboard colouring survives and Hawksley's "reasonable diagonal" (shares a vertex and a colour) gives bishops 8 straight rays; the two Euclidean knight paths (2+1 vs 1+2) split into 16 distinct jumps. Setup per the article: queens face off 7 cells apart along a central geodesic, back ranks and pawn lines run along horizontal geodesics, walls sit directly behind the armies, and the sides are equidistant curves. Findings so far, honestly reported: the pawn line diverges from the back rank so bishops start with open diagonals, the king starts with 7 flight squares, and the outermost files are cramped against the side walls (the h-pawn is born stuck)
+
+Further ideas in this family: Go on the {4,6} board (the adjacency tables already exist), Hawksley's pentagonal {5,4} variant (odd vertex degree kills the checkerboard — bishops need her Part-2 edge/vertex rule instead), spherical chess from Part 1.
+
 ## Census
 
 One row per (game, topology). The authoritative version is on the site's about page, where MOVE-0 and SING. CELLS are computed live by the engine (`src/about.ts`); this is a snapshot. VERDICT is derived, never assigned: DEAD = decided at move zero; QUIRKS = singular (self-adjacent) cells exist or the surface is non-orientable; OK = neither.

@@ -342,6 +342,12 @@ export const hexModule: GameModule<HexState, HexMove, null> = {
   id: 'hexchess',
   name: 'Hexagonal Chess',
   boardFamily: 'hex-glinski',
+  catalog: {
+    group: 'Hexagonal',
+    surface: 'Glinski hexagonal grid',
+    spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
+    badge: 'HEXAGONAL BOARD',
+  },
   initialState: () => initialHexState(),
   isLegalMove: (state, move) => {
     if (state.gameOver) return false;

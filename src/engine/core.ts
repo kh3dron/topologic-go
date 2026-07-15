@@ -33,6 +33,9 @@ export interface GameModule<S, M, B> {
   // Single-player games (Snake): they appear in the catalog but never route to
   // the online lobby (game.html); routes.ts keeps their links on the sandbox.
   soloOnly?: boolean;
+  // Landing-picker board card for games outside the topology family (hex,
+  // hyperbolic). Topology games derive theirs from the TOPOLOGIES registry.
+  catalog?: { group: string; surface: string; spec: string[]; badge: string };
   initialState(board: B): S;
   isLegalMove(state: S, move: M): boolean;
   applyMove(state: S, move: M): { state: S; result: GameResult };

@@ -23,6 +23,7 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
   - Status: `#status`; info panel: `#mode-description`, `#mode-article`, `#mode-spec`, `#mode-links`
   - Variant is fixed by URL; switching happens back on the landing (`#catalog-link`)
   - Clicking canonical cell (r,c): cells are `.square, .void-cell` (chess/snake) or `.go-intersection, .void-cell` (Go); index i maps to plane cell `(floor(i/cols), i%cols)` with cols = length of `#board`'s computed `grid-template-columns`; find an i where `window.__topo.project(R, C, size)` equals the target and the rect is inside `#board-container`, then `.click()` it
+  - Hyperbolic chess (`?g=hyperchess`) has no DOM cells: it renders to `.hyper-canvas`. Drive moves via `window.__hyper.click(cellId)` (plus `board() / turn() / over() / cellCount()`); real-mouse tests must compute Poincare-disk coordinates themselves (view home is centred on the white queen's forward edge; the spine runs vertically)
   - Overlay: `#topology-overlay`, `.topo-tile`, `.topo-label` (ORIGINAL / REFLECTED / ROTATED 90|180|270)
   - Zoom: `#zoom-in` / `#zoom-out` / `#zoom-level`; wheel throttled 120ms
 - About (`/about.html`): `.catalog-entry` per topology, `#census-table` rows per (game, topology)
@@ -44,7 +45,7 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
 ## Add a game
 
 - Implement a `GameModule<S, M, B>` in `src/engine/games/<id>.ts` (pure, deterministic, RNG injected if needed)
-- Register in `GAMES` (`src/engine/index.ts`); pick `boardFamily` (`'square-grid'` gets a Topology; else a custom board) and `soloOnly` if single-player
+- Register in `GAMES` (`src/engine/index.ts`); pick `boardFamily` (`'square-grid'` gets a Topology; else a custom board) and `soloOnly` if single-player; non-topology boards set `catalog` (landing card group/surface/spec/badge)
 - Stateful wrapper `src/<id>.ts` following the pattern of `go.ts` (live bindings + `setOnline` gating)
 - View adapter `src/views/<id>.ts` implementing `GameView`; register in `VIEWS` (`src/views/index.ts`)
 - Add the game id to `GameType` in `src/state.ts`

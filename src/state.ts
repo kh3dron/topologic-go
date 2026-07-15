@@ -5,7 +5,7 @@ import { TOPOLOGY_MAP, Topology } from './topology';
 export type { Color } from './engine/core';
 export { opponentOf } from './engine/core';
 
-export type GameType = 'chess' | 'go' | 'hexchess' | 'snake';
+export type GameType = 'chess' | 'go' | 'hexchess' | 'hyperchess' | 'snake';
 
 export let currentGame: GameType = 'chess';
 export let currentTopology: Topology = TOPOLOGY_MAP.get('classic')!;
