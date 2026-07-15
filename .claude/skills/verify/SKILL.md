@@ -18,11 +18,11 @@ npm i --no-save playwright       # module for driver scripts
 
 ## Drive
 
-The game UI lives at `http://localhost:5199/play.html` (query params `?g=chess|go|hexchess&t=<topologyId>` deep-link a variant). The site root `/` is now the catalog landing (`src/landing.ts`): a grid of `.variant-card` links, a `#catalog-search` box, `.filter-chip` toggles, and a `[Playground|Challenge]` `#mode-toggle`. Online play is a placeholder at `/game.html` (`src/game.ts`). Drive gameplay flows against `/play.html`.
+The game UI lives at `http://localhost:5199/play.html` (query params `?g=chess|go|hexchess|snake&t=<topologyId>` deep-link a variant; `?online=<gameId>` loads an online board). The site root `/` is the catalog landing (`src/landing.ts`): a picker with `#topo-list button` items in a collapsed accordion (click `.topo-group-header` to expand), a `#catalog-search` box, detail panel (`#detail-name`, `#detail-surface`, `#detail-spec`, `#game-options`, `#verdict-note`), a particle preview canvas, `#play-btn`, and a `[Playground|Challenge]` `#mode-toggle`. Online lobby at `/game.html` (`src/game.ts`). Drive gameplay flows against `/play.html`.
 
 Playwright headless against `http://localhost:5199/play.html`. Layout is a full-viewport grid (left sidebar / board / right info panel); viewport 1600x950 works well. The sidebar has a `#catalog-link` back to the landing.
 
-- Status line: `#status`. Buttons: `#game-chess`, `#game-go`, `#mode-<topologyId>` (ids from `TOPOLOGIES` in `src/topology.ts`: classic, torus, mirror, windmill, pillowcase, cylinder, corridor, mobius, klein, projective), `#pass-btn`, `#reset`.
+- Status line: `#status`. Buttons: `#pass-btn`, `#reset`. There are NO per-game or per-topology buttons on play.html — the variant is fixed by the URL; switch variants via the landing picker or by navigating with new `?g=&t=` params. Topology ids come from `TOPOLOGIES` in `src/topology.ts` (currently: classic, torus, mirror, windmill, pillowcase, pivot, cylinder, corridor, mirrorbox, mobius, klein, mobiusmirror, projective).
 - About page at `/about.html` (second Vite entry): `.catalog-entry` per topology, generated from the registry by `src/about.ts`. Info panel per-mode content: `#mode-description`, `#mode-article`, `#mode-links a`, `#mode-spec`.
 - The app exposes `window.__topo.project(r, c, size)` for tests. To click canonical cell (r,c) in any mode: iterate plane cells of the rendered grid (`grid-template-columns` length = columns), find one where `project(R, C, size)` equals the target and its bounding rect is fully inside `#board-container`, then `el.click()` via evaluate. Cell selector: `.go-intersection, .void-cell` or `.square, .void-cell` (index = R * cols + C; the overlay is appended after cells so plain children indexing breaks).
 - Stones: `.has-stone`, ghost previews `.valid-move`, hover sync `.hover-synced`, chess highlights `.moveable`/`.capturable`/`.selected`.
@@ -38,6 +38,6 @@ Playwright headless against `http://localhost:5199/play.html`. Layout is a full-
 - Windmill orbifold: corner (18,18) is self-adjacent, only 2 distinct liberties — B(18,18), W(17,18), B elsewhere, W(18,17) captures it.
 - Two passes → territory score in status.
 - Ko: B(0,1) W(0,2) B(1,0) W(1,1) B(2,1) W(2,2) B(5,5) W(1,3), then B(1,2) captures; immediate W(1,1) recapture must be rejected (superko), legal after an exchange elsewhere.
-- Per-topology smoke: switch each mode, place a stone, status flips, no pageerror events.
+- Per-topology smoke: load `play.html?g=go&t=<id>` for each registry id, place a stone, status flips, no pageerror events.
 - Chess uses the IDENTICAL standard setup on every topology — by design, never "fixed" per topology. Consequence: torus, Klein, pillowcase, and projective chess are decided at move zero (glued back ranks; status shows `Checkmate - Black wins` immediately). This is intentional (see TOPOLOGIES.md design principle) — do not report it as a bug, and do not expect moves to be playable there.
 - Drag-release must never place a piece/stone: press, move >5px, release over a valid cell → no move. Sub-threshold jitter still counts as a click.

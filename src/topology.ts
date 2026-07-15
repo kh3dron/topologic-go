@@ -150,6 +150,29 @@ export const TOPOLOGIES: Topology[] = [
     },
   },
   {
+    id: 'pivot',
+    name: 'Pivot',
+    chessDesc: 'Each side edge glues to itself rotated 180 degrees; top and bottom are walls.',
+    goDesc: 'Each side edge glues to itself rotated 180 degrees; top and bottom are walls.',
+    snakeDesc: 'Exit a side edge and you re-enter the same edge upside down, pivoting around its midpoint. The top and bottom are lethal walls.',
+    article: 'The walled sibling of the pillowcase, as the cylinder is to the torus: copies alternate 180-degree rotations along a strip - the frieze group p2. Each side edge folds onto itself around its midpoint, so a piece leaving the left edge near the top re-enters the left edge near the bottom. On odd boards the midpoint cell of each side edge is its own neighbor.',
+    links: [
+      { label: 'Frieze group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Frieze_group' },
+      { label: 'Orbifold notation (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Orbifold_notation' },
+    ],
+    formal: { group: 'p2 (frieze)', orbifold: '22 inf', surface: 'strip folded at two pivots', orientable: true },
+    spec: ['LEFT, RIGHT: ROTATE 180', 'TOP, BOTTOM: WALL'],
+    tessellated: true,
+    periodX: 2,
+    periodY: null,
+    project(r, c, size) {
+      const cc = mod(c, 2 * size);
+      const rot = cc >= size;
+      const rr = rot ? size - 1 - r : r;
+      return rr >= 0 && rr < size ? [rr, rot ? 2 * size - 1 - cc : cc] : null;
+    },
+  },
+  {
     id: 'cylinder',
     name: 'Cylinder',
     chessDesc: 'Left and right edges wrap; top and bottom are walls.',
@@ -192,6 +215,28 @@ export const TOPOLOGIES: Topology[] = [
     },
   },
   {
+    id: 'mirrorbox',
+    name: 'Mirror Box',
+    chessDesc: 'All four edges are mirrors - the board sits inside a box of mirrors.',
+    goDesc: 'All four edges are mirrors - the board sits inside a box of mirrors.',
+    snakeDesc: 'Every edge is a mirror: cross one and you re-enter the same edge reflected, heading back in. Only your own body can kill you.',
+    article: 'Corridor squared: all four edges are mirrors, so the board sits inside a mirror box and the plane fills with its reflections - the wallpaper group pmm, orbifold *2222. Every boundary cell is adjacent to its own reflection, i.e. to itself, and the corners doubly so. In Go the entire perimeter is singular, which upends life and death everywhere the classical rules lean on the edge.',
+    links: [
+      { label: 'Wallpaper group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Wallpaper_group' },
+      { label: 'Orbifold notation (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Orbifold_notation' },
+    ],
+    formal: { group: 'pmm', orbifold: '*2222', surface: 'square, all-mirror boundary', orientable: true },
+    spec: ['ALL EDGES: REFLECT'],
+    tessellated: true,
+    periodX: 2,
+    periodY: 2,
+    project(r, c, size) {
+      const mr = mod(r, 2 * size);
+      const mc = mod(c, 2 * size);
+      return [mr < size ? mr : 2 * size - 1 - mr, mc < size ? mc : 2 * size - 1 - mc];
+    },
+  },
+  {
     id: 'mobius',
     name: 'Mobius',
     chessDesc: 'Left and right edges glue with a vertical flip; top and bottom are walls - a Mobius strip.',
@@ -230,6 +275,29 @@ export const TOPOLOGIES: Topology[] = [
     project(r, c, size) {
       const flipped = mod(Math.floor(c / size), 2) === 1;
       return [mod(flipped ? size - 1 - r : r, size), mod(c, size)];
+    },
+  },
+  {
+    id: 'mobiusmirror',
+    name: 'Mobius Mirror',
+    chessDesc: 'Left and right edges glue with a vertical flip; top and bottom are mirrors.',
+    goDesc: 'Left and right edges glue with a vertical flip; top and bottom are mirrors.',
+    snakeDesc: 'The sides wrap with a flip and the top and bottom are mirrors: no walls anywhere, and every edge cell of the top and bottom rows touches itself.',
+    article: 'Take the Mobius gluing and replace its walls with mirrors: columns wrap with a vertical flip while the top and bottom edges reflect - the wallpaper group cm, orbifold *x. The quotient is a Mobius band whose single boundary is a mirror rather than a wall: non-orientable like the Mobius strip, but with no edge to stop at in play.',
+    links: [
+      { label: 'Mobius strip (Wikipedia)', url: 'https://en.wikipedia.org/wiki/M%C3%B6bius_strip' },
+      { label: 'Wallpaper group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Wallpaper_group' },
+    ],
+    formal: { group: 'cm', orbifold: '*x', surface: 'Mobius band with mirror boundary', orientable: false },
+    spec: ['LEFT <-> RIGHT: WRAP + FLIP', 'TOP, BOTTOM: REFLECT'],
+    tessellated: true,
+    periodX: 2,
+    periodY: 2,
+    project(r, c, size) {
+      const flipped = mod(Math.floor(c / size), 2) === 1;
+      const r2 = flipped ? size - 1 - r : r;
+      const m = mod(r2, 2 * size);
+      return [m < size ? m : 2 * size - 1 - m, mod(c, size)];
     },
   },
   {

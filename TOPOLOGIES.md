@@ -9,16 +9,21 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Mirror — columns wrap, rows reflect at top/bottom (fold `row mod 2n`)
 - Windmill — copies rotate 90 degrees around shared corners (wallpaper group p4, orbifold 442; quotient S²(4,4,2)). Orbifold quirk: cells at the rotation corners are adjacent to themselves, so corner points have only 2 distinct liberties in Go
 - Pillowcase — side-by-side copies rotate 180 degrees, rows wrap (wallpaper group p2, orbifold 2222; quotient is the pillowcase S²(2,2,2,2)). Cone-point cells on the middle row of the side edges are self-adjacent
+- Pivot — each side edge glues to itself rotated 180 degrees, rows are walls (frieze group p2, orbifold 22∞). The pillowcase's walled sibling, as the cylinder is to the torus. On odd boards the side-edge midpoint cells are self-adjacent
 - Cylinder — columns wrap, rows are walls
 - Corridor — rows reflect at top/bottom (two facing mirrors), columns are walls
+- Mirror Box — all four edges reflect (wallpaper group pmm, orbifold *2222). Every perimeter cell is self-adjacent, corners doubly so
 - Mobius — columns wrap with a vertical flip, rows are walls
 - Klein — columns glue with a vertical flip, rows wrap (Klein bottle)
+- Mobius Mirror — columns wrap with a vertical flip, rows reflect at top/bottom (wallpaper group cm, orbifold *x; quotient is a Mobius band with mirror boundary)
 - Projective — both edge pairs glue with a flip (projective plane; has 2-fold cone points at two corners)
 
 ## Ideas / not yet implemented
 
 - Glide torus — rows wrap normally; crossing top/bottom shifts columns by k (screw dislocation). `project: [mod(r,n), mod(c + k*floor(r/n), n)]`. Caveat: the tessellated view needs an axis-aligned period of `n/gcd(k,n)` boards — fine for chess (n=8, k=4 gives period 2) but unusable for Go (n=19 is prime, so any shift gives period 19). Needs either a chess-only mode concept or a smarter renderer
 - Face windmill — p4 with rotation centers at cell centers instead of corners; the cone-point weirdness moves to mid-board
+- Open pillowcase — side edges rotate 180 onto themselves, rows reflect at top/bottom (wallpaper group pmg, orbifold 22*). The last wallpaper group with the square board as fundamental domain via pure edge gluings; cmm/p4m/p4g need triangular or kite-shaped domains
+- Half mirror — top edge reflects, bottom edge is a wall, columns wrap (frieze p11m, orbifold ∞*). Needs asymmetric per-edge treatments; same for the remaining friezes p2mg and p2mm
 - Double-wide fundamental domain — two boards side by side glued into any of the above; games with 2x material
 - Alice variants — two stacked boards; a piece/stone teleports to the other layer after each move (not a plane quotient; needs a layer dimension, but project() generalizes to (layer, r, c))
 - Hex Go on a torus — hexagonal adjacency with wrap; needs a hex grid renderer, logic already adjacency-agnostic
@@ -39,23 +44,29 @@ Terminology: a *degenerate* game is one decided without any meaningful play — 
 | Chess | mirror | pm | ** | annulus, two mirror boundaries | playable | 16 | Y | QUIRKS |
 | Chess | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Chess | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | black wins at move 0 | 0 | Y | DEAD |
+| Chess | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 0 | Y | OK |
 | Chess | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Chess | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 16 | Y | QUIRKS |
+| Chess | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 28 | Y | QUIRKS |
 | Chess | mobius | p11g (frieze) | inf x | Mobius band with boundary | playable | 0 | N | QUIRKS |
 | Chess | klein | pg | xx | Klein bottle K2 | black wins at move 0 | 0 | N | DEAD |
+| Chess | mobiusmirror | cm | *x | Mobius band with mirror boundary | playable | 16 | N | QUIRKS |
 | Chess | projective | pgg | 22x | projective plane RP2(2,2) | black wins at move 0 | 0 | N | DEAD |
 | Go | classic | - | - | square with boundary | playable | 0 | Y | OK |
 | Go | torus | p1 | o | torus T2 | playable | 0 | Y | OK |
 | Go | mirror | pm | ** | annulus, two mirror boundaries | playable | 38 | Y | QUIRKS |
 | Go | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Go | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | playable | 2 | Y | QUIRKS |
+| Go | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 2 | Y | QUIRKS |
 | Go | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Go | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 38 | Y | QUIRKS |
+| Go | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 72 | Y | QUIRKS |
 | Go | mobius | p11g (frieze) | inf x | Mobius band with boundary | playable | 0 | N | QUIRKS |
 | Go | klein | pg | xx | Klein bottle K2 | playable | 0 | N | QUIRKS |
+| Go | mobiusmirror | cm | *x | Mobius band with mirror boundary | playable | 38 | N | QUIRKS |
 | Go | projective | pgg | 22x | projective plane RP2(2,2) | playable | 0 | N | QUIRKS |
 
-Observations worth chasing: board-size parity matters (pillowcase has 0 singular cells on the even chess board but 2 on the odd Go board); every DEAD game so far is chess with a straight vertical wrap; non-orientability never kills a game at move zero, it only warps it.
+Observations worth chasing: board-size parity matters (pillowcase and pivot have 0 singular cells on the even chess board but 2 on the odd Go board); every DEAD game so far is chess with a straight vertical wrap; non-orientability never kills a game at move zero, it only warps it (mobiusmirror stays playable where klein dies, because its vertical gluing is a mirror, not a wrap).
 
 ## Design principle: no playability patches
 
@@ -63,7 +74,7 @@ The rules and the starting position are IDENTICAL on every topology. Some topolo
 
 ## Future work: playability theory
 
-- Characterize mathematically which topologies give non-degenerate chess games from the standard setup. Conjectured shape: the game is degenerate iff the gluing maps a back rank into the attack range of the opposing army (e.g. any topology whose vertical gluing carries row 7 adjacent to row 0 without reflection). Torus, Klein, pillowcase, and projective all start decided; classic, cylinder, corridor, Mobius, mirror, and windmill do not — prove the pattern
+- Characterize mathematically which topologies give non-degenerate chess games from the standard setup. Conjectured shape: the game is degenerate iff the gluing maps a back rank into the attack range of the opposing army (e.g. any topology whose vertical gluing carries row 7 adjacent to row 0 without reflection). Torus, Klein, pillowcase, and projective all start decided; classic, cylinder, corridor, Mobius, mirror, windmill, pivot, mirror box, and Mobius mirror do not — prove the pattern
 - The adjudication of degenerate starts depends on the rule formalism, not just the topology. The torus start is a mutual-mate position (by symmetry, whoever is to move is checkmated). Orthodox check/checkmate semantics resolve simultaneity by turn order - the side to move loses, so white loses by moving first. Under shatranj-style king-capture semantics the side to move wins by capturing first (defense of the king is irrelevant when capture ends the game). Mutual check is an illegal position in orthodox chess and FIDE has no rule for it; these topologies manufacture it at move zero. Classification target: (topology x formalism) -> {white wins, black wins, playable}
 - Same question for Go: no Go topology is degenerate at move zero (the empty board is symmetric), but cone points and non-orientability change life-and-death shapes (e.g. the minimal living group near a self-adjacent corner). Quantify
 - Fair komi per topology, measured or derived

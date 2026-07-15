@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
+**Current, detailed docs live in `docs/`** (README, architecture, workflows, online) — read those first; the module notes below predate the engine extraction to `src/engine/` and the landing-picker redesign, so where they disagree, `docs/` wins.
+
 Browser game app: chess and Go playable on boards with non-standard topologies (torus, mirror, windmill, Mobius, Klein bottle, projective plane, ...). Vanilla TypeScript, no framework, no dependencies beyond Vite/TS. Styles in `src/style.css`, logic split across modules in `src/`.
 
 Multi-page app (separate Vite rollup inputs, see `vite.config.ts`): `index.html` is the catalog landing (browse variants), `play.html` is the playground (local hotseat, the actual game UI), `game.html` is the online-play placeholder, `about.html` is the spec/census doc. Cards on the landing deep-link into `play.html`/`game.html` with `?g=<game>&t=<topologyId>` params. This structure is the frontend setup for the online backend described in `DEPLOYMENT.md`.
