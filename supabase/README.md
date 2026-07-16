@@ -27,6 +27,13 @@ One-time, in your own Supabase account:
    npx supabase db push
    ```
 
+4. Auth URL config (dashboard: Authentication → URL Configuration, or
+   `PATCH /v1/projects/<ref>/config/auth` on the management API). Without this,
+   confirmation/magic-link emails redirect to the default `http://localhost:3000`:
+   - Site URL: `https://games.kh3dron.net`
+   - Redirect allow-list: `https://games.kh3dron.net/**`, `http://localhost:5173/**`,
+     `http://localhost:4173/**`
+
 Frontend env (never commit real values):
 
 ```

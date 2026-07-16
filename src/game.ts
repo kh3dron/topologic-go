@@ -4,6 +4,7 @@ import { GAMES, usesTopology } from './engine';
 import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, signOut } from './net/auth';
 import { renderAuthPanel } from './net/auth-ui';
+import { el, section } from './net/ui';
 import { createGame, fetchGame, joinGame, listOpenGames, type GameRow } from './net/games';
 import { fetchProfiles, listFriendships } from './net/social';
 import { mountVersionBadge } from './version';
@@ -24,13 +25,6 @@ const { game, topoId } = readVariantParams();
 
 const panel = document.getElementById('auth-panel')!;
 const online = (id: string) => `./play.html?online=${id}`;
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (cls) node.className = cls;
-  if (text) node.textContent = text;
-  return node;
-}
 
 function setTitle(gameKey: string, topo: string | null): void {
   const gameLabel = GAMES.get(gameKey)?.name ?? gameKey;
@@ -53,6 +47,11 @@ function renderSolo(): void {
 
 async function renderLobby(userId: string, name: string): Promise<void> {
   const gameLabel = GAMES.get(game)?.name ?? game;
+  const [friends, open] = await Promise.all([
+    listFriendships(userId).catch(() => []).then((fs) => fs.filter((f) => f.status === 'accepted')),
+    listOpenGames().catch(() => []),
+  ]);
+
   panel.replaceChildren();
 
   const head = el('div', 'lobby-head');
@@ -66,8 +65,10 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   head.appendChild(links);
   panel.appendChild(head);
 
-  const msg = el('p', 'auth-msg');
-
+  // -------- open game --------
+  const startSec = section('Open game');
+  panel.appendChild(startSec.root);
+  const startMsg = el('p', 'auth-msg');
   const create = el('button', 'lobby-btn', `Start an open ${gameLabel} game`);
   create.addEventListener('click', async () => {
     create.disabled = true;
@@ -76,24 +77,27 @@ async function renderLobby(userId: string, name: string): Promise<void> {
       location.href = online(g.id);
     } catch (err) {
       create.disabled = false;
-      msg.textContent = `Could not create game: ${err instanceof Error ? err.message : String(err)}`;
+      startMsg.textContent = `Could not create game: ${err instanceof Error ? err.message : String(err)}`;
     }
   });
-  panel.appendChild(create);
-  panel.appendChild(el('p', 'auth-msg', 'Anyone with the link (or the list below) can take the other seat.'));
+  startSec.body.append(
+    create,
+    el('p', 'auth-msg', 'Anyone with the link (or the list below) can take the other seat.'),
+    startMsg,
+  );
 
   // -------- challenge a friend --------
-  const friends = (await listFriendships(userId).catch(() => []))
-    .filter((f) => f.status === 'accepted');
-  panel.appendChild(el('div', 'lobby-subhead', 'Challenge a friend'));
+  const chSec = section('Challenge a friend');
+  panel.appendChild(chSec.root);
   if (friends.length === 0) {
     const p = el('p', 'auth-msg');
     p.append('No friends yet - add some on your ');
     const a = el('a', undefined, 'account page');
     a.setAttribute('href', './home.html');
     p.append(a, '.');
-    panel.appendChild(p);
+    chSec.body.appendChild(p);
   } else {
+    const chMsg = el('p', 'auth-msg');
     const row = el('div', 'lobby-form-row');
     const select = el('select');
     for (const f of friends) {
@@ -109,24 +113,25 @@ async function renderLobby(userId: string, name: string): Promise<void> {
         location.href = online(g.id);
       } catch (err) {
         challenge.disabled = false;
-        msg.textContent = `Could not create challenge: ${err instanceof Error ? err.message : String(err)}`;
+        chMsg.textContent = `Could not create challenge: ${err instanceof Error ? err.message : String(err)}`;
       }
     });
     row.append(select, challenge);
-    panel.appendChild(row);
-    panel.appendChild(el('p', 'auth-msg', 'Only the challenged player can take the seat; they see it on their account page.'));
+    chSec.body.append(
+      row,
+      el('p', 'auth-msg', 'Only the challenged player can take the seat; they see it on their account page.'),
+      chMsg,
+    );
   }
 
-  panel.appendChild(msg);
-
   // -------- open games --------
-  panel.appendChild(el('div', 'lobby-subhead', 'Open games'));
+  const openSec = section('Join an open game', open.length);
+  panel.appendChild(openSec.root);
   const list = el('div', 'lobby-list');
-  panel.appendChild(list);
+  openSec.body.appendChild(list);
 
-  const open = await listOpenGames().catch(() => []);
   if (open.length === 0) {
-    list.appendChild(el('p', 'auth-msg', 'No open games. Start one above.'));
+    list.appendChild(el('p', 'auth-msg', 'No open games right now. Start one above.'));
     return;
   }
   for (const g of open) {

@@ -344,6 +344,7 @@ export const hexModule: GameModule<HexState, HexMove, null> = {
   boardFamily: 'hex-glinski',
   catalog: {
     group: 'Hexagonal',
+    board: 'Hexagon',
     surface: 'Glinski hexagonal grid',
     spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
     badge: 'HEXAGONAL BOARD',

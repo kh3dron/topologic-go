@@ -35,7 +35,9 @@ export interface GameModule<S, M, B> {
   soloOnly?: boolean;
   // Landing-picker board card for games outside the topology family (hex,
   // hyperbolic). Topology games derive theirs from the TOPOLOGIES registry.
-  catalog?: { group: string; surface: string; spec: string[]; badge: string };
+  // `board` is the geometry name shown in the picker list (the game name would
+  // be redundant there - every other list item is a board, not a game).
+  catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string };
   initialState(board: B): S;
   isLegalMove(state: S, move: M): boolean;
   applyMove(state: S, move: M): { state: S; result: GameResult };

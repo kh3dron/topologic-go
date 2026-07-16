@@ -4,20 +4,12 @@
 // onAuthChange, so callers just re-render on session change.
 
 import { sendMagicLink, signInWithPassword, signUpWithPassword, USERNAME_RE } from './auth';
+import { el } from './ui';
 
 export interface AuthPanelOpts {
   heading?: string;
   // Where the magic-link / confirmation email should land the user back.
   redirectTo?: string;
-}
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K, cls?: string, text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (cls) node.className = cls;
-  if (text) node.textContent = text;
-  return node;
 }
 
 function input(type: string, placeholder: string, autocomplete: AutoFill): HTMLInputElement {

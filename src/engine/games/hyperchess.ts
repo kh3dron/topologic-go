@@ -703,6 +703,7 @@ export const hyperModule: GameModule<HyperState, HyperMove, null> = {
   boardFamily: 'hyperbolic-46',
   catalog: {
     group: 'Hyperbolic',
+    board: 'Hyperbolic plane',
     surface: '{4,6} tiling of the hyperbolic plane',
     spec: [`${HYPER_CELL_COUNT} CELLS`, 'SIX SQUARES PER VERTEX', 'QUEENS FACE OFF ACROSS A GEODESIC'],
     badge: 'HYPERBOLIC BOARD',

@@ -39,8 +39,8 @@ function tessDim(t: Topology): number {
 
 const DIM_GROUP: Record<number, string> = {
   0: 'Bounded',
-  1: 'Tessellated - one axis',
-  2: 'Tessellated - two axes',
+  1: '1D',
+  2: '2D',
 };
 
 const entries: Entry[] = [];
@@ -63,16 +63,17 @@ for (const dim of [0, 1, 2]) {
 // Boards outside the topology family (hex, hyperbolic) describe their own card
 // via the module's catalog metadata.
 for (const m of otherGames) {
+  const board = m.catalog?.board ?? m.name;
   entries.push({
     id: m.id,
-    name: m.name,
+    name: board,
     group: m.catalog?.group ?? 'Other boards',
     topo: null,
     games: [{ id: m.id as GameType, name: m.name }],
     topoId: m.id,
     surface: m.catalog?.surface ?? '',
     spec: m.catalog?.spec ?? [],
-    search: m.name.toLowerCase(),
+    search: `${board} ${m.name}`.toLowerCase(),
     badge: m.catalog?.badge ?? 'CUSTOM BOARD',
   });
 }
@@ -239,7 +240,6 @@ function refreshList(): void {
 // ==================== MODE TOGGLE ====================
 function setMode(next: PlayMode): void {
   mode = next;
-  document.getElementById('catalog')!.classList.toggle('challenge-mode', next === 'challenge');
   for (const btn of document.querySelectorAll<HTMLElement>('#mode-toggle .seg-btn')) {
     btn.classList.toggle('active', btn.dataset.mode === next);
   }

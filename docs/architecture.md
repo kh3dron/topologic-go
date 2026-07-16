@@ -25,7 +25,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'` and `'hyperbolic-46'` take none
   - `usesTopology(gameId)` gates the topology picker and the `t=` URL param
   - `soloOnly` (snake) keeps a game off the online lobby
-  - `catalog` (optional) describes the landing-picker board card for non-topology games (group, surface, spec chips, preview badge)
+  - `catalog` (optional) describes the landing-picker board card for non-topology games (group, board name shown in the picker list, surface, spec chips, preview badge)
 
 ## Layer responsibilities
 

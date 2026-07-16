@@ -1041,7 +1041,7 @@ body.catalog-page {
 .catalog-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 
@@ -1050,7 +1050,15 @@ body.catalog-page {
   padding-bottom: 0;
 }
 
-.catalog-about {
+.site-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.site-menu a {
   color: var(--ink);
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -1058,7 +1066,7 @@ body.catalog-page {
   text-decoration: underline;
 }
 
-.catalog-about:hover {
+.site-menu a:hover {
   color: #fff;
 }
 
@@ -1102,11 +1110,6 @@ body.catalog-page {
 }
 
 .seg-btn.active {
-  background: var(--ink);
-  color: var(--paper);
-}
-
-#catalog.challenge-mode .seg-btn.active {
   background: var(--accent);
   color: #fff;
 }
@@ -1140,9 +1143,17 @@ body.catalog-page {
 /* ==================== PICKER (BOARD -> GAME) ==================== */
 .picker {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px 1fr 240px;
   gap: 24px;
   align-items: start;
+}
+
+.picker-start {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 16px;
 }
 
 .step-label {
@@ -1164,9 +1175,7 @@ body.catalog-page {
 #topo-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
-  max-height: 62vh;
-  overflow-y: auto;
+  gap: 2px;
 }
 
 .topo-group[hidden] {
@@ -1178,10 +1187,9 @@ body.catalog-page {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 6px 0;
   border: none;
-  border-bottom: 1px solid rgba(136, 136, 136, 0.2);
-  background: var(--panel);
+  background: none;
   color: var(--ink);
   font-family: inherit;
   font-size: 0.62rem;
@@ -1191,7 +1199,9 @@ body.catalog-page {
   cursor: pointer;
 }
 
-.topo-group-header:hover {
+.topo-group-header:hover,
+.topo-group-header:active {
+  background: none;
   color: #fff;
 }
 
@@ -1205,10 +1215,6 @@ body.catalog-page {
   transform: rotate(90deg);
 }
 
-.topo-group-name {
-  flex: 1;
-}
-
 .topo-group-count {
   color: var(--ink-dim);
   letter-spacing: 1px;
@@ -1218,17 +1224,21 @@ body.catalog-page {
   display: none;
 }
 
+.topo-group-items {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0 6px 16px;
+}
+
 .topo-item {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
   gap: 8px;
   width: 100%;
-  padding: 9px 12px;
+  padding: 4px 0;
   border: none;
-  border-bottom: 1px solid rgba(136, 136, 136, 0.15);
   background: transparent;
-  color: var(--ink);
+  color: var(--ink-dim);
   font-family: inherit;
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -1237,22 +1247,30 @@ body.catalog-page {
   cursor: pointer;
 }
 
+.topo-item::before {
+  content: "\00b7";
+  flex: none;
+  width: 12px;
+  color: var(--ink-dim);
+}
+
 .topo-item[hidden] {
   display: none;
 }
 
-.topo-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+.topo-item:hover,
+.topo-item:active {
+  background: transparent;
+  color: var(--ink);
 }
 
-.topo-item.active {
-  background: var(--ink);
-  color: var(--paper);
+.topo-item.active,
+.topo-item.active::before {
+  color: var(--accent);
 }
 
-#catalog.challenge-mode .topo-item.active {
-  background: var(--accent);
-  color: #fff;
+.topo-item.active::before {
+  content: "\25aa";
 }
 
 .picker-detail {
@@ -1369,7 +1387,7 @@ body.catalog-page {
   border-color: var(--ink);
 }
 
-#catalog.challenge-mode .game-btn.active {
+#catalog .game-btn.active {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
@@ -1386,53 +1404,56 @@ body.catalog-page {
   color: var(--accent);
 }
 
-.picker-launch {
+.picker-start .game-options {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.picker-start .game-btn {
+  text-align: left;
+}
+
+.picker-start .segmented {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  width: 100%;
+}
+
+.picker-start .seg-btn {
+  flex: 1;
+  padding: 6px 8px;
 }
 
 .play-btn {
+  display: block;
+  text-align: center;
   text-decoration: none;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: var(--paper);
-  background: var(--ink);
-  border: 1px solid var(--ink);
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
   padding: 9px 24px;
 }
 
 .play-btn:hover {
-  background: #fff;
-  border-color: #fff;
-}
-
-#catalog.challenge-mode .play-btn {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  filter: brightness(1.1);
 }
 
 #catalog-empty {
   font-size: 0.8rem;
   color: var(--ink-dim);
-  padding: 16px 12px;
+  padding: 8px 0;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .picker {
     grid-template-columns: 1fr;
   }
 
-  .picker-list {
+  .picker-list,
+  .picker-start {
     position: static;
-  }
-
-  #topo-list {
-    max-height: 260px;
   }
 }
 
@@ -1521,47 +1542,19 @@ body.challenge-page {
   margin-bottom: 20px;
 }
 
-.lobby-mock {
-  border: 1px dashed var(--line);
-  padding: 16px;
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  opacity: 0.6;
-}
-
-.lobby-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.lobby-seat {
-  border: 1px solid var(--line);
-  padding: 4px 10px;
-  color: var(--ink);
-}
-
-.lobby-open,
-.lobby-vs {
-  color: var(--ink-dim);
-}
-
-.lobby-btn {
-  width: 100%;
-  cursor: not-allowed;
-}
-
 .challenge-detail {
   font-size: 0.75rem;
   color: var(--ink-dim);
   line-height: 1.5;
   margin-bottom: 20px;
+}
+
+.challenge-detail a {
+  color: var(--ink);
+}
+
+.challenge-detail a:hover {
+  color: #fff;
 }
 
 .challenge-actions {
@@ -1602,7 +1595,7 @@ body.challenge-page {
 .auth-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 20px;
   text-align: left;
 }
@@ -1629,7 +1622,8 @@ body.challenge-page {
   font-size: 0.85rem;
 }
 
-.auth-panel .lobby-btn {
+.auth-panel .lobby-btn,
+.hub-panel .lobby-btn {
   width: auto;
   cursor: pointer;
   padding: 8px 14px;
@@ -1639,9 +1633,12 @@ body.challenge-page {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 0.8rem;
+  text-decoration: none;
+  text-align: center;
 }
 
-.auth-panel .lobby-btn:disabled {
+.auth-panel .lobby-btn:disabled,
+.hub-panel .lobby-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -1675,14 +1672,6 @@ body.challenge-page {
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-}
-
-.lobby-subhead {
-  margin-top: 8px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--ink-dim);
 }
 
 .lobby-list {
@@ -1775,18 +1764,104 @@ body.challenge-page {
   max-width: 340px;
 }
 
-.hub-card {
-  max-width: 720px;
-  text-align: left;
+#challenge-main.hub-main {
+  align-items: flex-start;
 }
 
-.hub-card h1 {
+.hub-wrap {
+  width: 100%;
+  padding-top: 28px;
+}
+
+.hub-heading {
   font-size: 1.4rem;
   font-weight: normal;
   text-transform: uppercase;
   letter-spacing: 2px;
   border-bottom: none;
-  margin-bottom: 14px;
+  padding-bottom: 0;
+  margin: 6px 0 20px;
+}
+
+.hub-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.hub-section {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  text-align: left;
+}
+
+.hub-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hub-section-title {
+  font-size: 0.75rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+
+.hub-count {
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  letter-spacing: 1px;
+}
+
+.hub-section-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.challenge-card .hub-section {
+  background: var(--paper);
+}
+
+.hub-group-label {
+  margin-top: 6px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ink-dim);
+}
+
+.hub-profile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  background: var(--panel);
+}
+
+.hub-profile-name {
+  font-size: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hub-profile-rating {
+  margin-left: 12px;
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .hub-head-actions {

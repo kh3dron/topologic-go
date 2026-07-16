@@ -13,8 +13,10 @@
     <header id="catalog-header">
       <div class="catalog-title-row">
         <h1>Topologic Games</h1>
-        <a href="./home.html" class="catalog-about">Account</a>
-        <a href="./about.html" class="catalog-about">About</a>
+        <nav class="site-menu">
+          <a href="./home.html">Account</a>
+          <a href="./about.html">About</a>
+        </nav>
       </div>
       <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes only what happens at the edges - wrap, reflect, rotate, or wall - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
     </header>
@@ -39,23 +41,27 @@
             <span id="detail-surface" class="detail-surface"></span>
           </div>
           <div id="detail-spec" class="detail-spec"></div>
+        </div>
+      </section>
 
-          <div class="picker-step">
-            <span class="step-label">2 &middot; Choose a game</span>
-            <div id="game-options" class="game-options"></div>
-            <p id="verdict-note" class="verdict-note"></p>
-          </div>
+      <aside class="picker-start">
+        <div class="picker-step">
+          <span class="step-label">2 &middot; Choose a game</span>
+          <div id="game-options" class="game-options"></div>
+          <p id="verdict-note" class="verdict-note"></p>
+        </div>
 
-          <div class="picker-launch">
-            <div id="mode-toggle" class="segmented">
-              <button class="seg-btn active" data-mode="playground">Playground</button>
-              <button class="seg-btn" data-mode="challenge">Challenge</button>
-            </div>
-            <a id="play-btn" class="play-btn" href="#">Play <span aria-hidden="true">&rarr;</span></a>
+        <div class="picker-step">
+          <span class="step-label">3 &middot; Solo or online</span>
+          <div id="mode-toggle" class="segmented">
+            <button class="seg-btn active" data-mode="playground">Playground</button>
+            <button class="seg-btn" data-mode="challenge">Challenge</button>
           </div>
           <p id="mode-note"></p>
         </div>
-      </section>
+
+        <a id="play-btn" class="play-btn" href="#">Play <span aria-hidden="true">&rarr;</span></a>
+      </aside>
     </div>
   </div>
   <script type="module" src="/src/landing.ts"></script>

@@ -20,14 +20,15 @@ Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLO
 - `client.ts` — typed Supabase client from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`; both optional (`hasSupabase` false = offline-only build keeps working)
 - `auth.ts` — password sign-up/sign-in, magic link, session helpers, `profiles` lookup, `updateUsername`
 - `auth-ui.ts` — the shared signed-out panel (tabs: sign in / create account)
+- `ui.ts` — shared DOM helpers: the `el()` factory plus `section()`, the bordered titled boxes the hub and lobby organize their content into
 - `games.ts` — Edge Function invokers (`create-game` with optional opponent, `join-game`, `cancel-game`, `submit-move` with `expected_ply`), `fetchGame`, `listOpenGames` (excludes challenges), `listMyGames`, `subscribeGame` (Realtime)
 - `social.ts` — friendships CRUD (request by username, accept, remove), profile lookups, `subscribeSocial` (one channel over my friendships + my games, used by the hub to live-refresh)
 - `online.ts` — `enterOnlineGame(id)`: loads authoritative state into the game wrapper via the view's `loadState`, gates input to the seated color (`setOnline`), submits moves optimistically, reconciles on Realtime updates, renders the `#online-banner`. The banner also carries the share/copy-link button (creator), a join button (signed-in visitor), or a sign-in handoff link (signed-out visitor)
 
 ## Pages
 
-- `home.html` (`home.ts`) — the account hub: profile (rename, sign out), games in progress with a your-move badge, incoming/outgoing challenges (accept / decline / cancel), friends list + requests. Live-refreshes via `subscribeSocial`
-- `game.html` (`game.ts`) — the per-variant lobby: start an open game, challenge a friend (picker over accepted friends), join a listed open game. Also the `?join=<id>` handoff target: sign in, claim the seat, land on the live board
+- `home.html` (`home.ts`) — the account hub: a profile strip (rename, sign out) above one section box per area - games in progress (your-move badge), challenges (accept / decline / cancel), friends (requests / friends / sent requests grouped, add by username). Live-refreshes via `subscribeSocial`
+- `game.html` (`game.ts`) — the per-variant lobby, one section box per action: start an open game, challenge a friend (picker over accepted friends), join a listed open game. Also the `?join=<id>` handoff target: sign in, claim the seat, land on the live board
 - `play.html?online=<id>` — the live board (spectators welcome; `lockColor = null` keeps the view read-only)
 
 ## Flows

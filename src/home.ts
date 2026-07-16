@@ -1,13 +1,15 @@
-// Account hub bootstrap (home.html): profile (username edit, sign out), games
-// in progress, incoming/outgoing challenges, and the friends list. Everything
-// renders into #hub-panel and re-renders on auth changes, Realtime events on
-// my games/friendships, and after every action.
+// Account hub bootstrap (home.html): a profile strip (username edit, sign
+// out) followed by one bordered section per area - games in progress,
+// challenges, friends. Everything renders into #hub-panel and re-renders on
+// auth changes, Realtime events on my games/friendships, and after every
+// action.
 
 import { GAMES, usesTopology } from './engine';
 import { TOPOLOGY_MAP } from './topology';
 import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, signOut, updateUsername, type Profile } from './net/auth';
 import { renderAuthPanel } from './net/auth-ui';
+import { el, section } from './net/ui';
 import { cancelGame, joinGame, listMyGames, type GameRow } from './net/games';
 import {
   acceptFriend, fetchProfiles, listFriendships, removeFriendship, requestFriend,
@@ -18,15 +20,6 @@ import { mountVersionBadge } from './version';
 mountVersionBadge();
 
 const panel = document.getElementById('hub-panel')!;
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K, cls?: string, text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (cls) node.className = cls;
-  if (text) node.textContent = text;
-  return node;
-}
 
 function variantLabel(g: GameRow): string {
   const name = GAMES.get(g.variant)?.name ?? g.variant;
@@ -74,8 +67,12 @@ async function renderHub(me: Profile): Promise<void> {
   panel.replaceChildren();
 
   // -------- profile --------
-  const head = el('div', 'lobby-head');
-  head.append(el('span', 'auth-heading', `Signed in as ${me.username} · rating ${me.rating}`));
+  const head = el('div', 'hub-profile');
+  const who = el('div', 'hub-profile-id');
+  who.append(
+    el('span', 'hub-profile-name', me.username),
+    el('span', 'hub-profile-rating', `rating ${me.rating}`),
+  );
   const actions = el('span', 'hub-head-actions');
   const rename = el('button', 'lobby-link', 'Change username');
   rename.addEventListener('click', () => {
@@ -103,13 +100,14 @@ async function renderHub(me: Profile): Promise<void> {
   const out = el('button', 'lobby-link', 'Sign out');
   out.addEventListener('click', () => signOut());
   actions.append(rename, out);
-  head.appendChild(actions);
+  head.append(who, actions);
   panel.appendChild(head);
 
   // -------- games in progress --------
-  panel.appendChild(el('div', 'lobby-subhead', 'Games in progress'));
+  const gamesSec = section('Games in progress', active.length + openMine.length);
+  panel.appendChild(gamesSec.root);
   const gameList = el('div', 'lobby-list');
-  panel.appendChild(gameList);
+  gamesSec.body.appendChild(gameList);
   if (active.length === 0 && openMine.length === 0) {
     const p = el('p', 'auth-msg');
     p.append('No games yet - pick a board in the ');
@@ -140,32 +138,35 @@ async function renderHub(me: Profile): Promise<void> {
   }
 
   // -------- challenges --------
-  if (incoming.length > 0 || outgoing.length > 0) {
-    panel.appendChild(el('div', 'lobby-subhead', 'Challenges'));
-    const chList = el('div', 'lobby-list');
-    panel.appendChild(chList);
-    for (const g of incoming) {
-      const row = el('div', 'lobby-game');
-      row.appendChild(el('span', 'lobby-game-label', `${nameOf(g.white_player)} challenges you · ${variantLabel(g)}`));
-      row.append(
-        actionBtn('Accept', async () => {
-          const { game } = await joinGame(g.id);
-          location.href = openHref(game.id);
-        }),
-        actionBtn('Decline', async () => { await cancelGame(g.id); refresh(); }),
-      );
-      chList.appendChild(row);
-    }
-    for (const g of outgoing) {
-      const row = el('div', 'lobby-game');
-      row.appendChild(el('span', 'lobby-game-label', `You challenged ${nameOf(g.invited_player)} · ${variantLabel(g)}`));
-      row.append(actionBtn('Cancel', async () => { await cancelGame(g.id); refresh(); }));
-      chList.appendChild(row);
-    }
+  const chSec = section('Challenges', incoming.length + outgoing.length);
+  panel.appendChild(chSec.root);
+  const chList = el('div', 'lobby-list');
+  chSec.body.appendChild(chList);
+  if (incoming.length === 0 && outgoing.length === 0) {
+    chList.appendChild(el('p', 'auth-msg', 'No pending challenges. Challenge a friend from the catalog or the list below.'));
+  }
+  for (const g of incoming) {
+    const row = el('div', 'lobby-game');
+    row.appendChild(el('span', 'lobby-game-label', `${nameOf(g.white_player)} challenges you · ${variantLabel(g)}`));
+    row.append(
+      actionBtn('Accept', async () => {
+        const { game } = await joinGame(g.id);
+        location.href = openHref(game.id);
+      }),
+      actionBtn('Decline', async () => { await cancelGame(g.id); refresh(); }),
+    );
+    chList.appendChild(row);
+  }
+  for (const g of outgoing) {
+    const row = el('div', 'lobby-game');
+    row.appendChild(el('span', 'lobby-game-label', `You challenged ${nameOf(g.invited_player)} · ${variantLabel(g)}`));
+    row.append(actionBtn('Cancel', async () => { await cancelGame(g.id); refresh(); }));
+    chList.appendChild(row);
   }
 
   // -------- friends --------
-  panel.appendChild(el('div', 'lobby-subhead', 'Friends'));
+  const frSec = section('Friends', friends.filter((f) => f.status === 'accepted').length);
+  panel.appendChild(frSec.root);
   const addForm = el('form', 'auth-form hub-add-friend');
   const name = el('input');
   name.placeholder = 'friend’s username';
@@ -188,10 +189,10 @@ async function renderHub(me: Profile): Promise<void> {
       addMsg.textContent = err instanceof Error ? err.message : String(err);
     }
   });
-  panel.append(addForm, addMsg);
+  frSec.body.append(addForm, addMsg);
 
   const frList = el('div', 'lobby-list');
-  panel.appendChild(frList);
+  frSec.body.appendChild(frList);
   const accepted = friends.filter((f) => f.status === 'accepted');
   const pendingIn = friends.filter((f) => f.status === 'pending' && f.direction === 'incoming');
   const pendingOut = friends.filter((f) => f.status === 'pending' && f.direction === 'outgoing');
@@ -199,6 +200,7 @@ async function renderHub(me: Profile): Promise<void> {
   if (friends.length === 0) {
     frList.appendChild(el('p', 'auth-msg', 'No friends yet - add one by username.'));
   }
+  if (pendingIn.length > 0) frList.appendChild(el('div', 'hub-group-label', 'Requests'));
   for (const f of pendingIn) {
     const row = el('div', 'lobby-game');
     row.appendChild(el('span', 'lobby-game-label', `${f.other.username} wants to be friends`));
@@ -208,6 +210,7 @@ async function renderHub(me: Profile): Promise<void> {
     );
     frList.appendChild(row);
   }
+  if (pendingIn.length > 0 && accepted.length > 0) frList.appendChild(el('div', 'hub-group-label', 'Friends'));
   for (const f of accepted) {
     const row = el('div', 'lobby-game');
     row.appendChild(el('span', 'lobby-game-label', `${f.other.username} · rating ${f.other.rating}`));
@@ -217,6 +220,7 @@ async function renderHub(me: Profile): Promise<void> {
     row.append(challenge, actionBtn('Remove', async () => { await removeFriendship(f.requester, f.addressee); refresh(); }));
     frList.appendChild(row);
   }
+  if (pendingOut.length > 0) frList.appendChild(el('div', 'hub-group-label', 'Sent requests'));
   for (const f of pendingOut) {
     const row = el('div', 'lobby-game');
     row.appendChild(el('span', 'lobby-game-label', `${f.other.username} · request pending`));
@@ -254,7 +258,14 @@ if (!hasSupabase) {
       channel?.unsubscribe();
       channel = null;
       refresh = () => {};
-      renderAuthPanel(panel);
+      const box = el('section', 'hub-section');
+      const body = el('div', 'hub-section-body');
+      box.appendChild(body);
+      panel.replaceChildren(
+        el('p', 'auth-msg', 'An account tracks your games in progress, challenges, and friends list.'),
+        box,
+      );
+      renderAuthPanel(body);
     }
   });
 }
