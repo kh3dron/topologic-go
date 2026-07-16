@@ -55,6 +55,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - Tessellation: plane cell (R,C) displays board cell `project(R,C)`; tile counts from container size + periods; chess square color from plane parity
   - Zoom (discrete levels 50-200%, CSS vars `--chess-cell`/`--go-cell`; `fitZoomToContainer()` shrinks the initial level until bounded boards fit - phones), pan (pointer events so touch drags work, wrap on periodic axes, clamp on wall axes; play page stacks vertically under 720px), topology overlay (`#topology-overlay`: seams, hatching, labels, legend; off by default, toggled by the sidebar Boundaries checkbox on every topology game — classic's overlay is just the wall border)
 - `src/preview.ts` — canvas particle-flow preview in the landing picker; particles fly through gluings via a continuous extension of `project()`; new topologies animate for free
+- `src/sound.ts` — synthesized WebAudio effects, no audio assets: `playStoneSound()` (Go stone clack — fired by `placeGoStone` locally and by `net/online.ts` for opponent stones), `initSound()` installs a one-time pointer-gesture unlock so Realtime-delivered moves are audible under browser autoplay policy
 - `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES. Go carries an optional `s=<9|13|19>` board-size param (play.html sidebar picker writes it back; the game.html lobby seeds its size select from it)
 - `src/net/` — see `online.md`
 - Pages

@@ -10,6 +10,7 @@ import {
   applyGoPlace, applyGoPass, scoreGo as coreScore, GoScore,
 } from './engine/games/go';
 import type { OnlineOpts } from './views/kit';
+import { playStoneSound } from './sound';
 
 export { GO_SIZE, GO_SIZES, KOMI, starPoints };
 export type { GoStone, GoBoard, GoScore } from './engine/games/go';
@@ -68,11 +69,20 @@ export function isValidGoMove(row: number, col: number, color: Color): boolean {
   return coreValid(state, row, col, color);
 }
 
+// Whether the local player may place a stone right now. Offline hotseat always
+// may; online only on the seated colour's turn (spectators never). The view
+// uses this to suppress the hover ghost/crosshair when it isn't your move.
+export function canPlayGoNow(): boolean {
+  if (state.gameOver) return false;
+  return !engaged || (lockColor !== null && state.turn === lockColor);
+}
+
 export function placeGoStone(row: number, col: number): boolean {
   if (engaged && (lockColor === null || state.turn !== lockColor)) return false;
   if (!coreValid(state, row, col, state.turn)) return false;
   state = applyGoPlace(state, row, col);
   sync();
+  playStoneSound();
   onCommit?.({ kind: 'place', row, col });
   return true;
 }

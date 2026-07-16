@@ -11,6 +11,7 @@ import {
   startSliding, stopSliding, updateModeDescription, updateStatus, zoomStep
 } from './render';
 import { mountVersionBadge } from './version';
+import { initSound } from './sound';
 
 const onlineId = new URLSearchParams(window.location.search).get('online');
 
@@ -19,6 +20,7 @@ const onlineId = new URLSearchParams(window.location.search).get('online');
 let goBoardSize = GO_SIZE;
 
 mountVersionBadge();
+initSound();
 
 // ==================== CONTROLS COMMON TO BOTH MODES ====================
 document.getElementById('pass-btn')!.addEventListener('click', () => {

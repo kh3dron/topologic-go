@@ -23,7 +23,7 @@ Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLO
 - `ui.ts` — shared DOM helpers: the `el()` factory plus `section()`, the bordered titled boxes the hub and lobby organize their content into
 - `games.ts` — Edge Function invokers (`create-game` with optional opponent, `join-game`, `cancel-game`, `submit-move` with `expected_ply`), `fetchGame`, `listOpenGames` (excludes challenges), `listMyGames`, `listActiveGames` (spectator browse), `listFinishedGames` (player stats), `subscribeGame` (Realtime)
 - `social.ts` — friendships CRUD (request by username, accept, remove), profile lookups, `listProfiles` (players directory), `subscribeSocial` (one channel over my friendships + my games, used by the hub to live-refresh)
-- `online.ts` — `enterOnlineGame(id)`: loads authoritative state into the game wrapper via the view's `loadState`, gates input to the seated color (`setOnline`), submits moves optimistically, reconciles on Realtime updates, renders the `#online-banner`. The banner also carries the share/copy-link button (creator), a join button (signed-in visitor), or a sign-in handoff link (signed-out visitor)
+- `online.ts` — `enterOnlineGame(id)`: loads authoritative state into the game wrapper via the view's `loadState`, gates input to the seated color (`setOnline`), submits moves optimistically, reconciles on Realtime updates, renders the `#online-banner`. The banner also carries the share/copy-link button (creator), a join button (signed-in visitor), or a sign-in handoff link (signed-out visitor). Two ambient cues per server update: the tab title gains a `● Your move —` prefix while it's the seated player's turn (restored on destroy), and an opponent Go stone landing plays the stone sound (new ply that leaves the turn with us + non-null `lastMove`, so passes and our own move's Realtime echo stay silent)
 
 ## Pages
 
@@ -64,6 +64,7 @@ move loop (both):
 - `soloOnly` games (snake) never route to the lobby; `routes.ts` keeps their links on `play.html` even in challenge mode
 - Turn color is read from `board_state.turn` on the game row; state is the engine's `serialize()` output
 - Spectators get `lockColor = null` (view is read-only); the pass button tracks the seat on every server update because a viewer can claim a seat mid-session from the banner
+- Go's hover affordances (ghost stone, crosshair, cross-tile hover sync) follow `canPlayGoNow()` in the wrapper: always on offline, online only on the seated colour's turn, never for spectators — the view skips the validity cache entirely, so `.valid-move` is never applied
 - `listOpenGames` filters `invited_player is null` — challenges never appear in the public lobby list
 - The friendships pair index (`least/greatest`) means A->B and B->A cannot coexist; inserts surface as "already friends or pending"
 - `index.html?mode=challenge` boots the catalog with the challenge toggle on (hub links use it)

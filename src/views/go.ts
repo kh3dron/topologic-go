@@ -1,7 +1,7 @@
 import { Topology } from '../topology';
 import {
   KOMI, starPoints, goBoard, goSize, goCurrentTurn, goGameOver, goCaptures, goLastMove,
-  isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, setGoOnline,
+  canPlayGoNow, isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, setGoOnline,
 } from '../go';
 import { CellOpts, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
 
@@ -51,7 +51,9 @@ export const goView: GameView = {
     intersectionMap.clear();
     starSet = new Set(starPoints(goSize).map(([r, c]) => `${r},${c}`));
     validCache = Array(goSize).fill(null).map(() => Array(goSize).fill(false));
-    if (!goGameOver) {
+    // Hover ghosts/crosshair only when the local player can actually move
+    // (offline always; online only on their turn, never for spectators).
+    if (canPlayGoNow()) {
       for (let row = 0; row < goSize; row++) {
         for (let col = 0; col < goSize; col++) {
           if (!goBoard[row][col]) validCache[row][col] = isValidGoMove(row, col, goCurrentTurn);

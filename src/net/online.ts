@@ -7,6 +7,7 @@ import { Color } from '../engine/core';
 import { GameType, setCurrentGame, setTopology } from '../state';
 import { viewFor } from '../views';
 import { renderBoard, updateStatus } from '../render';
+import { playStoneSound } from '../sound';
 import { currentUser } from './auth';
 import { fetchGame, joinGame, submitMove, subscribeGame, type GameRow } from './games';
 
@@ -50,6 +51,14 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
 
   let serverPly = game.ply;
   let lastBoard: unknown = game.board_state;
+
+  // Tab-title indicator: prefix the title while it's the local player's move,
+  // so a backgrounded tab shows the game is waiting on them.
+  const baseTitle = document.title;
+  function updateTitle(g: GameRow): void {
+    const myMove = g.status === 'active' && myColor !== null && turnColor(g) === myColor;
+    document.title = myMove ? `● Your move — ${baseTitle}` : baseTitle;
+  }
 
   function submitLocalMove(move: unknown): void {
     const expected = serverPly; // the wrapper already applied this move optimistically
@@ -128,14 +137,24 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
   }
 
   function applyServer(g: GameRow): void {
+    const prevPly = serverPly;
     serverPly = g.ply;
     lastBoard = g.board_state;
     myColor = seatOf(g);
+    // Audible cue for the opponent's stone landing: a new ply that leaves the
+    // turn with us must be theirs (our own placement already clicked locally
+    // in placeGoStone, and its Realtime echo leaves the turn with them).
+    // Passes carry no stone (lastMove null), so they stay silent.
+    if (g.variant === 'go' && g.ply > prevPly && myColor !== null && turnColor(g) === myColor) {
+      const snap = g.board_state as { lastMove?: unknown } | null;
+      if (snap?.lastMove) playStoneSound();
+    }
     view.loadState(g.board_state);
     view.setOnline(gateFor(g));
     renderBoard();
     updateStatus();
     updateBanner(g);
+    updateTitle(g);
     // Pass is a Go move; only a seated player gets the button (seat can be
     // claimed after load, so this tracks every update).
     document.getElementById('pass-btn')
@@ -158,6 +177,7 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
       view.setOnline({ engaged: false, lockColor: null, onCommit: () => {} });
       channel.unsubscribe();
       banner.remove();
+      document.title = baseTitle;
     },
   };
 }
