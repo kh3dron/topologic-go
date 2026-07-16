@@ -226,6 +226,15 @@ button:active,
   display: none;
 }
 
+#score-hud {
+  margin-left: 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 #zoom-controls {
   margin-left: auto;
   display: flex;

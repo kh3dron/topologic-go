@@ -39,6 +39,7 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 - `home.html` — account hub: profile, games, challenges, friends (`src/home.ts`)
 - `players.html` — all players with stats + challenge links (`src/players.ts`)
 - `watch.html` — spectate live games (`src/watch.ts`)
+- `leaderboard.html` — snake best scores, one table per topology (`src/leaderboard.ts`)
 - `about.html` — spec page + live census table (`src/about.ts`)
 - Deep links: `?g=<gameId>&t=<topologyId>` (t only for square-grid games)
 

@@ -225,6 +225,38 @@ export type Database = {
         }
         Relationships: []
       }
+      snake_scores: {
+        Row: {
+          achieved_at: string
+          player: string
+          score: number
+          ticks: number
+          topology: string
+        }
+        Insert: {
+          achieved_at?: string
+          player: string
+          score: number
+          ticks?: number
+          topology: string
+        }
+        Update: {
+          achieved_at?: string
+          player?: string
+          score?: number
+          ticks?: number
+          topology?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snake_scores_player_fkey"
+            columns: ["player"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

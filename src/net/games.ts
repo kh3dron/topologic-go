@@ -8,7 +8,7 @@ import { requireClient } from './client';
 export type GameRow = Database['public']['Tables']['games']['Row'];
 
 // Invoke an Edge Function, surfacing the server's JSON error message on failure.
-async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
+export async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await requireClient().functions.invoke(name, { body });
   if (error) {
     let message = error.message;

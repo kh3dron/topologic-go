@@ -58,6 +58,9 @@ export interface GameView {
 
   reset(): void;
   status(): string;
+  // Text for the prominent score readout in the top bar (live-score games like
+  // snake); undefined/null hides it.
+  scoreHud?(): string | null;
   infoPanel(topo: Topology): InfoPanel;
 
   // Online play: load the server's authoritative state, and engage/disengage

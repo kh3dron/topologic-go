@@ -1,8 +1,8 @@
 import { Topology } from '../topology';
 import {
-  Cell, SNAKE_SIZE,
+  Cell, SNAKE_SIZE, SnakeRunLog,
   snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, snakeLength,
-  resetSnake, tickSnake, steerSnake,
+  resetSnake, tickSnake, steerSnake, snakeRunLog, snakeEnded,
 } from '../snake';
 import { CellOpts, GameView, InfoPanel, RenderDeps } from './kit';
 
@@ -42,9 +42,40 @@ function startLoop(): void {
   tickTimer = window.setInterval(() => {
     if (snakeStatus !== 'playing') return;
     tickSnake();
+    if (snakeEnded()) void submitScore(snakeRunLog());
     deps?.rerender();
     deps?.refreshStatus();
   }, TICK_MS);
+}
+
+// Appended to the end-of-game status line once the leaderboard submission
+// resolves (empty while playing / offline / signed out).
+let scoreNote = '';
+
+// Post the finished run to the leaderboard. Lazy imports keep the Supabase SDK
+// out of the offline play bundle (same rule as net/online.ts); the env check
+// avoids even loading the modules on builds without a backend.
+async function submitScore(log: SnakeRunLog): Promise<void> {
+  scoreNote = '';
+  if (!import.meta.env.VITE_SUPABASE_URL || log.score <= 0) return;
+  try {
+    const [{ currentUser }, { submitSnakeScore }] = await Promise.all([
+      import('../net/auth'),
+      import('../net/scores'),
+    ]);
+    const me = await currentUser();
+    if (!me) {
+      scoreNote = 'sign in to post scores';
+    } else {
+      const res = await submitSnakeScore(log);
+      scoreNote = res.improved
+        ? 'new personal best, saved to the leaderboard'
+        : `your best here is ${res.best}`;
+    }
+  } catch {
+    scoreNote = '';
+  }
+  deps?.refreshStatus();
 }
 
 export const snakeView: GameView = {
@@ -59,6 +90,7 @@ export const snakeView: GameView = {
 
   reset: () => {
     resetSnake();
+    scoreNote = '';
     installKeys();
     startLoop();
   },
@@ -66,20 +98,23 @@ export const snakeView: GameView = {
   setOnline: () => {},
 
   status(): string {
+    const note = scoreNote ? ` - ${scoreNote}` : '';
     switch (snakeStatus) {
       case 'ready': return 'Press an arrow key or WASD to start';
-      case 'dead': return `Game over - score ${snakeScore} - New Game to retry`;
-      case 'won': return `Board filled - score ${snakeScore} - you win`;
+      case 'dead': return `Game over - score ${snakeScore}${note} - New Game to retry`;
+      case 'won': return `Board filled - score ${snakeScore}${note} - you win`;
       default: return `Score ${snakeScore} - length ${snakeLength}`;
     }
   },
+
+  scoreHud: () => `Score ${snakeScore}`,
 
   infoPanel(topo: Topology): InfoPanel {
     return {
       description: `Arrow keys or WASD to steer. ${topo.snakeDesc}`,
       article: topo.article,
       spec: topo.spec,
-      links: topo.links,
+      links: [{ label: 'Snake leaderboard', url: './leaderboard.html' }, ...topo.links],
     };
   },
 

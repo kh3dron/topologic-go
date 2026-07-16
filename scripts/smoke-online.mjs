@@ -196,6 +196,49 @@ try {
 
   const cancelActive = await fn('cancel-game', tokA, { game_id: gameId });
   ok('active game cannot be cancelled', cancelActive.status === 409, `status=${cancelActive.status}`);
+
+  // ==================== snake scores (replay-validated writes) ====================
+  // Hand-crafted deterministic run on 'classic': the rand values place food
+  // exactly where the log expects it. Start: body (6,4)-(6,6), heading right.
+  // rand r places food at free cell floor(r * freeCount) in row-major order.
+  const foodAt = (cellIdx, occupiedBefore, occupiedTotal) =>
+    (cellIdx - occupiedBefore + 0.5) / (169 - occupiedTotal);
+  // Run 1 (score 1): food at (6,7), one tick right eats it, respawn at (0,0),
+  // steer up and run off the top wall.
+  const run1 = {
+    topology: 'classic',
+    food_rands: [foodAt(6 * 13 + 7, 3, 3), 0],
+    events: [-4, 1, -1, 7],
+  };
+  const sub1 = await fn('submit-snake-score', tokC, run1);
+  ok('snake score accepted (replayed)', sub1.status === 200 && sub1.body.score === 1 && sub1.body.improved === true,
+    `status=${sub1.status} body=${JSON.stringify(sub1.body)}`);
+
+  const sub1again = await fn('submit-snake-score', tokC, run1);
+  ok('equal score does not improve best', sub1again.status === 200 && sub1again.body.improved === false
+    && sub1again.body.best === 1, `body=${JSON.stringify(sub1again.body)}`);
+
+  // Run 2 (score 2): second food at (6,8), eaten on the next tick.
+  const run2 = {
+    topology: 'classic',
+    food_rands: [foodAt(6 * 13 + 7, 3, 3), foodAt(6 * 13 + 8, 4, 4), 0],
+    events: [-4, 2, -1, 7],
+  };
+  const sub2 = await fn('submit-snake-score', tokC, run2);
+  ok('better run replaces best', sub2.status === 200 && sub2.body.score === 2 && sub2.body.improved === true,
+    `body=${JSON.stringify(sub2.body)}`);
+
+  const unfinished = await fn('submit-snake-score', tokC, { topology: 'classic', food_rands: [0.5], events: [-4, 1] });
+  ok('unfinished run rejected', unfinished.status === 422, `status=${unfinished.status}`);
+
+  const forgedScore = await rest('snake_scores', tokC,
+    { method: 'POST', body: { player: cId, topology: 'torus', score: 999 } });
+  ok('client cannot write snake_scores directly', forgedScore.status === 403 || forgedScore.status === 401,
+    `status=${forgedScore.status}`);
+
+  const bestRows = await svcSelect(`snake_scores?player=eq.${cId}&select=topology,score`);
+  ok('one best row per (player, topology)', bestRows.length === 1 && bestRows[0]?.score === 2,
+    `rows=${JSON.stringify(bestRows)}`);
 } finally {
   // cleanup (games first: they reference profiles without cascade)
   for (const id of [gameId, ...gameIds].filter(Boolean)) {

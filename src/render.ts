@@ -596,6 +596,12 @@ export function stopSliding(): void {
 // ==================== STATUS & INFO PANEL ====================
 export function updateStatus(): void {
   document.getElementById('status')!.textContent = currentView().status();
+  const hud = document.getElementById('score-hud');
+  if (hud) {
+    const text = currentView().scoreHud?.() ?? null;
+    hud.hidden = text === null;
+    hud.textContent = text ?? '';
+  }
 }
 
 export function updateModeDescription(): void {

@@ -25,6 +25,7 @@ export default defineConfig({
         about: resolve(__dirname, 'about.html'),
         players: resolve(__dirname, 'players.html'),
         watch: resolve(__dirname, 'watch.html'),
+        leaderboard: resolve(__dirname, 'leaderboard.html'),
       },
     },
   },
