@@ -1070,6 +1070,20 @@ body.catalog-page {
   color: #fff;
 }
 
+.site-menu .move-alert {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.site-menu .move-alert:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 #catalog-blurb {
   font-size: 0.85rem;
   color: var(--ink-dim);

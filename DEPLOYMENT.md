@@ -202,13 +202,19 @@ view adapter + one `game_types` row. Same one-entry ethos as `TOPOLOGIES`.
 
 ### Checklist: adding a new game
 
+The step-by-step how-to (files, commands, failure symptoms) lives in `docs/workflows.md` -> "Add
+a game". Design-level summary:
+
 1. `src/engine/games/<id>.ts` — implement `GameModule` (initial state, `isLegalMove`,
    `applyMove`, serialize/deserialize). Pure, DOM-free, Deno-compatible.
 2. Register it in `GAMES`.
 3. Add a client view adapter (render + input) keyed by `id`; register it.
-4. `insert into game_types (id, name, board_family) values (...)`.
-5. Add it to the landing catalog (which itself iterates `GAMES` × its family's topologies).
-6. No new tables, columns, Edge Functions, or RLS policies. No migration beyond the seed row.
+4. `insert into game_types (id, name, board_family) values (...)` — as a real migration file,
+   applied with `db push`. Skipping it breaks create-game with a `games_variant_fkey` violation.
+5. Redeploy the Edge Functions: they bundle `src/engine` at deploy time, so an already-deployed
+   function does not know the new variant until then.
+6. Add it to the landing catalog (which itself iterates `GAMES` × its family's topologies).
+7. No new tables, columns, Edge Functions, or RLS policies. No migration beyond the seed row.
 
 ## Sharing the engine with Deno (logistics)
 

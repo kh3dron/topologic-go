@@ -251,9 +251,36 @@ function setMode(next: PlayMode): void {
   updateLaunch();
 }
 
+// ==================== YOUR-MOVE ALERT ====================
+// Best-effort nudge under the Account link when active games are waiting on
+// you. Gated on the cached Supabase session key so signed-out visitors get no
+// auth or network work, and any failure just leaves the element hidden.
+async function mountMoveAlert(): Promise<void> {
+  const hasSessionHint = Object.keys(localStorage)
+    .some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+  if (!hasSessionHint) return;
+  try {
+    const [{ hasSupabase }, { currentUser }, { listMyGames }] = await Promise.all([
+      import('./net/client'), import('./net/auth'), import('./net/games'),
+    ]);
+    if (!hasSupabase) return;
+    const user = await currentUser();
+    if (!user) return;
+    const games = await listMyGames(user.id);
+    const waiting = games.filter(g => g.status === 'active' && g.turn === user.id).length;
+    if (waiting === 0) return;
+    const el = document.getElementById('move-alert')!;
+    el.textContent = `Your move in ${waiting} ${waiting === 1 ? 'game' : 'games'}`;
+    el.hidden = false;
+  } catch {
+    // The alert is decoration; never let it break the catalog.
+  }
+}
+
 // ==================== BOOT ====================
 function boot(): void {
   buildList();
+  void mountMoveAlert();
 
   const params = new URLSearchParams(window.location.search);
   const g = params.get('g');

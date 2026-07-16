@@ -58,7 +58,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES
 - `src/net/` — see `online.md`
 - Pages
-  - `landing.ts` — picker: `#topo-list` accordion grouped by tessellation dimension, preview canvas, game options, verdict badge, `#play-btn`; playground/challenge `#mode-toggle`
+  - `landing.ts` — picker: `#topo-list` accordion grouped by tessellation dimension, preview canvas, game options, verdict badge, `#play-btn`; playground/challenge `#mode-toggle`; `#move-alert` your-move nudge in the site menu (lazy net import, gated on the cached `sb-*-auth-token` localStorage key so signed-out visitors do no auth work, hidden unless active games wait on you)
   - `play.ts` — boots offline (hotseat, from `?g=&t=`) or online (`?online=<id>`, lazy-imports net/online so Supabase stays out of the offline bundle); exposes `window.__topo.project` and `window.__hex` debug hooks
   - `game.ts` — lobby: magic-link auth, create/join/list open games, redirect to `play.html?online=<id>`
   - `about.ts` — renders catalog entries + census table from the registries

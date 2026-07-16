@@ -44,13 +44,38 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
 
 ## Add a game
 
-- Implement a `GameModule<S, M, B>` in `src/engine/games/<id>.ts` (pure, deterministic, RNG injected if needed)
-- Register in `GAMES` (`src/engine/index.ts`); pick `boardFamily` (`'square-grid'` gets a Topology; else a custom board) and `soloOnly` if single-player; non-topology boards set `catalog` (landing card group/surface/spec/badge)
+The canonical checklist. The client half is registry-driven and hard to get wrong (tsc catches
+misses); the backend half is NOT — both steps fail only at runtime, in production, when someone
+tries to start an online game. Do them in the same change.
+
+Client:
+
+- Implement a `GameModule<S, M, B>` in `src/engine/games/<id>.ts` (pure, deterministic, RNG injected if needed, DOM-free and Deno-compatible: relative imports use explicit `.ts` extensions)
+- Register in `GAMES` (`src/engine/index.ts`); pick `boardFamily` (`'square-grid'` gets a Topology; else a custom board) and `soloOnly` if single-player
+- Non-topology boards set `catalog` metadata on the module: `group`, `board` (the geometry name shown in the picker list - not the game name), `surface`, `spec`, `badge`, and optionally `preview` (named static drawing in `src/preview.ts`; omit it and the preview frame shows a #TODO placeholder)
 - Stateful wrapper `src/<id>.ts` following the pattern of `go.ts` (live bindings + `setOnline` gating)
 - View adapter `src/views/<id>.ts` implementing `GameView`; register in `VIEWS` (`src/views/index.ts`)
 - Add the game id to `GameType` in `src/state.ts`
 - Topology metadata: add a `<id>Desc` field only if the game is square-grid (see `snakeDesc`)
-- Online play needs nothing extra client-side; the Edge Functions dispatch through the same `GAMES` registry
+
+Backend (skip both for `soloOnly` games - they never route to the lobby):
+
+- Migration: new file in `supabase/migrations/` inserting the game into the `game_types` reference table (`games.variant` has a foreign key to it):
+
+  ```sql
+  insert into game_types (id, name, board_family) values
+    ('<id>', '<Name>', '<board-family>')
+  on conflict (id) do nothing;
+  ```
+
+  Apply with `npx supabase db push` (see `supabase/README.md`; on IPv4-only networks use `--db-url` with the session pooler `postgres.<ref>@aws-1-<region>.pooler.supabase.com:5432`, password from `.env`). Symptom if skipped: create-game fails with `violates foreign key constraint "games_variant_fkey"` - this is exactly how hyperchess shipped broken
+- Redeploy the Edge Functions so their bundled copy of `src/engine` includes the new module: `npx supabase functions deploy create-game join-game submit-move cancel-game`. Symptom if skipped: create-game rejects the variant as unknown
+
+Verify:
+
+- `npx tsc --noEmit` and `npx tsx scripts/census.ts` (new rows appear, round-trips pass)
+- Drive the playground UI (see above); check the landing picker entry and detail card
+- For online: `scripts/smoke-online.mjs`, or manually create + join a game of the new variant
 
 ## Release / deploy
 
