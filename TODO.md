@@ -54,3 +54,4 @@ server-authoritative validation with the shared engine, Realtime sync.
 - [x] About page (`about.html`) with per-topology articles + references, generated from the registry
 - [x] Online play on Supabase: accounts + registration, friends, challenges, share-link joins, account hub, server-authoritative moves + Realtime sync (`docs/online.md`)
 - [x] Go board size option (9x9 / 13x13 / 19x19): sidebar picker in the playground (`?s=` deep link), size select in the online lobby via `create-game` options; size lives in `board_state`, no schema change
+- [x] Achievements (start/finish/win games, both colors, off-classic wins, topology + game-type exploration): derived client-side from the world-readable games table, nothing persisted; columns on the players directory, panel + points on the account hub (`src/net/achievements.ts`)

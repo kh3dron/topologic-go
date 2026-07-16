@@ -7,7 +7,8 @@
 import { hasSupabase } from './net/client';
 import { currentUser } from './net/auth';
 import { listProfiles } from './net/social';
-import { listFinishedGames } from './net/games';
+import { listGamesForStats } from './net/games';
+import { achievementPoints, earnedAchievements, playerStats } from './net/achievements';
 import { el, section } from './net/ui';
 import { mountVersionBadge } from './version';
 
@@ -21,20 +22,11 @@ async function boot(): Promise<void> {
     return;
   }
 
-  const [profiles, finished, me] = await Promise.all([
+  const [profiles, games, me] = await Promise.all([
     listProfiles(),
-    listFinishedGames().catch(() => []),
+    listGamesForStats().catch(() => []),
     currentUser().catch(() => null),
   ]);
-
-  const played = new Map<string, number>();
-  const won = new Map<string, number>();
-  for (const g of finished) {
-    for (const p of [g.white_player, g.black_player]) {
-      if (p) played.set(p, (played.get(p) ?? 0) + 1);
-    }
-    if (g.winner) won.set(g.winner, (won.get(g.winner) ?? 0) + 1);
-  }
 
   panel.replaceChildren();
   const sec = section('All players', profiles.length);
@@ -48,20 +40,26 @@ async function boot(): Promise<void> {
   const table = el('table', 'stats-table');
   const thead = el('thead');
   const hr = el('tr');
-  for (const h of ['Player', 'Rating', 'Played', 'Won', '']) hr.appendChild(el('th', undefined, h));
+  for (const h of ['Player', 'Rating', 'Played', 'Won', 'Achievements', 'Points', '']) hr.appendChild(el('th', undefined, h));
   thead.appendChild(hr);
   const tbody = el('tbody');
   table.append(thead, tbody);
   sec.body.appendChild(table);
 
   for (const p of profiles) {
+    const stats = playerStats(games, p.id);
+    const earned = earnedAchievements(stats);
     const row = el('tr');
     const name = el('td', 'stats-name', p.username);
     if (me && p.id === me.id) name.appendChild(el('span', 'hub-badge', 'you'));
     row.appendChild(name);
     row.appendChild(el('td', 'stats-num', String(p.rating)));
-    row.appendChild(el('td', 'stats-num', String(played.get(p.id) ?? 0)));
-    row.appendChild(el('td', 'stats-num', String(won.get(p.id) ?? 0)));
+    row.appendChild(el('td', 'stats-num', String(stats.finished)));
+    row.appendChild(el('td', 'stats-num', String(stats.won)));
+    const ach = el('td', 'stats-num', String(earned.length));
+    if (earned.length > 0) ach.title = earned.map((a) => a.name).join(', ');
+    row.appendChild(ach);
+    row.appendChild(el('td', 'stats-num', String(achievementPoints(earned))));
     const act = el('td', 'stats-act');
     if (!me || p.id !== me.id) {
       const ch = el('a', 'lobby-link', 'Challenge');

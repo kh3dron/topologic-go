@@ -16,7 +16,7 @@ export interface Section {
   body: HTMLElement;
 }
 
-export function section(title: string, count?: number): Section {
+export function section(title: string, count?: number | string): Section {
   const root = el('section', 'hub-section');
   const head = el('div', 'hub-section-head');
   head.appendChild(el('h2', 'hub-section-title', title));

@@ -10,7 +10,11 @@ import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, signOut, updateUsername, type Profile } from './net/auth';
 import { renderAuthPanel } from './net/auth-ui';
 import { el, section } from './net/ui';
-import { cancelGame, goBoardSizeOf, joinGame, listMyGames, type GameRow } from './net/games';
+import {
+  cancelGame, goBoardSizeOf, joinGame, listMyGames, listMyGamesForStats,
+  type GameRow, type StatsGameRow,
+} from './net/games';
+import { ACHIEVEMENTS, achievementPoints, earnedAchievements, playerStats } from './net/achievements';
 import {
   acceptFriend, fetchProfiles, listFriendships, removeFriendship, requestFriend,
   subscribeSocial, type FriendEdge,
@@ -49,10 +53,13 @@ function actionBtn(label: string, run: (btn: HTMLButtonElement) => Promise<void>
 let refresh: () => void = () => {};
 
 async function renderHub(me: Profile): Promise<void> {
-  const [games, friends] = await Promise.all([
+  const [games, friends, statRows] = await Promise.all([
     listMyGames(me.id).catch(() => [] as GameRow[]),
     listFriendships(me.id).catch(() => [] as FriendEdge[]),
+    listMyGamesForStats(me.id).catch(() => [] as StatsGameRow[]),
   ]);
+  const earned = earnedAchievements(playerStats(statRows, me.id));
+  const earnedIds = new Set(earned.map((a) => a.id));
 
   // Opponent / challenger names for the game rows.
   const nameIds = games.flatMap((g) => [g.white_player, g.black_player, g.invited_player])
@@ -73,6 +80,7 @@ async function renderHub(me: Profile): Promise<void> {
   who.append(
     el('span', 'hub-profile-name', me.username),
     el('span', 'hub-profile-rating', `rating ${me.rating}`),
+    el('span', 'hub-profile-rating', `${achievementPoints(earned)} pts`),
   );
   const actions = el('span', 'hub-head-actions');
   const rename = el('button', 'lobby-link', 'Change username');
@@ -227,6 +235,23 @@ async function renderHub(me: Profile): Promise<void> {
     row.appendChild(el('span', 'lobby-game-label', `${f.other.username} · request pending`));
     row.append(actionBtn('Cancel', async () => { await removeFriendship(f.requester, f.addressee); refresh(); }));
     frList.appendChild(row);
+  }
+
+  // -------- achievements --------
+  const achSec = section(
+    'Achievements',
+    `${earned.length} / ${ACHIEVEMENTS.length} · ${achievementPoints(earned)} pts`,
+  );
+  panel.appendChild(achSec.root);
+  const achList = el('div', 'lobby-list');
+  achSec.body.appendChild(achList);
+  for (const a of ACHIEVEMENTS) {
+    const got = earnedIds.has(a.id);
+    const row = el('div', got ? 'lobby-game' : 'lobby-game ach-locked');
+    const label = el('span', 'lobby-game-label');
+    label.append(el('span', 'ach-name', a.name), el('span', 'ach-desc', a.description));
+    row.append(label, el('span', 'ach-points', got ? `${a.points} pts` : `+${a.points}`));
+    achList.appendChild(row);
   }
 }
 

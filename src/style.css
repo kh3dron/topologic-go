@@ -1993,6 +1993,32 @@ body.challenge-page {
   max-width: 340px;
 }
 
+.ach-name {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ach-desc {
+  margin-left: 10px;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+}
+
+.ach-points {
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.ach-locked {
+  opacity: 0.55;
+}
+
+.ach-locked .ach-points {
+  color: var(--ink-dim);
+}
+
 .challenge-header-right {
   display: flex;
   gap: 16px;
@@ -2049,6 +2075,8 @@ body.challenge-page {
 .stats-table th:nth-child(2),
 .stats-table th:nth-child(3),
 .stats-table th:nth-child(4),
+.stats-table th:nth-child(5),
+.stats-table th:nth-child(6),
 .stats-num,
 .stats-act {
   text-align: right;

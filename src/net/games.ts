@@ -88,13 +88,31 @@ export async function listActiveGames(): Promise<GameRow[]> {
   return data ?? [];
 }
 
-// Finished games, for player win/played stats (games are world-readable).
-export async function listFinishedGames(): Promise<Pick<GameRow, 'white_player' | 'black_player' | 'winner'>[]> {
+// The columns the derived player stats + achievements need, nothing more.
+export type StatsGameRow = Pick<
+  GameRow, 'white_player' | 'black_player' | 'winner' | 'status' | 'variant' | 'topology'
+>;
+
+const STATS_COLUMNS = 'white_player, black_player, winner, status, variant, topology';
+
+// Every game, for the players directory's win/played counts and achievements
+// (games are world-readable). Waiting games are included: creating a game
+// counts as starting one.
+export async function listGamesForStats(): Promise<StatsGameRow[]> {
   const { data } = await requireClient()
     .from('games')
-    .select('white_player, black_player, winner')
-    .eq('status', 'done')
-    .limit(1000);
+    .select(STATS_COLUMNS)
+    .limit(2000);
+  return data ?? [];
+}
+
+// Just my games, for the hub's achievements panel.
+export async function listMyGamesForStats(userId: string): Promise<StatsGameRow[]> {
+  const { data } = await requireClient()
+    .from('games')
+    .select(STATS_COLUMNS)
+    .or(`white_player.eq.${userId},black_player.eq.${userId}`)
+    .limit(2000);
   return data ?? [];
 }
 
