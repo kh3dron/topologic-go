@@ -348,6 +348,7 @@ export const hexModule: GameModule<HexState, HexMove, null> = {
     surface: 'Glinski hexagonal grid',
     spec: ['91 HEX CELLS', 'THREE BISHOPS PER SIDE'],
     badge: 'HEXAGONAL BOARD',
+    preview: 'hex',
   },
   initialState: () => initialHexState(),
   isLegalMove: (state, move) => {

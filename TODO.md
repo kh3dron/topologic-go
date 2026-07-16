@@ -14,6 +14,7 @@
 
 ## UX
 
+- [ ] Landing preview for the hyperbolic plane (Poincaré disk drawing) — the preview frame shows a #TODO placeholder for boards without a `catalog.preview` drawing
 - [ ] Touch support: drag-to-pan and pinch-zoom only listen to mouse events; tessellated modes are unusable on mobile
 - [ ] Keyboard controls / basic a11y
 - [ ] Incremental board rendering: full DOM rebuild per move costs ~200-300ms at 50% zoom on period-2 topologies

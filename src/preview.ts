@@ -139,9 +139,10 @@ function buildParticles(topo: Topology): Particle[] {
 }
 
 export interface Preview {
-  // Switches the animated board; pass null for a non-topology board (hex).
-  // Returns a short caption describing the edge behaviour.
-  setBoard(topo: Topology | null): string;
+  // Switches the animated board; pass null for a non-topology board, with
+  // `staticKind` naming its static drawing ('hex', or undefined for a #TODO
+  // placeholder). Returns a short caption describing the edge behaviour.
+  setBoard(topo: Topology | null, staticKind?: 'hex'): string;
   destroy(): void;
 }
 
@@ -151,6 +152,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   const inkDim = cssVar('--ink-dim', '#9c9c9c');
 
   let topo: Topology | null = null;
+  let staticBoard: 'hex' | null = null;
   let particles: Particle[] = [];
   let raf = 0;
 
@@ -276,7 +278,8 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
 
   function render(): void {
     if (topo) drawBoard();
-    else drawHexBoard();
+    else if (staticBoard === 'hex') drawHexBoard();
+    else drawTodo();
   }
 
   function frame(): void {
@@ -288,9 +291,10 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   ro.observe(canvas);
 
   return {
-    setBoard(next: Topology | null): string {
+    setBoard(next: Topology | null, staticKind?: 'hex'): string {
       cancelAnimationFrame(raf);
       topo = next;
+      staticBoard = staticKind ?? null;
       if (next) {
         particles = buildParticles(next);
         frame();
@@ -351,5 +355,20 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       ctx.fill();
       ctx.stroke();
     }
+  }
+
+  // Placeholder for boards whose preview drawing does not exist yet.
+  function drawTodo(): void {
+    if (cw === 0) resize();
+    if (cw === 0) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = inkDim;
+    ctx.font = '18px "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.fillText('#TODO', cw / 2, ch / 2 - 10);
+    ctx.font = '11px "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.fillText('PREVIEW NOT BUILT YET', cw / 2, ch / 2 + 14);
   }
 }

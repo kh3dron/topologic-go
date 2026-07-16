@@ -37,7 +37,9 @@ export interface GameModule<S, M, B> {
   // hyperbolic). Topology games derive theirs from the TOPOLOGIES registry.
   // `board` is the geometry name shown in the picker list (the game name would
   // be redundant there - every other list item is a board, not a game).
-  catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string };
+  // `preview` names the static preview drawing; boards without one get a
+  // #TODO placeholder in the preview frame.
+  catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string; preview?: 'hex' };
   initialState(board: B): S;
   isLegalMove(state: S, move: M): boolean;
   applyMove(state: S, move: M): { state: S; result: GameResult };

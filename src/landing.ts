@@ -26,6 +26,7 @@ interface Entry {
   spec: string[];
   search: string;
   badge: string;           // preview caption for boards without a topology
+  preview?: 'hex';         // static preview drawing; undefined = #TODO placeholder
 }
 
 const topoGames: GameOption[] = [...GAMES.values()]
@@ -75,6 +76,7 @@ for (const m of otherGames) {
     spec: m.catalog?.spec ?? [],
     search: `${board} ${m.name}`.toLowerCase(),
     badge: m.catalog?.badge ?? 'CUSTOM BOARD',
+    preview: m.catalog?.preview,
   });
 }
 
@@ -173,7 +175,7 @@ function select(id: string): void {
   nameEl.textContent = entry.name;
   surfaceEl.textContent = entry.surface;
   specEl.innerHTML = entry.spec.map(s => `<span class="spec-chip">${s}</span>`).join('');
-  const caption = preview.setBoard(entry.topo);
+  const caption = preview.setBoard(entry.topo, entry.preview);
   badgeEl.textContent = entry.topo ? caption : entry.badge;
 
   buildGameOptions(entry);
