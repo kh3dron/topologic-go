@@ -12,9 +12,10 @@ function moduleFor(variant: string) {
   return mod;
 }
 
-// Canonical initial state for a (variant, topology) pair. Computed here so a
-// client can't inject a doctored starting position.
-export function initialBoardState(variant: string, topologyId: string | null): {
+// Canonical initial state for a (variant, topology, options) triple. Computed
+// here so a client can't inject a doctored starting position; options (e.g. Go
+// board size) are validated by the game module, which throws on bad values.
+export function initialBoardState(variant: string, topologyId: string | null, options?: unknown): {
   boardState: unknown;
   turnColor: 'white' | 'black';
 } {
@@ -24,7 +25,7 @@ export function initialBoardState(variant: string, topologyId: string | null): {
     board = TOPOLOGY_MAP.get(topologyId ?? '');
     if (!board) throw new Error(`unknown topology: ${topologyId}`);
   }
-  const state = mod.initialState(board);
+  const state = mod.initialState(board, options ?? undefined);
   return { boardState: mod.serialize(state), turnColor: state.turn };
 }
 

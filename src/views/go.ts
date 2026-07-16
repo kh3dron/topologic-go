@@ -1,15 +1,17 @@
 import { Topology } from '../topology';
 import {
-  GO_SIZE, KOMI, STAR_POINTS, goBoard, goCurrentTurn, goGameOver, goCaptures, goLastMove,
+  KOMI, starPoints, goBoard, goSize, goCurrentTurn, goGameOver, goCaptures, goLastMove,
   isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, setGoOnline,
 } from '../go';
 import { CellOpts, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
 
 const GO_CELL = 32;
 
-// Per-render caches: legal-placement validity per intersection, and a map from
-// canonical position to every tile element showing it (for hover sync).
+// Per-render caches: legal-placement validity per intersection, star-point
+// positions for the current size, and a map from canonical position to every
+// tile element showing it (for hover sync).
 let validCache: boolean[][] = [];
+let starSet = new Set<string>();
 const intersectionMap = new Map<string, HTMLElement[]>();
 
 function syncHover(row: number, col: number, on: boolean): void {
@@ -26,7 +28,7 @@ export const goView: GameView = {
   usesTopology: true,
   showsPassButton: true,
   cellBase: GO_CELL,
-  size: GO_SIZE,
+  size: () => goSize,
 
   reset: () => resetGo(),
   loadState: (s) => loadGoState(s),
@@ -47,10 +49,11 @@ export const goView: GameView = {
 
   prepareRender(): void {
     intersectionMap.clear();
-    validCache = Array(GO_SIZE).fill(null).map(() => Array(GO_SIZE).fill(false));
+    starSet = new Set(starPoints(goSize).map(([r, c]) => `${r},${c}`));
+    validCache = Array(goSize).fill(null).map(() => Array(goSize).fill(false));
     if (!goGameOver) {
-      for (let row = 0; row < GO_SIZE; row++) {
-        for (let col = 0; col < GO_SIZE; col++) {
+      for (let row = 0; row < goSize; row++) {
+        for (let col = 0; col < goSize; col++) {
           if (!goBoard[row][col]) validCache[row][col] = isValidGoMove(row, col, goCurrentTurn);
         }
       }
@@ -70,8 +73,7 @@ export const goView: GameView = {
     if (opts.walls.left) intersection.classList.add('edge-left');
     if (opts.walls.right) intersection.classList.add('edge-right');
 
-    const isStarPoint = STAR_POINTS.some(([r, c]) => r === row && c === col);
-    if (isStarPoint && !goBoard[row][col]) {
+    if (starSet.has(key) && !goBoard[row][col]) {
       intersection.classList.add('star-point');
       const starDot = document.createElement('div');
       starDot.className = 'star-dot';

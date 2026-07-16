@@ -23,13 +23,28 @@ async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T
 }
 
 // `opponent` (a profile id) turns the game into a directed challenge: only
-// that player may claim the open seat.
+// that player may claim the open seat. `options` is the per-game new-game
+// settings bag (e.g. { size } for Go), validated server-side by the engine.
 export function createGame(
   variant: string,
   topology: string | null,
   opponent?: string,
+  options?: Record<string, unknown>,
 ): Promise<{ game: GameRow }> {
-  return invoke('create-game', { variant, topology, opponent: opponent ?? null });
+  return invoke('create-game', {
+    variant,
+    topology,
+    opponent: opponent ?? null,
+    options: options ?? null,
+  });
+}
+
+// Board size of a Go game, read from the serialized state (rows from before
+// sizes were configurable lack the explicit field, so fall back to the board).
+export function goBoardSizeOf(g: GameRow): number | null {
+  if (g.variant !== 'go') return null;
+  const bs = g.board_state as { size?: number; board?: unknown[] } | null;
+  return bs?.size ?? (Array.isArray(bs?.board) ? bs.board.length : null);
 }
 
 export function joinGame(gameId: string): Promise<{ game: GameRow }> {

@@ -10,19 +10,30 @@ import { Color, GameModule, GameResult, opponentOf } from '../core.ts';
 export type GoStone = Color | null;
 export type GoBoard = GoStone[][];
 
+export const GO_SIZES: readonly number[] = [9, 13, 19];
 export const GO_SIZE = 19;
 export const KOMI = 6.5;
 
-export const STAR_POINTS = [
-  [3, 3], [3, 9], [3, 15],
-  [9, 3], [9, 9], [9, 15],
-  [15, 3], [15, 9], [15, 15]
-];
+// Standard hoshi layout per supported size.
+const STAR_POINTS_BY_SIZE: Record<number, number[][]> = {
+  9: [[2, 2], [2, 6], [4, 4], [6, 2], [6, 6]],
+  13: [[3, 3], [3, 9], [6, 6], [9, 3], [9, 9]],
+  19: [
+    [3, 3], [3, 9], [3, 15],
+    [9, 3], [9, 9], [9, 15],
+    [15, 3], [15, 9], [15, 15],
+  ],
+};
+
+export function starPoints(size: number): number[][] {
+  return STAR_POINTS_BY_SIZE[size] ?? [];
+}
 
 export type GoMove = { kind: 'place'; row: number; col: number } | { kind: 'pass' };
 
 export interface GoState {
   board: GoBoard;
+  size: number;
   turn: Color;
   gameOver: boolean;
   passes: number;
@@ -32,18 +43,18 @@ export interface GoState {
   topo: Topology;
 }
 
-function createInitialGoBoard(): GoBoard {
-  return Array(GO_SIZE).fill(null).map(() => Array(GO_SIZE).fill(null));
+function createInitialGoBoard(size: number): GoBoard {
+  return Array(size).fill(null).map(() => Array(size).fill(null));
 }
 
 function boardToString(board: GoBoard): string {
   return board.map(row => row.map(cell => cell ? cell[0] : '.').join('')).join('|');
 }
 
-export function getNeighbors(topo: Topology, row: number, col: number): [number, number][] {
+export function getNeighbors(topo: Topology, row: number, col: number, size: number): [number, number][] {
   const neighbors: [number, number][] = [];
   for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-    const p = topo.project(row + dr, col + dc, GO_SIZE);
+    const p = topo.project(row + dr, col + dc, size);
     if (p) neighbors.push(p);
   }
   return neighbors;
@@ -64,7 +75,7 @@ function getGroup(board: GoBoard, topo: Topology, row: number, col: number): Set
 
     group.add(key);
 
-    for (const [nr, nc] of getNeighbors(topo, r, c)) {
+    for (const [nr, nc] of getNeighbors(topo, r, c, board.length)) {
       if (!group.has(`${nr},${nc}`) && board[nr][nc] === color) {
         stack.push([nr, nc]);
       }
@@ -79,7 +90,7 @@ function getLiberties(board: GoBoard, topo: Topology, group: Set<string>): numbe
 
   for (const pos of group) {
     const [row, col] = pos.split(',').map(Number);
-    for (const [nr, nc] of getNeighbors(topo, row, col)) {
+    for (const [nr, nc] of getNeighbors(topo, row, col, board.length)) {
       if (board[nr][nc] === null) {
         liberties.add(`${nr},${nc}`);
       }
@@ -108,7 +119,7 @@ export function isValidGoMove(state: GoState, row: number, col: number, color: C
   const opponent = opponentOf(color);
   let capturedAny = false;
 
-  for (const [nr, nc] of getNeighbors(state.topo, row, col)) {
+  for (const [nr, nc] of getNeighbors(state.topo, row, col, state.size)) {
     if (testBoard[nr][nc] === opponent) {
       const group = getGroup(testBoard, state.topo, nr, nc);
       if (getLiberties(testBoard, state.topo, group) === 0) {
@@ -140,7 +151,7 @@ export function applyGoPlace(state: GoState, row: number, col: number): GoState 
   const opponent = opponentOf(mover);
   let totalCaptured = 0;
 
-  for (const [nr, nc] of getNeighbors(state.topo, row, col)) {
+  for (const [nr, nc] of getNeighbors(state.topo, row, col, state.size)) {
     if (board[nr][nc] === opponent) {
       const group = getGroup(board, state.topo, nr, nc);
       if (getLiberties(board, state.topo, group) === 0) {
@@ -157,6 +168,7 @@ export function applyGoPlace(state: GoState, row: number, col: number): GoState 
 
   return {
     board,
+    size: state.size,
     turn: opponent,
     gameOver: false,
     passes: 0,
@@ -182,10 +194,11 @@ export function applyGoPass(state: GoState): GoState {
   };
 }
 
-export function initialGoState(topo: Topology): GoState {
-  const board = createInitialGoBoard();
+export function initialGoState(topo: Topology, size: number = GO_SIZE): GoState {
+  const board = createInitialGoBoard(size);
   return {
     board,
+    size,
     turn: 'black',
     gameOver: false,
     passes: 0,
@@ -210,8 +223,8 @@ export function scoreGo(state: GoState): GoScore {
   const territory = { black: 0, white: 0 };
   const visited = new Set<string>();
 
-  for (let row = 0; row < GO_SIZE; row++) {
-    for (let col = 0; col < GO_SIZE; col++) {
+  for (let row = 0; row < state.size; row++) {
+    for (let col = 0; col < state.size; col++) {
       const key = `${row},${col}`;
       if (board[row][col] !== null || visited.has(key)) continue;
 
@@ -224,7 +237,7 @@ export function scoreGo(state: GoState): GoScore {
         const [r, c] = stack.pop()!;
         region.push([r, c]);
 
-        for (const [nr, nc] of getNeighbors(state.topo, r, c)) {
+        for (const [nr, nc] of getNeighbors(state.topo, r, c, state.size)) {
           const stone = board[nr][nc];
           if (stone) {
             borderColors.add(stone);
@@ -260,6 +273,7 @@ export function scoreGo(state: GoState): GoScore {
 // ==================== MODULE ====================
 interface GoSnapshot {
   board: GoBoard;
+  size?: number; // absent on rows serialized before sizes were configurable
   turn: Color;
   gameOver: boolean;
   passes: number;
@@ -278,7 +292,13 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
   id: 'go',
   name: 'Go',
   boardFamily: 'square-grid',
-  initialState: (topo) => initialGoState(topo),
+  initialState: (topo, options) => {
+    const size = (options as { size?: unknown } | undefined)?.size ?? GO_SIZE;
+    if (typeof size !== 'number' || !GO_SIZES.includes(size)) {
+      throw new Error(`invalid board size: ${size}`);
+    }
+    return initialGoState(topo, size);
+  },
   isLegalMove: (state, move) => {
     if (state.gameOver) return false;
     if (move.kind === 'pass') return true;
@@ -290,6 +310,7 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
   },
   serialize: (state): GoSnapshot => ({
     board: state.board,
+    size: state.size,
     turn: state.turn,
     gameOver: state.gameOver,
     passes: state.passes,
@@ -302,6 +323,7 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
     const d = data as GoSnapshot;
     return {
       board: d.board,
+      size: d.size ?? d.board.length,
       turn: d.turn,
       gameOver: d.gameOver,
       passes: d.passes,

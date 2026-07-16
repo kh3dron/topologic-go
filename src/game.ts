@@ -5,7 +5,8 @@ import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, signOut } from './net/auth';
 import { renderAuthPanel } from './net/auth-ui';
 import { el, section } from './net/ui';
-import { createGame, fetchGame, joinGame, listOpenGames, type GameRow } from './net/games';
+import { createGame, fetchGame, goBoardSizeOf, joinGame, listOpenGames, type GameRow } from './net/games';
+import { GO_SIZE, GO_SIZES } from './engine/games/go';
 import { fetchProfiles, listFriendships } from './net/social';
 import { mountVersionBadge } from './version';
 
@@ -22,7 +23,7 @@ const params = new URLSearchParams(window.location.search);
 const joinId = params.get('join');
 const opponentId = params.get('opponent');
 
-const { game, topoId } = readVariantParams();
+const { game, topoId, size } = readVariantParams();
 
 const panel = document.getElementById('auth-panel')!;
 const online = (id: string) => `./play.html?online=${id}`;
@@ -66,6 +67,24 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   head.appendChild(links);
   panel.appendChild(head);
 
+  // -------- new-game options (Go board size; applies to every create below) --------
+  let sizeSelect: HTMLSelectElement | null = null;
+  if (game === 'go') {
+    const row = el('div', 'lobby-form-row');
+    row.appendChild(el('span', 'auth-msg', 'Board size'));
+    sizeSelect = el('select');
+    for (const s of GO_SIZES) {
+      const opt = el('option', undefined, `${s}×${s}`);
+      opt.value = String(s);
+      if (s === (size ?? GO_SIZE)) opt.selected = true;
+      sizeSelect.appendChild(opt);
+    }
+    row.appendChild(sizeSelect);
+    panel.appendChild(row);
+  }
+  const gameOptions = (): Record<string, unknown> | undefined =>
+    sizeSelect ? { size: Number(sizeSelect.value) } : undefined;
+
   // -------- directed challenge (carried from the players page) --------
   if (opponentId && opponentId !== userId) {
     const opp = (await fetchProfiles([opponentId]).catch(() => new Map())).get(opponentId);
@@ -77,7 +96,7 @@ async function renderLobby(userId: string, name: string): Promise<void> {
       send.addEventListener('click', async () => {
         send.disabled = true;
         try {
-          const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, opp.id);
+          const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, opp.id, gameOptions());
           location.href = online(g.id);
         } catch (err) {
           send.disabled = false;
@@ -100,7 +119,7 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   create.addEventListener('click', async () => {
     create.disabled = true;
     try {
-      const { game: g } = await createGame(game, usesTopology(game) ? topoId : null);
+      const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, undefined, gameOptions());
       location.href = online(g.id);
     } catch (err) {
       create.disabled = false;
@@ -136,7 +155,7 @@ async function renderLobby(userId: string, name: string): Promise<void> {
     challenge.addEventListener('click', async () => {
       challenge.disabled = true;
       try {
-        const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, select.value);
+        const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, select.value, gameOptions());
         location.href = online(g.id);
       } catch (err) {
         challenge.disabled = false;
@@ -163,7 +182,9 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   }
   for (const g of open) {
     const row = el('div', 'lobby-game');
-    row.appendChild(el('span', 'lobby-game-label', g.variant_id ?? g.variant));
+    const sz = goBoardSizeOf(g);
+    const label = (g.variant_id ?? g.variant) + (sz ? ` ${sz}×${sz}` : '');
+    row.appendChild(el('span', 'lobby-game-label', label));
     const mine = g.white_player === userId;
     const act = el('button', 'lobby-link', mine ? 'Open' : 'Join');
     act.addEventListener('click', async () => {
@@ -235,7 +256,7 @@ async function renderJoin(id: string, userId: string | null, name: string | null
 // ==================== BOOT ====================
 
 if (!joinId) setTitle(game, topoId);
-document.getElementById('challenge-solo')!.setAttribute('href', `./play.html${variantSearch(game, topoId)}`);
+document.getElementById('challenge-solo')!.setAttribute('href', `./play.html${variantSearch(game, topoId, size)}`);
 
 if (!hasSupabase) {
   renderUnavailable();

@@ -40,7 +40,10 @@ export interface GameModule<S, M, B> {
   // `preview` names the static preview drawing; boards without one get a
   // #TODO placeholder in the preview frame.
   catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string; preview?: 'hex' };
-  initialState(board: B): S;
+  // `options` is a per-game bag of new-game settings (e.g. Go board size).
+  // Modules that take options must validate them and throw on bad values,
+  // since they arrive from the client via create-game.
+  initialState(board: B, options?: unknown): S;
   isLegalMove(state: S, move: M): boolean;
   applyMove(state: S, move: M): { state: S; result: GameResult };
   serialize(state: S): unknown;

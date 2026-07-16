@@ -33,10 +33,10 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - `Topology` interface + registry; `mod()` helper
   - `tileOrientation()` — D4 transform of each tile, derived by probing project; drives overlay labels
   - `seamColoring()` / `seamColor()` — gluing arrows shared by board overlay and catalog preview
-- `src/engine/core.ts` — `GameModule`, `GameResult`, `Color`; no DOM, no globals
+- `src/engine/core.ts` — `GameModule`, `GameResult`, `Color`; no DOM, no globals. `initialState(board, options?)` takes a per-game new-game options bag (Go board size); modules validate options and throw, since create-game passes them through from the client
 - `src/engine/games/*.ts` — all rules, pure and deterministic
   - chess: one topology-generic move generator; sliders walk the plane step-by-step projecting each step (`SLIDE_CAP`); promotion rows 0/7; no castling/en passant
-  - go: `getNeighbors()` projects the four plane neighbors; groups/liberties/capture/superko/scoring build on it; set-based so self-adjacent cells (orbifolds) work
+  - go: `getNeighbors()` projects the four plane neighbors; groups/liberties/capture/superko/scoring build on it; set-based so self-adjacent cells (orbifolds) work. Board size is per-game state (`GoState.size`, 9/13/19 from `GO_SIZES`, default 19): picked via `options: {size}` on `goModule.initialState`, carried in the snapshot (`deserialize` falls back to `board.length` for pre-size rows), star points per size via `starPoints(size)`
   - hexchess: Glinski geometry, own coordinate system, no topology
   - hyperchess: chess on a 1352-cell patch of the {4,6} hyperbolic tiling (after Hawksley's "Non-Euclidean Chess, Part 2"); cells are Mobius transforms generated at module load, moves walk precomputed adjacency/diagonal/knight tables; pawns carry a parallel-transported heading
   - snake: deterministic; RNG injected by the wrapper
@@ -47,7 +47,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - Online gating: `setOnline({engaged, lockColor, onCommit})` — apply only own-color moves, report committed moves
 - `src/state.ts` — `currentGame` + `currentTopology` globals, mutated only via setters
 - `src/views/` — per-game view adapters (`GameView` in `kit.ts`), registry in `index.ts`
-  - Encapsulate game-specific DOM: cell creation, status text, info panel copy, sizing
+  - Encapsulate game-specific DOM: cell creation, status text, info panel copy, sizing (`size()` is a method so Go can report its per-game board size; others return a constant)
   - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan)
   - Direction: render.ts -> views -> wrappers; views never import render.ts
 - `src/render.ts` — the shell; all shared DOM
@@ -55,7 +55,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - Tessellation: plane cell (R,C) displays board cell `project(R,C)`; tile counts from container size + periods; chess square color from plane parity
   - Zoom (discrete levels 50-200%, CSS vars `--chess-cell`/`--go-cell`; `fitZoomToContainer()` shrinks the initial level until bounded boards fit - phones), pan (pointer events so touch drags work, wrap on periodic axes, clamp on wall axes; play page stacks vertically under 720px), topology overlay (`#topology-overlay`: seams, hatching, labels, legend; off by default, toggled by the sidebar Boundaries checkbox on every topology game — classic's overlay is just the wall border)
 - `src/preview.ts` — canvas particle-flow preview in the landing picker; particles fly through gluings via a continuous extension of `project()`; new topologies animate for free
-- `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES
+- `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES. Go carries an optional `s=<9|13|19>` board-size param (play.html sidebar picker writes it back; the game.html lobby seeds its size select from it)
 - `src/net/` — see `online.md`
 - Pages
   - `landing.ts` — picker: `#topo-list` accordion grouped by tessellation dimension, preview canvas, game options, verdict badge, `#play-btn`; playground/challenge `#mode-toggle`; `#move-alert` your-move nudge in the site menu (lazy net import, gated on the cached `sb-*-auth-token` localStorage key so signed-out visitors do no auth work, hidden unless active games wait on you)

@@ -55,7 +55,7 @@ export const snakeView: GameView = {
   usesTopology: true,
   showsPassButton: false,
   cellBase: SNAKE_CELL,
-  size: SNAKE_SIZE,
+  size: () => SNAKE_SIZE,
 
   reset: () => {
     resetSnake();

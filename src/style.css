@@ -152,6 +152,38 @@ button:active,
   display: block;
 }
 
+/* Go board-size picker (offline playground only; a new game starts on change) */
+#size-control {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+#size-control.visible {
+  display: flex;
+}
+
+.size-label {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 4px;
+}
+
+.size-btn {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.size-btn.active {
+  background: var(--ink);
+  color: var(--panel);
+}
+
 #about-link {
   display: block;
 }

@@ -5,19 +5,23 @@
 import { Color } from './engine/core';
 import { currentTopology } from './state';
 import {
-  GoState, GoBoard, GO_SIZE, KOMI, STAR_POINTS, goModule,
+  GoState, GoBoard, GO_SIZE, GO_SIZES, KOMI, starPoints, goModule,
   initialGoState, isValidGoMove as coreValid,
   applyGoPlace, applyGoPass, scoreGo as coreScore, GoScore,
 } from './engine/games/go';
 import type { OnlineOpts } from './views/kit';
 
-export { GO_SIZE, KOMI, STAR_POINTS };
+export { GO_SIZE, GO_SIZES, KOMI, starPoints };
 export type { GoStone, GoBoard, GoScore } from './engine/games/go';
+
+// Size used for the next new local game (the size picker writes it).
+let preferredSize: number = GO_SIZE;
 
 let state: GoState = initialGoState(currentTopology);
 
 // Live bindings read by render.ts.
 export let goBoard: GoBoard = state.board;
+export let goSize: number = state.size;
 export let goCurrentTurn: Color = state.turn;
 export let goGameOver: boolean = state.gameOver;
 export let goPasses: number = state.passes;
@@ -30,6 +34,7 @@ let onCommit: ((move: unknown) => void) | null = null;
 
 function sync(): void {
   goBoard = state.board;
+  goSize = state.size;
   goCurrentTurn = state.turn;
   goGameOver = state.gameOver;
   goPasses = state.passes;
@@ -38,8 +43,14 @@ function sync(): void {
 }
 
 export function resetGo(): void {
-  state = initialGoState(currentTopology);
+  state = initialGoState(currentTopology, preferredSize);
   sync();
+}
+
+// Set the board size for subsequent local games; the caller resets/rerenders.
+export function setGoSize(size: number): void {
+  if (!GO_SIZES.includes(size)) return;
+  preferredSize = size;
 }
 
 export function loadGoState(serialized: unknown): void {

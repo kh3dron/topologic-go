@@ -36,7 +36,7 @@ export const hexView: GameView = {
   usesTopology: false,
   showsPassButton: false,
   cellBase: HEX_CELL,
-  size: 0,
+  size: () => 0,
 
   reset: () => resetHex(),
   loadState: (s) => loadHexState(s),

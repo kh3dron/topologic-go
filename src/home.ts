@@ -10,7 +10,7 @@ import { hasSupabase } from './net/client';
 import { fetchProfile, onAuthChange, signOut, updateUsername, type Profile } from './net/auth';
 import { renderAuthPanel } from './net/auth-ui';
 import { el, section } from './net/ui';
-import { cancelGame, joinGame, listMyGames, type GameRow } from './net/games';
+import { cancelGame, goBoardSizeOf, joinGame, listMyGames, type GameRow } from './net/games';
 import {
   acceptFriend, fetchProfiles, listFriendships, removeFriendship, requestFriend,
   subscribeSocial, type FriendEdge,
@@ -22,7 +22,8 @@ mountVersionBadge();
 const panel = document.getElementById('hub-panel')!;
 
 function variantLabel(g: GameRow): string {
-  const name = GAMES.get(g.variant)?.name ?? g.variant;
+  const sz = goBoardSizeOf(g);
+  const name = (GAMES.get(g.variant)?.name ?? g.variant) + (sz ? ` ${sz}×${sz}` : '');
   const topo = g.topology && usesTopology(g.variant) ? TOPOLOGY_MAP.get(g.topology)?.name : null;
   return topo ? `${name} · ${topo}` : name;
 }

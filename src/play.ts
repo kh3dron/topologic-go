@@ -1,7 +1,7 @@
 import { currentGame, currentTopology, setCurrentGame, setTopology } from './state';
 import { TOPOLOGY_MAP } from './topology';
 import { viewFor } from './views';
-import { passGoTurn } from './go';
+import { GO_SIZE, passGoTurn, setGoSize } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
 import { clickHyper, hyperBoard, hyperCurrentTurn, hyperGameOver, HYPER_CELL_COUNT } from './hyperchess';
 import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
@@ -13,6 +13,10 @@ import {
 import { mountVersionBadge } from './version';
 
 const onlineId = new URLSearchParams(window.location.search).get('online');
+
+// Go board size for local games; the sidebar picker changes it and starts a
+// new game (a placed board can't be resized in place).
+let goBoardSize = GO_SIZE;
 
 mountVersionBadge();
 
@@ -85,8 +89,24 @@ function bootOffline(): void {
   const params = readVariantParams();
   setCurrentGame(params.game);
   if (TOPOLOGY_MAP.has(params.topoId)) setTopology(params.topoId);
+  if (params.size) {
+    goBoardSize = params.size;
+    setGoSize(goBoardSize);
+  }
 
   document.getElementById('reset')!.addEventListener('click', init);
+
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.size-btn')) {
+    btn.addEventListener('click', () => {
+      const size = Number(btn.dataset.size);
+      if (size === goBoardSize) return;
+      goBoardSize = size;
+      setGoSize(size);
+      syncSizeButtons();
+      updateUrl();
+      init();
+    });
+  }
 
   syncChrome();
   initPanControls();
@@ -139,8 +159,16 @@ function syncChrome(): void {
 
   document.getElementById('game-title')!.textContent = view.name;
   document.getElementById('pass-btn')!.classList.toggle('visible', view.showsPassButton);
+  document.getElementById('size-control')!.classList.toggle('visible', currentGame === 'go');
+  syncSizeButtons();
 
   syncViewControls();
+}
+
+function syncSizeButtons(): void {
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.size-btn')) {
+    btn.classList.toggle('active', Number(btn.dataset.size) === goBoardSize);
+  }
 }
 
 // The boundaries toggle applies to every topology game (walls show on classic
@@ -160,6 +188,7 @@ function syncViewControls(): void {
 }
 
 function updateUrl(): void {
-  history.replaceState(null, '', variantSearch(currentGame, currentTopology.id));
+  const size = currentGame === 'go' && goBoardSize !== GO_SIZE ? goBoardSize : null;
+  history.replaceState(null, '', variantSearch(currentGame, currentTopology.id, size));
 }
 

@@ -18,7 +18,7 @@ export const chessView: GameView = {
   usesTopology: true,
   showsPassButton: false,
   cellBase: CHESS_CELL,
-  size: CHESS_SIZE,
+  size: () => CHESS_SIZE,
 
   reset: () => resetChess(),
   loadState: (s) => loadChessState(s),

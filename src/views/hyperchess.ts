@@ -117,7 +117,7 @@ export const hyperView: GameView = {
   usesTopology: false,
   showsPassButton: false,
   cellBase: HYPER_CELL,
-  size: 0,
+  size: () => 0,
 
   reset: () => {
     resetHyper();

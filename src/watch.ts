@@ -6,7 +6,7 @@
 import { GAMES, usesTopology } from './engine';
 import { TOPOLOGY_MAP } from './topology';
 import { hasSupabase } from './net/client';
-import { listActiveGames, type GameRow } from './net/games';
+import { goBoardSizeOf, listActiveGames, type GameRow } from './net/games';
 import { fetchProfiles } from './net/social';
 import { el, section } from './net/ui';
 import { mountVersionBadge } from './version';
@@ -16,7 +16,8 @@ mountVersionBadge();
 const panel = document.getElementById('watch-panel')!;
 
 function variantLabel(g: GameRow): string {
-  const name = GAMES.get(g.variant)?.name ?? g.variant;
+  const sz = goBoardSizeOf(g);
+  const name = (GAMES.get(g.variant)?.name ?? g.variant) + (sz ? ` ${sz}×${sz}` : '');
   const topo = g.topology && usesTopology(g.variant) ? TOPOLOGY_MAP.get(g.topology)?.name : null;
   return topo ? `${name} · ${topo}` : name;
 }

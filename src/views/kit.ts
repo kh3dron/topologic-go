@@ -54,7 +54,7 @@ export interface GameView {
   usesTopology: boolean;
   showsPassButton: boolean;
   cellBase: number;   // base cell px (pre-zoom)
-  size: number;       // canonical board size for square-grid; 0 for custom
+  size(): number;     // current board size for square-grid (Go's is configurable); 0 for custom
 
   reset(): void;
   status(): string;

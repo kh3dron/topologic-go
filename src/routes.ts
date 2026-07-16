@@ -5,12 +5,14 @@
 
 import { GameType } from './state';
 import { GAMES, usesTopology } from './engine';
+import { GO_SIZES } from './engine/games/go';
 
 export type PlayMode = 'playground' | 'challenge';
 
 export interface VariantParams {
   game: GameType;
   topoId: string;
+  size: number | null; // Go board size (s), null when absent/invalid
 }
 
 export function readVariantParams(): VariantParams {
@@ -18,13 +20,16 @@ export function readVariantParams(): VariantParams {
   const g = params.get('g');
   const game = (g && GAMES.has(g) ? g : 'chess') as GameType;
   const topoId = params.get('t') || 'classic';
-  return { game, topoId };
+  const s = Number(params.get('s'));
+  const size = game === 'go' && GO_SIZES.includes(s) ? s : null;
+  return { game, topoId, size };
 }
 
-export function variantSearch(game: GameType, topoId: string): string {
+export function variantSearch(game: GameType, topoId: string, size?: number | null): string {
   const params = new URLSearchParams();
   params.set('g', game);
   if (usesTopology(game)) params.set('t', topoId);
+  if (game === 'go' && size != null && GO_SIZES.includes(size)) params.set('s', String(size));
   return `?${params.toString()}`;
 }
 

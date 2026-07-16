@@ -53,3 +53,4 @@ server-authoritative validation with the shared engine, Realtime sync.
 - [x] Full-page layout; topology overlay + legend; zoom (50%-200%, cursor-anchored) and universal drag-pan
 - [x] About page (`about.html`) with per-topology articles + references, generated from the registry
 - [x] Online play on Supabase: accounts + registration, friends, challenges, share-link joins, account hub, server-authoritative moves + Realtime sync (`docs/online.md`)
+- [x] Go board size option (9x9 / 13x13 / 19x19): sidebar picker in the playground (`?s=` deep link), size select in the online lobby via `create-game` options; size lives in `board_state`, no schema change

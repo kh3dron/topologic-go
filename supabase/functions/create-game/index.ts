@@ -14,13 +14,16 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     if (!user) return json({ error: 'unauthorized' }, 401);
 
-    const { variant, topology, opponent } = await req.json();
+    const { variant, topology, opponent, options } = await req.json();
     if (typeof variant !== 'string') return json({ error: 'variant required' }, 400);
     if (opponent != null && typeof opponent !== 'string') return json({ error: 'invalid opponent' }, 400);
     if (opponent === user.id) return json({ error: 'cannot challenge yourself' }, 400);
+    if (options != null && (typeof options !== 'object' || Array.isArray(options))) {
+      return json({ error: 'invalid options' }, 400);
+    }
 
-    // Throws on unknown variant/topology -> caught below as 400.
-    const { boardState } = initialBoardState(variant, topology ?? null);
+    // Throws on unknown variant/topology/options -> caught below as 400.
+    const { boardState } = initialBoardState(variant, topology ?? null, options ?? undefined);
 
     const svc = serviceClient();
 

@@ -56,7 +56,7 @@ function isGrid(): boolean {
 }
 
 function boardSize(): number {
-  return currentView().size;
+  return currentView().size();
 }
 
 function zoomedCell(base: number): number {
