@@ -221,6 +221,7 @@ button:active,
   display: flex;
   justify-content: center;
   align-items: center;
+  touch-action: none;
 }
 
 #board-container.pannable {
@@ -1033,6 +1034,7 @@ body.catalog-page {
 }
 
 #catalog-header {
+  position: relative;
   border-bottom: 1px solid var(--line);
   padding-bottom: 16px;
   margin-bottom: 20px;
@@ -1050,12 +1052,15 @@ body.catalog-page {
   padding-bottom: 0;
 }
 
+/* Out of flow so the your-move alert appearing never reflows the header. */
 .site-menu {
+  position: absolute;
+  top: 4px;
+  right: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-  padding-top: 4px;
 }
 
 .site-menu a {
@@ -1460,6 +1465,55 @@ body.catalog-page {
   padding: 8px 0;
 }
 
+/* Play page on phones: the desktop grid (sidebar / board / info) stacks into
+   a compact control bar, a board that owns most of the viewport, and the info
+   panel below. */
+@media (max-width: 720px) {
+  body:has(#app) {
+    overflow: auto;
+    height: auto;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    width: 100%;
+  }
+
+  #sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 8px;
+    overflow: visible;
+  }
+
+  #sidebar h1 {
+    font-size: 0.95rem;
+    border-bottom: none;
+    padding-bottom: 0;
+    letter-spacing: 1px;
+  }
+
+  #game-area {
+    height: 70vh;
+    height: 70dvh;
+  }
+
+  #drag-hint {
+    display: none !important;
+  }
+
+  #info-panel {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
 @media (max-width: 900px) {
   .picker {
     grid-template-columns: 1fr;
@@ -1468,6 +1522,14 @@ body.catalog-page {
   .picker-list,
   .picker-start {
     position: static;
+  }
+
+  /* Back in flow as a single row so it cannot overlap the blurb. */
+  .site-menu {
+    position: static;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
   }
 }
 
@@ -1923,4 +1985,48 @@ body.challenge-page {
   border: 1px solid var(--line);
   font: inherit;
   font-size: 0.85rem;
+}
+
+/* ==================== PLAYERS + WATCH ==================== */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.stats-table th {
+  text-align: left;
+  font-weight: normal;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ink-dim);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.stats-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(136, 136, 136, 0.2);
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stats-table th:nth-child(2),
+.stats-table th:nth-child(3),
+.stats-table th:nth-child(4),
+.stats-num,
+.stats-act {
+  text-align: right;
+}
+
+.stats-num {
+  color: var(--ink-dim);
+}
+
+.watch-meta {
+  color: var(--ink-dim);
+  font-size: 0.75rem;
 }

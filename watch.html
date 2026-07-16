@@ -4,15 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account - Topologic Games</title>
+  <title>Watch - Topologic Games</title>
   <meta property="og:site_name" content="Topologic Games">
-  <meta property="og:title" content="Topologic Games - Account">
-  <meta property="og:description" content="Your games, challenges, and friends.">
+  <meta property="og:title" content="Topologic Games - Watch live">
+  <meta property="og:description" content="Drop in on chess and Go games in progress, live on impossible boards.">
   <meta property="og:image" content="https://games.kh3dron.net/og.png">
-  <meta property="og:url" content="https://games.kh3dron.net/home.html">
+  <meta property="og:url" content="https://games.kh3dron.net/watch.html">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="description" content="Your games, challenges, and friends.">
+  <meta name="description" content="Drop in on chess and Go games in progress, live on impossible boards.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="/src/style.css">
 </head>
@@ -22,21 +22,21 @@
     <header id="challenge-header">
       <a href="./index.html" class="challenge-back">&larr; Catalog</a>
       <span class="challenge-header-right">
+        <a href="./home.html" class="challenge-back">Account</a>
         <a href="./players.html" class="challenge-back">Players</a>
-        <a href="./watch.html" class="challenge-back">Watch</a>
-        <span class="challenge-tag">Account</span>
+        <span class="challenge-tag">Watch</span>
       </span>
     </header>
 
     <main id="challenge-main" class="hub-main">
       <div class="hub-wrap">
         <div class="challenge-kicker">Online play</div>
-        <h1 class="hub-heading">Your account</h1>
-        <div id="hub-panel" class="hub-panel"></div>
+        <h1 class="hub-heading">Live games</h1>
+        <div id="watch-panel" class="hub-panel"></div>
       </div>
     </main>
   </div>
-  <script type="module" src="/src/home.ts"></script>
+  <script type="module" src="/src/watch.ts"></script>
 </body>
 
 </html>

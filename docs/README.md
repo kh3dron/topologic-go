@@ -35,7 +35,10 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 
 - `index.html` — catalog landing: Mario-Kart-style picker (`src/landing.ts`)
 - `play.html` — the game UI: local hotseat, or online board via `?online=<gameId>` (`src/play.ts`)
-- `game.html` — online lobby: sign-in, create/join (`src/game.ts`)
+- `game.html` — online lobby: sign-in, create/join/directed challenge (`src/game.ts`)
+- `home.html` — account hub: profile, games, challenges, friends (`src/home.ts`)
+- `players.html` — all players with stats + challenge links (`src/players.ts`)
+- `watch.html` — spectate live games (`src/watch.ts`)
 - `about.html` — spec page + live census table (`src/about.ts`)
 - Deep links: `?g=<gameId>&t=<topologyId>` (t only for square-grid games)
 

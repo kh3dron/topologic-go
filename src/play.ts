@@ -7,8 +7,8 @@ import { clickHyper, hyperBoard, hyperCurrentTurn, hyperGameOver, HYPER_CELL_COU
 import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
 import { readVariantParams, variantSearch } from './routes';
 import {
-  initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries, startSliding,
-  stopSliding, updateModeDescription, updateStatus, zoomStep
+  fitZoomToContainer, initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries,
+  startSliding, stopSliding, updateModeDescription, updateStatus, zoomStep
 } from './render';
 import { mountVersionBadge } from './version';
 
@@ -65,6 +65,9 @@ async function bootOnline(id: string): Promise<void> {
     // Pass-button visibility is owned by online.ts (the seat can be claimed
     // from the banner after load).
     syncViewControls();
+    fitZoomToContainer();
+    requestPanReset();
+    renderBoard();
     updateModeDescription();
   } catch (err) {
     const status = document.getElementById('status')!;
@@ -87,6 +90,7 @@ function bootOffline(): void {
 
   syncChrome();
   initPanControls();
+  fitZoomToContainer();
   updateModeDescription();
   updateUrl();
   init();

@@ -62,6 +62,27 @@ export async function listOpenGames(): Promise<GameRow[]> {
   return data ?? [];
 }
 
+// Live games for the spectator browse page, most recently moved first.
+export async function listActiveGames(): Promise<GameRow[]> {
+  const { data } = await requireClient()
+    .from('games')
+    .select('*')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(50);
+  return data ?? [];
+}
+
+// Finished games, for player win/played stats (games are world-readable).
+export async function listFinishedGames(): Promise<Pick<GameRow, 'white_player' | 'black_player' | 'winner'>[]> {
+  const { data } = await requireClient()
+    .from('games')
+    .select('white_player, black_player, winner')
+    .eq('status', 'done')
+    .limit(1000);
+  return data ?? [];
+}
+
 // Everything on my plate: games I'm seated in (waiting or active) plus
 // challenges directed at me. Callers partition by status/invite.
 export async function listMyGames(userId: string): Promise<GameRow[]> {

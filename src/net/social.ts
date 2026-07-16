@@ -26,6 +26,17 @@ export async function findProfileByUsername(username: string): Promise<Profile |
   return data;
 }
 
+// Every registered player, best rating first (profiles are world-readable).
+export async function listProfiles(): Promise<Profile[]> {
+  const { data } = await requireClient()
+    .from('profiles')
+    .select('id, username, rating')
+    .order('rating', { ascending: false })
+    .order('username')
+    .limit(500);
+  return data ?? [];
+}
+
 export async function fetchProfiles(ids: string[]): Promise<Map<string, Profile>> {
   if (ids.length === 0) return new Map();
   const { data } = await requireClient()

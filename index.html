@@ -5,6 +5,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Topologic Games</title>
+  <meta property="og:site_name" content="Topologic Games">
+  <meta property="og:title" content="Topologic Games">
+  <meta property="og:description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <meta property="og:image" content="https://games.kh3dron.net/og.png">
+  <meta property="og:url" content="https://games.kh3dron.net/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="/src/style.css">
 </head>
 
@@ -16,16 +25,20 @@
         <nav class="site-menu">
           <a href="./home.html">Account</a>
           <a id="move-alert" class="move-alert" href="./home.html" hidden></a>
+          <a href="./players.html">Players</a>
+          <a href="./watch.html">Watch</a>
           <a href="./about.html">About</a>
         </nav>
       </div>
-      <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes only what happens at the edges - wrap, reflect, rotate, or wall - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
+      <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes behavior at the edges: wraps,
+        reflections, rotations - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
     </header>
 
     <div class="picker">
       <aside class="picker-list">
         <span class="step-label">1 &middot; Choose a board</span>
-        <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off" spellcheck="false">
+        <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off"
+          spellcheck="false">
         <div id="topo-list"></div>
         <p id="catalog-empty" hidden>No geometries match.</p>
       </aside>

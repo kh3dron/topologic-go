@@ -100,6 +100,9 @@ const preview = createPreview(document.getElementById('preview-canvas') as HTMLC
 let selectedId = 'classic';
 let selectedGame: GameType = 'chess';
 let mode: PlayMode = 'playground';
+// Directed-challenge opponent (profile id), carried opaquely from the players
+// page into the lobby via the launch link.
+let opponent: string | null = null;
 
 const itemEls = new Map<string, HTMLButtonElement>();
 const groupEls = new Map<string, HTMLElement>();
@@ -202,7 +205,9 @@ function buildGameOptions(entry: Entry): void {
 function updateLaunch(): void {
   const entry = entryById.get(selectedId)!;
   const gameName = entry.games.find(g => g.id === selectedGame)?.name ?? 'game';
-  playBtn.href = variantHref(mode, selectedGame, entry.topoId);
+  const withOpponent = opponent && mode === 'challenge' && !GAMES.get(selectedGame)?.soloOnly;
+  playBtn.href = variantHref(mode, selectedGame, entry.topoId)
+    + (withOpponent ? `&opponent=${opponent}` : '');
   playBtn.innerHTML = `Play ${gameName} <span aria-hidden="true">&rarr;</span>`;
 
   if (selectedGame === 'snake') {
@@ -213,7 +218,8 @@ function updateLaunch(): void {
     verdictEl.textContent = '';
   }
 
-  history.replaceState(null, '', variantSearch(selectedGame, entry.topoId));
+  history.replaceState(null, '', variantSearch(selectedGame, entry.topoId)
+    + (opponent ? `&opponent=${opponent}` : ''));
 }
 
 // ==================== SEARCH + COLLAPSE ====================
@@ -285,6 +291,7 @@ function boot(): void {
   const params = new URLSearchParams(window.location.search);
   const g = params.get('g');
   const t = params.get('t');
+  opponent = params.get('opponent');
   if (g && GAMES.has(g)) selectedGame = g as GameType;
 
   let startId = 'classic';

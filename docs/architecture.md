@@ -53,7 +53,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/render.ts` — the shell; all shared DOM
   - Immediate mode: `renderBoard()` clears `#board` and rebuilds on every state change
   - Tessellation: plane cell (R,C) displays board cell `project(R,C)`; tile counts from container size + periods; chess square color from plane parity
-  - Zoom (discrete levels 50-200%, CSS vars `--chess-cell`/`--go-cell`), pan (wrap on periodic axes, clamp on wall axes), topology overlay (`#topology-overlay`: seams, hatching, labels, legend; off by default, toggled by the sidebar Boundaries checkbox on every topology game — classic's overlay is just the wall border)
+  - Zoom (discrete levels 50-200%, CSS vars `--chess-cell`/`--go-cell`; `fitZoomToContainer()` shrinks the initial level until bounded boards fit - phones), pan (pointer events so touch drags work, wrap on periodic axes, clamp on wall axes; play page stacks vertically under 720px), topology overlay (`#topology-overlay`: seams, hatching, labels, legend; off by default, toggled by the sidebar Boundaries checkbox on every topology game — classic's overlay is just the wall border)
 - `src/preview.ts` — canvas particle-flow preview in the landing picker; particles fly through gluings via a continuous extension of `project()`; new topologies animate for free
 - `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES
 - `src/net/` — see `online.md`

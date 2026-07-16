@@ -23,6 +23,8 @@ export default defineConfig({
         game: resolve(__dirname, 'game.html'),
         home: resolve(__dirname, 'home.html'),
         about: resolve(__dirname, 'about.html'),
+        players: resolve(__dirname, 'players.html'),
+        watch: resolve(__dirname, 'watch.html'),
       },
     },
   },

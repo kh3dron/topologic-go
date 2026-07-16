@@ -132,6 +132,20 @@ export function resetZoom(): void {
   zoomStep(DEFAULT_ZOOM_INDEX - zoomIndex);
 }
 
+// Shrink the initial zoom until the whole board fits the container - never
+// grows it. Phones land with the full board visible instead of a cropped
+// corner. Tessellated boards are unbounded, so they keep the default and pan.
+export function fitZoomToContainer(): void {
+  if (!isGrid() || currentTopology.tessellated) return;
+  const containerEl = document.getElementById('board-container')!;
+  const fit = Math.min(containerEl.clientWidth, containerEl.clientHeight);
+  if (fit === 0) return;
+  const base = boardSize() * currentView().cellBase;
+  while (zoomIndex > 0 && base * ZOOM_LEVELS[zoomIndex] > fit) zoomIndex--;
+  applyCellVars();
+  updateZoomLabel();
+}
+
 // ==================== BOARD RENDERING ====================
 export function renderBoard(): void {
   const boardEl = document.getElementById('board')!;
@@ -484,7 +498,10 @@ export function initPanControls(): void {
   let dragStartPanX = 0;
   let dragStartPanY = 0;
 
-  containerEl.addEventListener('mousedown', (e) => {
+  // Pointer events cover mouse and touch with one path; #board-container sets
+  // touch-action: none so the browser hands us the gesture instead of
+  // scrolling. Taps still arrive as plain clicks on the cells.
+  containerEl.addEventListener('pointerdown', (e) => {
     dragDistance = 0;
     if (!isPannable) return;
     // Lock the board while a piece/cell is selected so a drag doesn't misfire.
@@ -498,7 +515,7 @@ export function initPanControls(): void {
   });
 
   let panFrameId: number | null = null;
-  document.addEventListener('mousemove', (e) => {
+  document.addEventListener('pointermove', (e) => {
     if (!isPanning) return;
     const dx = e.clientX - dragStartX;
     const dy = e.clientY - dragStartY;
@@ -514,10 +531,12 @@ export function initPanControls(): void {
     }
   });
 
-  document.addEventListener('mouseup', () => {
+  const endPan = () => {
     isPanning = false;
     suppressHoverSync = false;
-  });
+  };
+  document.addEventListener('pointerup', endPan);
+  document.addEventListener('pointercancel', endPan);
 
   // A release at the end of a real drag must not count as a move: swallow the
   // click before it reaches the square/intersection underneath.

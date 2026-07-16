@@ -20,6 +20,7 @@ mountVersionBadge();
 
 const params = new URLSearchParams(window.location.search);
 const joinId = params.get('join');
+const opponentId = params.get('opponent');
 
 const { game, topoId } = readVariantParams();
 
@@ -64,6 +65,32 @@ async function renderLobby(userId: string, name: string): Promise<void> {
   links.append(account, out);
   head.appendChild(links);
   panel.appendChild(head);
+
+  // -------- directed challenge (carried from the players page) --------
+  if (opponentId && opponentId !== userId) {
+    const opp = (await fetchProfiles([opponentId]).catch(() => new Map())).get(opponentId);
+    if (opp) {
+      const dSec = section(`Challenge ${opp.username}`);
+      panel.appendChild(dSec.root);
+      const dMsg = el('p', 'auth-msg');
+      const send = el('button', 'lobby-btn', `Challenge ${opp.username} to ${gameLabel}`);
+      send.addEventListener('click', async () => {
+        send.disabled = true;
+        try {
+          const { game: g } = await createGame(game, usesTopology(game) ? topoId : null, opp.id);
+          location.href = online(g.id);
+        } catch (err) {
+          send.disabled = false;
+          dMsg.textContent = `Could not create challenge: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      });
+      dSec.body.append(
+        send,
+        el('p', 'auth-msg', `Only ${opp.username} can take the seat; they see it on their account page.`),
+        dMsg,
+      );
+    }
+  }
 
   // -------- open game --------
   const startSec = section('Open game');
