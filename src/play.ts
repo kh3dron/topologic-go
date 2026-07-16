@@ -49,11 +49,10 @@ if (onlineId) {
 
 // ==================== ONLINE MODE ====================
 async function bootOnline(id: string): Promise<void> {
-  // Hide the offline chrome: game/topology are fixed by the game row.
-  for (const sel of ['#reset', '#slide-control', '#boundary-control']) {
-    const el = document.querySelector<HTMLElement>(sel);
-    if (el) el.style.display = 'none';
-  }
+  // Hide the offline chrome: game/topology are fixed by the game row. The
+  // view-only toggles (boundaries, animate) stay - syncViewControls() shows
+  // them once the game row has set game + topology.
+  document.getElementById('reset')!.style.display = 'none';
 
   initPanControls();
 
@@ -65,6 +64,7 @@ async function bootOnline(id: string): Promise<void> {
     document.getElementById('game-title')!.textContent = view.name;
     // Pass-button visibility is owned by online.ts (the seat can be claimed
     // from the banner after load).
+    syncViewControls();
     updateModeDescription();
   } catch (err) {
     const status = document.getElementById('status')!;
@@ -136,13 +136,19 @@ function syncChrome(): void {
   document.getElementById('game-title')!.textContent = view.name;
   document.getElementById('pass-btn')!.classList.toggle('visible', view.showsPassButton);
 
+  syncViewControls();
+}
+
+// The boundaries toggle applies to every topology game (walls show on classic
+// too); the slide animation only makes sense on tessellated topologies.
+function syncViewControls(): void {
+  const view = viewFor(currentGame);
   const topo = view.usesTopology;
   const tess = topo && currentTopology.tessellated;
   const slideControl = document.getElementById('slide-control')!;
   const slideCheckbox = document.getElementById('slide-board') as HTMLInputElement;
-  const boundaryControl = document.getElementById('boundary-control')!;
+  document.getElementById('boundary-control')!.classList.toggle('visible', topo);
   slideControl.classList.toggle('visible', tess);
-  boundaryControl.classList.toggle('visible', tess);
   if (!tess) {
     slideCheckbox.checked = false;
     stopSliding();

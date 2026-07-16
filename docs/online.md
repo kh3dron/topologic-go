@@ -48,7 +48,7 @@ move loop (both):
 
 ## Backend (`supabase/`)
 
-- `migrations/` — schema, applied in filename order: game-agnostic tables + RLS + signup trigger + realtime (`init`), atomic move RPC (`apply_move`), friendships + `games.invited_player` + username rules (`social`)
+- `migrations/` — schema, applied in filename order: game-agnostic tables + RLS + signup trigger + realtime (`init`), atomic move RPC (`apply_move`), friendships + `games.invited_player` + username rules (`social`), `game_types` registration of later games (`hyperchess`). Registering a game in code without the matching `game_types` INSERT fails at create-game with a `games_variant_fkey` violation
 - `functions/` — the only privileged game writers:
   - `create-game(variant, topology?, opponent?)` — canonical initial state; `opponent` (profile id) makes it a directed challenge via `invited_player`
   - `join-game(game_id)` — atomically claims the open seat; enforces the invite when `invited_player` is set

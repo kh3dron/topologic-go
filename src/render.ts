@@ -34,7 +34,7 @@ let slideAnimationId: number | null = null;
 const SLIDE_SPEED_X = 0.3;
 const SLIDE_SPEED_Y = 0.2;
 
-let showBoundaries = true;
+let showBoundaries = false;
 
 // Handed to view methods so cell/board renderers can trigger re-render + read
 // live shell state without importing render.ts (keeps render -> views one-way).
@@ -162,6 +162,11 @@ export function renderBoard(): void {
       boardEl.style.gridTemplateRows = `repeat(${boardSize()}, ${cellPx()}px)`;
       renderPlaneCells(boardEl, 1, 1);
     }
+
+    // On non-tessellated boards the overlay is just the wall border.
+    if (showBoundaries) {
+      boardEl.appendChild(createTopologyOverlay());
+    }
   }
 
   if (shouldResetPanPosition) {
@@ -191,10 +196,6 @@ function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void
   boardEl.style.gridTemplateRows = `repeat(${tilesY * size}, ${cellPx()}px)`;
 
   renderPlaneCells(boardEl, tilesX, tilesY);
-
-  if (showBoundaries) {
-    boardEl.appendChild(createTopologyOverlay());
-  }
 }
 
 // Renders every plane cell of the (tx x ty)-board region through project(),
@@ -266,17 +267,21 @@ function createTopologyOverlay(): HTMLElement {
       if (wallX && tileCol === 0) tile.classList.add('wall-left');
       if (wallX && tileCol === tilesX - 1) tile.classList.add('wall-right');
 
-      const glyph = document.createElement('div');
-      glyph.className = 'topo-glyph';
-      glyph.textContent = '▲';
-      glyph.style.transform = orient.cssTransform;
-      tile.appendChild(glyph);
+      // Orientation glyph + label identify tile copies; a lone non-tessellated
+      // board has none, so its overlay is just the wall border.
+      if (topo.tessellated) {
+        const glyph = document.createElement('div');
+        glyph.className = 'topo-glyph';
+        glyph.textContent = '▲';
+        glyph.style.transform = orient.cssTransform;
+        tile.appendChild(glyph);
 
-      const label = document.createElement('div');
-      label.className = 'topo-label';
-      label.textContent = orient.label;
-      if (!orient.identity) label.classList.add('transformed');
-      tile.appendChild(label);
+        const label = document.createElement('div');
+        label.className = 'topo-label';
+        label.textContent = orient.label;
+        if (!orient.identity) label.classList.add('transformed');
+        tile.appendChild(label);
+      }
 
       appendSeamArrows(tile, tileRow, tileCol, size, cell, coloring);
 
