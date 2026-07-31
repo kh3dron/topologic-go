@@ -41,6 +41,11 @@ jobs:
 
   build-and-deploy:
     needs: release
+    # Deploy even if `release` fails: semantic-release depends on the GitHub API
+    # (verifyConditions), which can return transient 5xx/HTML errors unrelated to
+    # the app. A flaky release step must not block Pages deploys. Release failures
+    # stay visible (red job) but non-blocking.
+    if: always()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
