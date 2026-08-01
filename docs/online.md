@@ -1,6 +1,6 @@
 # Online play
 
-Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLOYMENT.md`; provisioning in `../supabase/README.md`.
+Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLOYMENT.md`. Since 2026-07-28 the backend is SELF-HOSTED: the same Supabase services run in Docker on `lawrence` behind Caddy at `https://games-api.kh3dron.net` (`../selfhost/README.md`). The hosted-project provisioning notes in `../supabase/README.md` are legacy.
 
 ## Shape
 
@@ -60,8 +60,8 @@ move loop (both):
   - `cancel-game(game_id)` — deletes a `waiting` game; creator cancels, invitee declines. Active games end through resign/mate, never cancellation
   - `submit-move(game_id, expected_ply, move)` — validates with the shared engine, applies atomically via the `apply_move` RPC
   - `submit-snake-score(topology, food_rands, events)` — the snake leaderboard's only write path. Replays the client's run log through the shared engine (`food_rands` = the Math.random values food placement consumed, `events` = tick runs as positive ints + steer codes -1..-4 in applied order) and derives the score itself; a bare number is never trusted. Upserts `snake_scores` (best per player per topology) only when the run beats the stored best
-- Personal-account project; do NOT provision under a company Supabase org
-- `scripts/smoke-online.mjs` — full handshake against the live project: throwaway users, legal/illegal/out-of-turn/stale moves, username registration + collision, friendship RLS (forged insert, self-accept), challenge gating, cancel/decline, snake scores (hand-crafted deterministic run logs: replay accepted, unfinished log rejected, direct insert blocked, best-per-topology upsert). Needs `SUPABASE_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY`
+- `functions/main/` — self-host only: the edge-runtime router that dispatches `/functions/v1/<name>` to the sibling directories. Never deployed to hosted Supabase
+- `scripts/smoke-online.mjs` — full handshake against the live backend: throwaway users, legal/illegal/out-of-turn/stale moves, username registration + collision, friendship RLS (forged insert, self-accept), challenge gating, cancel/decline, snake scores (hand-crafted deterministic run logs: replay accepted, unfinished log rejected, direct insert blocked, best-per-topology upsert). Needs `SUPABASE_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY` — for the local stack, `SUPABASE_URL=http://127.0.0.1:8000` and the keys from `selfhost/.env`
 
 ## Gotchas
 

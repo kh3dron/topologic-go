@@ -4,6 +4,15 @@ Design doc for putting topologic-go on `games.kh3dron.net` with user accounts an
 online games, using **server-authoritative move validation**. Scoped to a low-traffic
 hobby deployment.
 
+> **STATUS 2026-07-28: the backend moved off hosted Supabase.** The free tier
+> pauses after ~7 idle days, so the identical service set (Postgres, GoTrue,
+> PostgREST, Realtime, edge-runtime, Kong) now runs in Docker on `lawrence`
+> behind Caddy at `https://games-api.kh3dron.net` — see `selfhost/README.md`.
+> Everything below (schema, RLS, Edge Functions, Realtime flow, shared engine)
+> is unchanged and still authoritative; only "managed service at *.supabase.co"
+> reads as "containers on lawrence". The frontend still uses supabase-js with
+> the same two env vars.
+
 ## Principles
 
 - The frontend is static (Vite build, zero runtime deps). It never needs a "real server."

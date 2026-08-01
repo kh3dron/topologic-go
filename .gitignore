@@ -8,3 +8,10 @@ dist
 
 # Supabase CLI local state
 supabase/.temp
+
+# Self-hosted stack: Postgres data dir (never commit)
+selfhost/volumes/db/data
+
+# Cloudflare Tunnel credentials (never commit) — config.yml is safe to track
+selfhost/cloudflared/creds.json
+selfhost/cloudflared/cert.pem

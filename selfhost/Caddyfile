@@ -1,0 +1,26 @@
+# Public TLS front for the self-hosted Supabase stack. Source of truth lives
+# in the repo; installed copy: /opt/homebrew/etc/Caddyfile (brew caddy reads
+# that path). Only the four API prefixes are exposed - Studio (kong's catch-all
+# route) stays localhost-only.
+#
+# TLS: Caddy obtains the certificate via TLS-ALPN-01, so only router port 443
+# needs forwarding to this machine (80 optional, enables HTTP-01 + redirects).
+#
+# Ports: tailscaled owns *:443 (tailscale serve) on this Mac, so Caddy listens
+# on 9443/9080 instead. The router remaps: external 443 -> lawrence:9443,
+# external 80 -> lawrence:9080. ACME challenges arrive through the remap.
+
+{
+	http_port 9080
+	https_port 9443
+}
+
+games-api.kh3dron.net {
+	@api path /auth/v1/* /rest/v1/* /realtime/v1/* /functions/v1/*
+	handle @api {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle {
+		respond "not found" 404
+	}
+}

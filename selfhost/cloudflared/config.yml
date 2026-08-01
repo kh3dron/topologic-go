@@ -1,0 +1,26 @@
+# Cloudflare Tunnel config for the self-hosted Supabase stack.
+#
+# Replaces the Caddy + router-port-forward front (Xfinity refuses inbound 443,
+# so no port-forward path works). cloudflared makes an OUTBOUND connection to
+# Cloudflare's edge; Cloudflare terminates public TLS for games-api.kh3dron.net
+# and forwards requests down the tunnel to kong. No inbound ports, no ACME.
+#
+# Requires: kh3dron.net DNS hosted on Cloudflare (full setup), a named tunnel
+# created with `cloudflared tunnel create topologic-go`, and the proxied DNS
+# route `cloudflared tunnel route dns topologic-go games-api.kh3dron.net`.
+# Fill `tunnel:` with the UUID that `tunnel create` prints.
+
+tunnel: b24c40ac-d41f-49c2-b715-f8340643ccb7
+credentials-file: /etc/cloudflared/creds.json
+no-autoupdate: true
+
+# Only the four public Supabase API prefixes reach kong; everything else
+# (Studio lives at kong's catch-all "/") is 404'd at the edge. This mirrors the
+# old Caddy allow-list (selfhost/Caddyfile) exactly.
+ingress:
+  - hostname: games-api.kh3dron.net
+    path: ^/(auth|rest|realtime|functions)/v1(/.*)?$
+    service: http://kong:8000
+  - hostname: games-api.kh3dron.net
+    service: http_status:404
+  - service: http_status:404

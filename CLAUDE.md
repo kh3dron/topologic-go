@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Pushes to `main` auto-deploy to GitHub Pages via `.github/workflows/static.yml` (builds `dist/`, uploads as Pages artifact)
 - `vite.config.ts` sets `base: './'` so assets resolve under the Pages subpath — keep relative paths
+- The online backend is self-hosted Supabase in Docker on this machine (`selfhost/README.md`); `supabase/` holds the migrations + Edge Functions it serves
 
 ## Architecture
 
@@ -41,4 +42,4 @@ The core abstraction: every variant is the same game played on a quotient of the
 
 Layout: full-viewport CSS grid — left sidebar (game/mode/controls), center game area (status bar with zoom controls + board container), right info panel (rules, edge spec, legend). Cell sizing: base constants live in `render.ts` (`CHESS_CELL`/`GO_CELL`); the zoomed pixel size is pushed into the CSS custom properties `--chess-cell`/`--go-cell`, which all size-dependent CSS derives from via `calc()` — change sizes in one place each. Zoom (discrete levels 50%-200%, wheel is cursor-anchored) re-renders the board at a new cell size; pan wraps on periodic axes and clamps on wall axes, and `#board` is always absolutely positioned (classic centering comes from the clamp logic, and a zoomed-in classic board becomes draggable).
 
-Known TODOs live in `TODO.md`; topology catalog and variant ideas in `TOPOLOGIES.md`.
+Active TODOs live in DOCKET (project `topologic-go`, `source=topologic-go`, web UI `http://lawrence:8080`) — this repo no longer tracks to-dos in-tree. Topology catalog and variant ideas in `TOPOLOGIES.md`.

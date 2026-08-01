@@ -1,7 +1,14 @@
 # supabase/
 
-Backend for online play (see `../DEPLOYMENT.md` for the full design). This is a
-personal-account project — do NOT provision it in any company Supabase org.
+Backend for online play (see `../DEPLOYMENT.md` for the full design).
+
+> **STATUS 2026-07-28: production runs SELF-HOSTED** (`../selfhost/`), not on
+> supabase.com. This directory stays the source of truth for migrations and
+> Edge Functions — the local stack applies/serves them directly
+> (`selfhost/scripts/apply-migrations.sh`; functions are bind-mounted).
+> `functions/main/` is the self-host router, not a deployable function.
+> The provisioning steps below are legacy, kept for reference. If you do
+> provision a hosted project again: personal account only, never a company org.
 
 ## Layout
 

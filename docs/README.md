@@ -5,7 +5,7 @@ Orientation for humans and agents. Read this first, then the file that matches y
 ## What this project is
 
 - Browser games (chess, Go, hex chess, snake) played on non-standard board topologies (torus, Mobius, Klein bottle, ...)
-- Vanilla TypeScript + Vite, no framework; optional Supabase backend for online play
+- Vanilla TypeScript + Vite, no framework; optional Supabase backend for online play (self-hosted in Docker since 2026-07-28, see `../selfhost/README.md`)
 - Core idea: every square-grid variant is the same game on a quotient of the infinite plane, defined by one function `project(row, col, size) -> cell | null`
 - Research stance: rules are NEVER patched per topology; degenerate games (torus chess = mate at move 0) are findings, not bugs
 
@@ -16,8 +16,9 @@ Orientation for humans and agents. Read this first, then the file that matches y
 - `online.md` — online play: net layer, Supabase backend, smoke test
 - `../TOPOLOGIES.md` — topology catalog, census table, math background, ideas
 - `../DEPLOYMENT.md` — online-play design doc (hosting, server-authoritative validation)
-- `../TODO.md` — backlog
-- `../supabase/README.md` — backend provisioning
+- Backlog / to-dos: **DOCKET** (project `topologic-go`, web UI `http://lawrence:8080`) — not tracked in-repo
+- `../supabase/README.md` — backend schema + functions layout
+- `../selfhost/README.md` — the self-hosted Supabase stack that serves production (Docker on `lawrence`)
 
 ## Quick commands
 
