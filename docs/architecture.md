@@ -4,7 +4,7 @@ Layered: pure engine at the bottom, DOM at the top. Dependencies point down only
 
 ```
 pages:      landing.ts   play.ts   game.ts   about.ts        (one per HTML entry)
-shell:      render.ts   preview.ts   routes.ts   version.ts
+shell:      render.ts   preview.ts   routes.ts   version.ts   history.ts
 views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,snake}.ts  (VIEWS registry)
 wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  snake.ts  state.ts  (module-global live state)
 net:        net/{client,auth,games,online}.ts                 (optional Supabase)
@@ -57,10 +57,11 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/preview.ts` — canvas particle-flow preview in the landing picker; particles fly through gluings via a continuous extension of `project()`; new topologies animate for free
 - `src/sound.ts` — synthesized WebAudio effects, no audio assets: `playStoneSound()` (Go stone clack — fired by `placeGoStone` locally and by `net/online.ts` for opponent stones), `initSound()` installs a one-time pointer-gesture unlock so Realtime-delivered moves are audible under browser autoplay policy
 - `src/routes.ts` — `readVariantParams()`, `variantHref()`, `variantSearch()`; derives from GAMES. Go carries an optional `s=<9|13|19>` board-size param (play.html sidebar picker writes it back; the game.html lobby seeds its size select from it)
+- `src/history.ts` — offline undo stack + localStorage persistence, generic over `GameView.saveState()`/`loadState()` (engine serializers). `updateStatus()` calls `historyOnStateChange()`, which pushes a snapshot when the serialized state changed (dedup filters selection-only refreshes). In-memory stack holds serialized objects (engines copy-on-write, so entries share structure; capped at 400 plies); localStorage gets only the current state under `topologic.save.<game>[.<topoId>][.<size>]` because Go snapshots embed the superko `seen` list and a persisted stack would grow quadratically. Armed only by `play.ts` `bootOffline()`; online games never arm; snake has no `saveState` and gets neither undo nor persistence. New Game clears the save; a wrong-version or unreadable save is discarded at boot
 - `src/net/` — see `online.md`
 - Pages
   - `landing.ts` — picker: `#topo-list` accordion grouped by tessellation dimension, preview canvas, game options, verdict badge, `#play-btn`; playground/challenge `#mode-toggle`; `#move-alert` your-move nudge in the site menu (lazy net import, gated on the cached `sb-*-auth-token` localStorage key so signed-out visitors do no auth work, hidden unless active games wait on you)
-  - `play.ts` — boots offline (hotseat, from `?g=&t=`) or online (`?online=<id>`, lazy-imports net/online so Supabase stays out of the offline bundle); exposes `window.__topo.project` and `window.__hex` debug hooks
+  - `play.ts` — boots offline (hotseat, from `?g=&t=`; restores the variant's saved game from localStorage via `history.ts`, else starts fresh) or online (`?online=<id>`, lazy-imports net/online so Supabase stays out of the offline bundle; hides New Game + Undo); exposes `window.__topo.project` and `window.__hex` debug hooks
   - `game.ts` — lobby: magic-link auth, create/join/list open games, redirect to `play.html?online=<id>`
   - `about.ts` — renders catalog entries + census table from the registries
 

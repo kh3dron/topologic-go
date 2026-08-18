@@ -1,4 +1,5 @@
 import { currentGame, currentTopology } from './state';
+import { historyOnStateChange } from './history';
 import { SEAM_SCHEME_COLORS, SeamColoring, seamColor, seamColoring, tileOrientation } from './topology';
 import { RenderDeps, VIEWS, viewFor } from './views';
 
@@ -595,6 +596,7 @@ export function stopSliding(): void {
 
 // ==================== STATUS & INFO PANEL ====================
 export function updateStatus(): void {
+  historyOnStateChange();
   document.getElementById('status')!.textContent = currentView().status();
   const hud = document.getElementById('score-hud');
   if (hud) {

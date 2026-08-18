@@ -1,7 +1,7 @@
 import { Topology } from '../topology';
 import {
   KOMI, starPoints, goBoard, goSize, goCurrentTurn, goGameOver, goCaptures, goLastMove,
-  canPlayGoNow, isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, setGoOnline,
+  canPlayGoNow, isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, serializeGo, setGoOnline,
 } from '../go';
 import { CellOpts, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
 
@@ -32,6 +32,7 @@ export const goView: GameView = {
 
   reset: () => resetGo(),
   loadState: (s) => loadGoState(s),
+  saveState: () => serializeGo(),
   setOnline: (o) => setGoOnline(o),
 
   status(): string {

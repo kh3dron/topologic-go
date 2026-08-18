@@ -49,6 +49,10 @@ export function loadHexState(serialized: unknown): void {
   sync();
 }
 
+export function serializeHex(): unknown {
+  return hexModule.serialize(state);
+}
+
 export function setHexOnline(opts: OnlineOpts): void {
   engaged = opts.engaged;
   lockColor = opts.lockColor;

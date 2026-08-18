@@ -59,6 +59,10 @@ export function loadGoState(serialized: unknown): void {
   sync();
 }
 
+export function serializeGo(): unknown {
+  return goModule.serialize(state);
+}
+
 export function setGoOnline(opts: OnlineOpts): void {
   engaged = opts.engaged;
   lockColor = opts.lockColor;

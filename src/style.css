@@ -152,6 +152,8 @@ button:active,
   display: block;
 }
 
+.action-btn:disabled { opacity: 0.5; cursor: default; }
+
 /* Go board-size picker (offline playground only; a new game starts on change) */
 #size-control {
   display: none;

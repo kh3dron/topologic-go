@@ -68,6 +68,10 @@ export interface GameView {
   loadState(serialized: unknown): void;
   setOnline(opts: OnlineOpts): void;
 
+  // Serialize the current local state (undo history + localStorage
+  // persistence, src/history.ts). Games without it (snake) get neither.
+  saveState?(): unknown;
+
   // True when a piece/cell is selected, so the shell locks board panning.
   selectionActive?(): boolean;
 

@@ -10,6 +10,7 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
 
 - `scripts/census.ts` prints MOVE-0 / singular cells / verdict for every (game, topology) — the fastest signal that engine or registry changes are sane
 - `scripts/smoke-online.mjs` — end-to-end backend smoke (needs SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY env; creates and cleans up throwaway users)
+- `scripts/smoke-ui.mjs` — headless-Chromium UI smoke over the built `dist/` (landing picker, one chess move, one Go stone, about census). Needs `npm run build` first plus `npm i --no-save playwright && npx playwright install chromium`. CI (`.github/workflows/ci.yml`) runs typecheck + census + build + this smoke on every PR and push to `main`
 
 ## Driving the UI (Playwright)
 
@@ -22,6 +23,7 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
 - Playground (`/play.html?g=<game>&t=<topo>`):
   - Status: `#status`; info panel: `#mode-description`, `#mode-article`, `#mode-spec`, `#mode-links`
   - Variant is fixed by URL; switching happens back on the landing (`#catalog-link`)
+  - Offline games auto-restore from localStorage (`topologic.save.*`, see `src/history.ts`); drivers that need a fresh board must click `#reset` or clear storage first (a fresh Playwright context is already clean). `#undo-btn` reverts one ply; hidden online and for snake, disabled at ply zero
   - Clicking canonical cell (r,c): cells are `.square, .void-cell` (chess/snake) or `.go-intersection, .void-cell` (Go); index i maps to plane cell `(floor(i/cols), i%cols)` with cols = length of `#board`'s computed `grid-template-columns`; find an i where `window.__topo.project(R, C, size)` equals the target and the rect is inside `#board-container`, then `.click()` it
   - Hyperbolic chess (`?g=hyperchess`) has no DOM cells: it renders to `.hyper-canvas`. Drive moves via `window.__hyper.click(cellId)` (plus `board() / turn() / over() / cellCount()`); real-mouse tests must compute Poincare-disk coordinates themselves (view home is centred on the white queen's forward edge; the spine runs vertically)
   - Overlay: `#topology-overlay`, `.topo-tile`, `.topo-label` (ORIGINAL / REFLECTED / ROTATED 90|180|270)

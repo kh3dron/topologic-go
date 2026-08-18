@@ -1,7 +1,7 @@
 import { Topology } from '../topology';
 import {
   CHESS_SIZE, PIECE_SYMBOLS, chessBoard, chessCurrentTurn, selectedSquare, chessGameOver,
-  clickChessSquare, getLegalDestinations, isInCheck, resetChess, loadChessState, setChessOnline,
+  clickChessSquare, getLegalDestinations, isInCheck, resetChess, loadChessState, serializeChess, setChessOnline,
 } from '../chess';
 import { CellOpts, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
 
@@ -22,6 +22,7 @@ export const chessView: GameView = {
 
   reset: () => resetChess(),
   loadState: (s) => loadChessState(s),
+  saveState: () => serializeChess(),
   setOnline: (o) => setChessOnline(o),
 
   selectionActive: () => selectedSquare !== null,

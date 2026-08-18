@@ -5,6 +5,7 @@ import { GO_SIZE, passGoTurn, setGoSize } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
 import { clickHyper, hyperBoard, hyperCurrentTurn, hyperGameOver, HYPER_CELL_COUNT } from './hyperchess';
 import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
+import { armHistory, clearHistory, restoreSavedGame, undoMove } from './history';
 import { readVariantParams, variantSearch } from './routes';
 import {
   fitZoomToContainer, initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries,
@@ -27,6 +28,13 @@ document.getElementById('pass-btn')!.addEventListener('click', () => {
   passGoTurn();
   updateStatus();
   renderBoard();
+});
+
+document.getElementById('undo-btn')!.addEventListener('click', () => {
+  if (undoMove()) {
+    updateStatus();
+    renderBoard();
+  }
 });
 
 document.getElementById('slide-board')!.addEventListener('change', (e) => {
@@ -59,6 +67,7 @@ async function bootOnline(id: string): Promise<void> {
   // view-only toggles (boundaries, animate) stay - syncViewControls() shows
   // them once the game row has set game + topology.
   document.getElementById('reset')!.style.display = 'none';
+  document.getElementById('undo-btn')!.style.display = 'none';
 
   initPanControls();
 
@@ -106,6 +115,7 @@ function bootOffline(): void {
       setGoSize(size);
       syncSizeButtons();
       updateUrl();
+      armHistory(playStateKey());
       init();
     });
   }
@@ -115,7 +125,14 @@ function bootOffline(): void {
   fitZoomToContainer();
   updateModeDescription();
   updateUrl();
-  init();
+  armHistory(playStateKey());
+  if (restoreSavedGame()) {
+    requestPanReset();
+    updateStatus();
+    renderBoard();
+  } else {
+    init();
+  }
 
   // Hex chess debug hook: drive moves and read state from headless tests.
   (window as unknown as Record<string, unknown>).__hex = {
@@ -147,6 +164,7 @@ function bootOffline(): void {
 }
 
 function init(): void {
+  clearHistory();
   viewFor(currentGame).reset();
   requestPanReset();
   updateStatus();
@@ -161,6 +179,7 @@ function syncChrome(): void {
 
   document.getElementById('game-title')!.textContent = view.name;
   document.getElementById('pass-btn')!.classList.toggle('visible', view.showsPassButton);
+  document.getElementById('undo-btn')!.classList.toggle('visible', view.saveState !== undefined);
   document.getElementById('size-control')!.classList.toggle('visible', currentGame === 'go');
   syncSizeButtons();
 
@@ -192,5 +211,13 @@ function syncViewControls(): void {
 function updateUrl(): void {
   const size = currentGame === 'go' && goBoardSize !== GO_SIZE ? goBoardSize : null;
   history.replaceState(null, '', variantSearch(currentGame, currentTopology.id, size));
+}
+
+// localStorage key for the current offline variant's saved game.
+function playStateKey(): string {
+  const parts = ['topologic', 'save', currentGame];
+  if (viewFor(currentGame).usesTopology) parts.push(currentTopology.id);
+  if (currentGame === 'go') parts.push(String(goBoardSize));
+  return parts.join('.');
 }
 

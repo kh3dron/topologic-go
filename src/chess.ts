@@ -50,6 +50,10 @@ export function loadChessState(serialized: unknown): void {
   sync();
 }
 
+export function serializeChess(): unknown {
+  return chessModule.serialize(state);
+}
+
 export function setChessOnline(opts: OnlineOpts): void {
   engaged = opts.engaged;
   lockColor = opts.lockColor;

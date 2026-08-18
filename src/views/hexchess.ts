@@ -2,7 +2,7 @@ import { Topology } from '../topology';
 import { PIECE_SYMBOLS } from '../chess';
 import {
   allHexCells, hexKey, hexColorIndex, hexBoard, hexCurrentTurn, hexSelected, hexGameOver,
-  hexLegalDestinations, hexCheckedKingKey, isHexInCheck, clickHex, resetHex, loadHexState, setHexOnline,
+  hexLegalDestinations, hexCheckedKingKey, isHexInCheck, clickHex, resetHex, loadHexState, serializeHex, setHexOnline,
 } from '../hexchess';
 import { Extent, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
 
@@ -40,6 +40,7 @@ export const hexView: GameView = {
 
   reset: () => resetHex(),
   loadState: (s) => loadHexState(s),
+  saveState: () => serializeHex(),
   setOnline: (o) => setHexOnline(o),
 
   selectionActive: () => hexSelected !== null,

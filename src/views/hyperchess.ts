@@ -3,7 +3,7 @@ import { PIECE_SYMBOLS } from '../chess';
 import {
   hyperBoard, hyperSelected, hyperCurrentTurn, hyperGameOver,
   hyperLegalDestinations, hyperCheckedKingCell, isHyperInCheck,
-  clickHyper, resetHyper, loadHyperState, setHyperOnline,
+  clickHyper, resetHyper, loadHyperState, serializeHyper, setHyperOnline,
   hyperCells, hyperNeighbors, HYPER_BASE_BOUNDARY, HYPER_VIEW_HOME,
   HYPER_INRADIUS, HYPER_CIRCUMRADIUS, HYPER_CELL_COUNT,
   mobMul, mobInverse, mobApply, mobTranslation0, mobDistRatio,
@@ -124,6 +124,7 @@ export const hyperView: GameView = {
     viewT = homeView();
   },
   loadState: (s) => loadHyperState(s),
+  saveState: () => serializeHyper(),
   setOnline: (o) => setHyperOnline(o),
 
   selectionActive: () => hyperSelected !== null,

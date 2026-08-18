@@ -50,6 +50,10 @@ export function loadHyperState(serialized: unknown): void {
   sync();
 }
 
+export function serializeHyper(): unknown {
+  return hyperModule.serialize(state);
+}
+
 export function setHyperOnline(opts: OnlineOpts): void {
   engaged = opts.engaged;
   lockColor = opts.lockColor;
