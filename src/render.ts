@@ -1,7 +1,7 @@
 import { currentGame, currentTopology } from './state';
 import { historyOnStateChange } from './history';
 import { SEAM_SCHEME_COLORS, SeamColoring, seamColor, seamColoring, tileOrientation } from './topology';
-import { RenderDeps, VIEWS, viewFor } from './views';
+import { CellOpts, GameView, RenderDeps, VIEWS, viewFor } from './views';
 
 const MAX_ARROWS_PER_EDGE = 8;
 
@@ -153,12 +153,15 @@ export function renderBoard(): void {
   const containerEl = document.getElementById('board-container')!;
   const view = currentView();
 
+  if (tryUpdateInPlace(boardEl, containerEl, view)) return;
+
   boardEl.innerHTML = '';
   boardEl.style.width = '';
   boardEl.style.height = '';
   boardEl.style.display = '';
   boardEl.className = `${view.id}-board`;
   cursorEls = new Map();
+  gridCache = [];
 
   if (view.family === 'custom') {
     tilesX = 1;
@@ -185,6 +188,16 @@ export function renderBoard(): void {
     }
   }
 
+  lastGrid = view.family !== 'custom' && view.updateCell ? {
+    viewId: view.id,
+    topoId: currentTopology.id,
+    size: boardSize(),
+    cell: cellPx(),
+    tx: tilesX,
+    ty: tilesY,
+    overlay: showBoundaries,
+  } : null;
+
   if (shouldResetPanPosition) {
     const [ex, ey] = boardExtent();
     panOffsetX = Math.round((containerEl.clientWidth - ex) / 2);
@@ -196,23 +209,75 @@ export function renderBoard(): void {
   applyKbCursor();
 }
 
-function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void {
-  const size = boardSize();
+// Tile counts covering the container. Pan wrapping keeps left/top in
+// [-period, 0), so one period of padding beyond the container fully covers
+// the viewport.
+function tileCounts(containerEl: HTMLElement): [number, number] {
+  if (!currentTopology.tessellated) return [1, 1];
   const board = boardPx();
   const containerW = containerEl.clientWidth || 800;
   const containerH = containerEl.clientHeight || 600;
-  const periodXPx = currentTopology.periodX ? currentTopology.periodX * board : null;
-  const periodYPx = currentTopology.periodY ? currentTopology.periodY * board : null;
+  return [
+    currentTopology.periodX ? Math.ceil((containerW + currentTopology.periodX * board) / board) : 1,
+    currentTopology.periodY ? Math.ceil((containerH + currentTopology.periodY * board) / board) : 1,
+  ];
+}
 
-  // Pan wrapping keeps left/top in [-period, 0), so one period of padding
-  // beyond the container fully covers the viewport.
-  tilesX = periodXPx ? Math.ceil((containerW + periodXPx) / board) : 1;
-  tilesY = periodYPx ? Math.ceil((containerH + periodYPx) / board) : 1;
+function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void {
+  const size = boardSize();
+  [tilesX, tilesY] = tileCounts(containerEl);
 
   boardEl.style.gridTemplateColumns = `repeat(${tilesX * size}, ${cellPx()}px)`;
   boardEl.style.gridTemplateRows = `repeat(${tilesY * size}, ${cellPx()}px)`;
 
   renderPlaneCells(boardEl, tilesX, tilesY);
+}
+
+// ==================== IN-PLACE RENDER FAST PATH ====================
+// When only game state changed (a move, a selection), the grid geometry -
+// game, topology, size, zoom, tile counts, overlay - is identical, so the
+// existing cell elements (and their listeners, which close over canonical
+// coordinates) are still valid. Views implementing updateCell get their cells
+// resynced in place instead of a teardown + rebuild of the whole plane;
+// gridCache remembers each DOM index's canonical cell and CellOpts from the
+// last full build, so this path performs no project() calls at all.
+interface GridSig {
+  viewId: string;
+  topoId: string;
+  size: number;
+  cell: number;
+  tx: number;
+  ty: number;
+  overlay: boolean;
+}
+let lastGrid: GridSig | null = null;
+let gridCache: ({ row: number; col: number; opts: CellOpts } | null)[] = [];
+
+function tryUpdateInPlace(boardEl: HTMLElement, containerEl: HTMLElement, view: GameView): boolean {
+  if (!lastGrid || !view.updateCell || view.family === 'custom') return false;
+  if (shouldResetPanPosition) return false; // new game / boot recenters via the full path
+
+  const size = boardSize();
+  const [tx, ty] = tileCounts(containerEl);
+  if (
+    lastGrid.viewId !== view.id || lastGrid.topoId !== currentTopology.id ||
+    lastGrid.size !== size || lastGrid.cell !== cellPx() ||
+    lastGrid.tx !== tx || lastGrid.ty !== ty || lastGrid.overlay !== showBoundaries
+  ) return false;
+  const cellCount = tx * size * ty * size;
+  if (gridCache.length !== cellCount) return false;
+  if (boardEl.childElementCount !== cellCount + (showBoundaries ? 1 : 0)) return false;
+
+  view.prepareRender?.();
+  // Snapshot the live HTMLCollection: cell mutations inside the loop would
+  // invalidate its index cache and turn indexed access O(n^2).
+  const cells = Array.from(boardEl.children) as HTMLElement[];
+  for (let i = 0; i < cellCount; i++) {
+    const gc = gridCache[i];
+    if (gc) view.updateCell(cells[i], gc.row, gc.col, gc.opts);
+  }
+  applyKbCursor();
+  return true;
 }
 
 // Renders every plane cell of the (tx x ty)-board region through project(),
@@ -229,10 +294,11 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
         const voidCell = document.createElement('div');
         voidCell.className = 'void-cell';
         boardEl.appendChild(voidCell);
+        gridCache.push(null);
         continue;
       }
       const [row, col] = p;
-      const cellEl = view.createCell!(row, col, {
+      const opts: CellOpts = {
         light: (R + C) % 2 === 0,
         walls: {
           top: !currentTopology.project(R - 1, C, size),
@@ -240,8 +306,10 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
           left: !currentTopology.project(R, C - 1, size),
           right: !currentTopology.project(R, C + 1, size),
         },
-      }, deps);
+      };
+      const cellEl = view.createCell!(row, col, opts, deps);
       boardEl.appendChild(cellEl);
+      gridCache.push({ row, col, opts });
       const key = `${row},${col}`;
       const list = cursorEls.get(key);
       if (list) list.push(cellEl);

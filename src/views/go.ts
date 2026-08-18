@@ -66,43 +66,8 @@ export const goView: GameView = {
 
   createCell(row: number, col: number, opts: CellOpts, deps: RenderDeps): HTMLElement {
     const intersection = document.createElement('div');
-    intersection.className = 'go-intersection';
-
-    const key = `${row},${col}`;
-    const mapped = intersectionMap.get(key);
-    if (mapped) mapped.push(intersection); else intersectionMap.set(key, [intersection]);
-
-    if (opts.walls.top) intersection.classList.add('edge-top');
-    if (opts.walls.bottom) intersection.classList.add('edge-bottom');
-    if (opts.walls.left) intersection.classList.add('edge-left');
-    if (opts.walls.right) intersection.classList.add('edge-right');
-
-    if (starSet.has(key) && !goBoard[row][col]) {
-      intersection.classList.add('star-point');
-      const starDot = document.createElement('div');
-      starDot.className = 'star-dot';
-      intersection.appendChild(starDot);
-    }
-
-    const stone = goBoard[row][col];
-    if (stone) {
-      intersection.classList.add('has-stone');
-      const stoneEl = document.createElement('div');
-      stoneEl.className = `go-stone ${stone}-stone`;
-      intersection.appendChild(stoneEl);
-    }
-
-    if (goLastMove && goLastMove[0] === row && goLastMove[1] === col) {
-      intersection.classList.add('last-move');
-    }
-
-    if (!stone && validCache[row][col]) {
-      intersection.classList.add('valid-move');
-      intersection.classList.add(`${goCurrentTurn}-turn`);
-      const ghostStone = document.createElement('div');
-      ghostStone.className = `ghost-stone ${goCurrentTurn}-ghost`;
-      intersection.appendChild(ghostStone);
-    }
+    registerIntersection(intersection, row, col);
+    syncIntersection(intersection, row, col, opts);
 
     intersection.addEventListener('click', () => {
       if (goGameOver) return;
@@ -123,4 +88,62 @@ export const goView: GameView = {
 
     return intersection;
   },
+
+  updateCell(el: HTMLElement, row: number, col: number, opts: CellOpts): void {
+    registerIntersection(el, row, col); // prepareRender cleared the hover map
+    syncIntersection(el, row, col, opts);
+  },
 };
+
+function registerIntersection(el: HTMLElement, row: number, col: number): void {
+  const key = `${row},${col}`;
+  const mapped = intersectionMap.get(key);
+  if (mapped) mapped.push(el); else intersectionMap.set(key, [el]);
+}
+
+// Signature of the last-applied presentation per element, so the in-place
+// update touches only cells that actually changed.
+const cellSig = new WeakMap<HTMLElement, string>();
+
+// Desired presentation of the intersection, shared by create and in-place
+// update. Children (star dot / stone / ghost) are rebuilt only when the
+// signature moved.
+function syncIntersection(el: HTMLElement, row: number, col: number, opts: CellOpts): void {
+  const key = `${row},${col}`;
+  let cls = 'go-intersection';
+  if (opts.walls.top) cls += ' edge-top';
+  if (opts.walls.bottom) cls += ' edge-bottom';
+  if (opts.walls.left) cls += ' edge-left';
+  if (opts.walls.right) cls += ' edge-right';
+
+  const stone = goBoard[row][col];
+  const star = starSet.has(key) && !stone;
+  const ghost = !stone && validCache[row][col];
+  if (star) cls += ' star-point';
+  if (stone) cls += ' has-stone';
+  if (goLastMove && goLastMove[0] === row && goLastMove[1] === col) cls += ' last-move';
+  if (ghost) cls += ` valid-move ${goCurrentTurn}-turn`;
+
+  const sig = `${cls}|${stone ?? ''}`;
+  if (cellSig.get(el) === sig) return;
+  cellSig.set(el, sig);
+
+  el.className = cls;
+  const kids: HTMLElement[] = [];
+  if (star) {
+    const starDot = document.createElement('div');
+    starDot.className = 'star-dot';
+    kids.push(starDot);
+  }
+  if (stone) {
+    const stoneEl = document.createElement('div');
+    stoneEl.className = `go-stone ${stone}-stone`;
+    kids.push(stoneEl);
+  }
+  if (ghost) {
+    const ghostStone = document.createElement('div');
+    ghostStone.className = `ghost-stone ${goCurrentTurn}-ghost`;
+    kids.push(ghostStone);
+  }
+  el.replaceChildren(...kids);
+}

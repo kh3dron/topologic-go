@@ -81,6 +81,12 @@ export interface GameView {
   // square-grid hooks
   prepareRender?(): void;                                                   // reset per-render caches
   createCell?(row: number, col: number, opts: CellOpts, deps: RenderDeps): HTMLElement;
+  // In-place resync of a cell made by createCell, for the fast render path
+  // (render.ts reuses the grid DOM when its geometry is unchanged). Updates
+  // classes/content only - listeners survive with the element - and must redo
+  // any per-render cache registration createCell does (prepareRender cleared
+  // those caches). Games without it always get the full rebuild.
+  updateCell?(el: HTMLElement, row: number, col: number, opts: CellOpts): void;
 
   // custom-render hook; returns the on-screen extent so pan/centering works
   renderCustom?(boardEl: HTMLElement, cellPx: number, deps: RenderDeps): Extent;

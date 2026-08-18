@@ -45,20 +45,7 @@ export const chessView: GameView = {
 
   createCell(row: number, col: number, opts: CellOpts, deps: RenderDeps): HTMLElement {
     const square = document.createElement('div');
-    square.className = 'square ' + (opts.light ? 'light' : 'dark');
-
-    if (selectedSquare && selectedSquare[0] === row && selectedSquare[1] === col) {
-      square.classList.add('selected');
-      if (legalDests && legalDests.size === 0) square.classList.add('no-moves');
-    } else if (legalDests && legalDests.has(`${row},${col}`)) {
-      square.classList.add(chessBoard[row][col] ? 'capturable' : 'moveable');
-    }
-
-    const piece = chessBoard[row][col];
-    if (piece) {
-      square.textContent = PIECE_SYMBOLS[piece.color][piece.type];
-      square.classList.add(piece.color);
-    }
+    syncSquare(square, row, col, opts);
 
     square.addEventListener('click', () => {
       clickChessSquare(row, col);
@@ -68,4 +55,29 @@ export const chessView: GameView = {
 
     return square;
   },
+
+  updateCell(el: HTMLElement, row: number, col: number, opts: CellOpts): void {
+    syncSquare(el, row, col, opts);
+  },
 };
+
+// Desired presentation of the square, shared by create and in-place update.
+function syncSquare(el: HTMLElement, row: number, col: number, opts: CellOpts): void {
+  let cls = 'square ' + (opts.light ? 'light' : 'dark');
+  if (selectedSquare && selectedSquare[0] === row && selectedSquare[1] === col) {
+    cls += ' selected';
+    if (legalDests && legalDests.size === 0) cls += ' no-moves';
+  } else if (legalDests && legalDests.has(`${row},${col}`)) {
+    cls += chessBoard[row][col] ? ' capturable' : ' moveable';
+  }
+
+  const piece = chessBoard[row][col];
+  let glyph = '';
+  if (piece) {
+    glyph = PIECE_SYMBOLS[piece.color][piece.type];
+    cls += ` ${piece.color}`;
+  }
+
+  if (el.className !== cls) el.className = cls;
+  if (el.textContent !== glyph) el.textContent = glyph;
+}
