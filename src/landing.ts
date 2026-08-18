@@ -26,7 +26,7 @@ interface Entry {
   spec: string[];
   search: string;
   badge: string;           // preview caption for boards without a topology
-  preview?: 'hex';         // static preview drawing; undefined = #TODO placeholder
+  preview?: 'hex' | 'hyper'; // static preview drawing; undefined = #TODO placeholder
 }
 
 const topoGames: GameOption[] = [...GAMES.values()]

@@ -11,6 +11,10 @@
 
 import { seamColor, seamColoring, Topology, tileOrientation } from './topology';
 import { allHexCells, hexColorIndex } from './engine/games/hexchess';
+import { HYPER_BASE_BOUNDARY, HYPER_INRADIUS, hyperCells, mobApply } from './engine/games/hyperchess';
+
+// Static preview drawings for non-topology boards; undefined = #TODO placeholder.
+export type StaticPreview = 'hex' | 'hyper';
 
 const SIZE = 8;
 const PAD = 10;
@@ -20,6 +24,9 @@ const LIGHT = '#1c1c1c';
 const DARK = '#171717';
 const BG = '#141414';
 const HEX_COLORS = ['#e8e8e8', '#b0b0b0', '#7d7d7d'];   // Glinski 3-colouring
+const HYPER_LIGHT = '#e8e8e8';
+const HYPER_DARK = '#7d7d7d';
+const HYPER_HORIZON = '#1f1f1f';                        // disk interior behind sub-pixel cells
 const BOUNCE = '#d9d9d9';
 const DOOMED = '#757575';
 
@@ -140,9 +147,9 @@ function buildParticles(topo: Topology): Particle[] {
 
 export interface Preview {
   // Switches the animated board; pass null for a non-topology board, with
-  // `staticKind` naming its static drawing ('hex', or undefined for a #TODO
-  // placeholder). Returns a short caption describing the edge behaviour.
-  setBoard(topo: Topology | null, staticKind?: 'hex'): string;
+  // `staticKind` naming its static drawing (undefined = #TODO placeholder).
+  // Returns a short caption describing the edge behaviour.
+  setBoard(topo: Topology | null, staticKind?: StaticPreview): string;
   destroy(): void;
 }
 
@@ -152,7 +159,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   const inkDim = cssVar('--ink-dim', '#9c9c9c');
 
   let topo: Topology | null = null;
-  let staticBoard: 'hex' | null = null;
+  let staticBoard: StaticPreview | null = null;
   let particles: Particle[] = [];
   let raf = 0;
 
@@ -279,6 +286,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   function render(): void {
     if (topo) drawBoard();
     else if (staticBoard === 'hex') drawHexBoard();
+    else if (staticBoard === 'hyper') drawHyperBoard();
     else drawTodo();
   }
 
@@ -291,7 +299,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   ro.observe(canvas);
 
   return {
-    setBoard(next: Topology | null, staticKind?: 'hex'): string {
+    setBoard(next: Topology | null, staticKind?: StaticPreview): string {
       cancelAnimationFrame(raf);
       topo = next;
       staticBoard = staticKind ?? null;
@@ -354,6 +362,52 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+    }
+  }
+
+  // Static preview for hyperbolic chess: the actual {4,6} board in the Poincare
+  // disk, centred on the base cell (identity view). Each cell's boundary is the
+  // shared HYPER_BASE_BOUNDARY polyline pushed through the cell's Mobius
+  // transform - the same geometry the game view renders - so the checkering and
+  // the crowding toward the horizon are real, not an artist's impression.
+  // Cells whose apparent inradius falls under a pixel threshold are skipped;
+  // the horizon fill stands in for the infinite remainder.
+  function drawHyperBoard(): void {
+    if (cw === 0) resize();
+    if (cw === 0) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, cw, ch);
+
+    const diskR = (Math.min(cw, ch) - 2 * PAD) / 2;
+    const cx = cw / 2;
+    const cy = ch / 2;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, diskR, 0, 2 * Math.PI);
+    ctx.fillStyle = HYPER_HORIZON;
+    ctx.fill();
+    ctx.strokeStyle = inkDim;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.strokeStyle = BG;
+    ctx.lineWidth = 0.75;
+    for (const cell of hyperCells()) {
+      const centre = mobApply(cell.transform, { re: 0, im: 0 });
+      const apparent = HYPER_INRADIUS * ((1 - centre.re * centre.re - centre.im * centre.im) / 2) * diskR;
+      if (apparent < 0.6) continue;
+
+      ctx.beginPath();
+      for (let i = 0; i < HYPER_BASE_BOUNDARY.length; i++) {
+        const z = mobApply(cell.transform, HYPER_BASE_BOUNDARY[i]);
+        const px = cx + z.re * diskR;
+        const py = cy - z.im * diskR;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = cell.light ? HYPER_LIGHT : HYPER_DARK;
+      ctx.fill();
+      if (apparent > 2) ctx.stroke();
     }
   }
 

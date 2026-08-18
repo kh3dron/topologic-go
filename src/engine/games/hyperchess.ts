@@ -707,6 +707,7 @@ export const hyperModule: GameModule<HyperState, HyperMove, null> = {
     surface: '{4,6} tiling of the hyperbolic plane',
     spec: [`${HYPER_CELL_COUNT} CELLS`, 'SIX SQUARES PER VERTEX', 'QUEENS FACE OFF ACROSS A GEODESIC'],
     badge: 'HYPERBOLIC BOARD',
+    preview: 'hyper',
   },
   initialState: () => initialHyperState(),
   isLegalMove: (state, move) => {
