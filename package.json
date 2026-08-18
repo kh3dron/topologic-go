@@ -1,20 +1,15 @@
 {
-  "name": "top_go_2",
+  "name": "topologic-go",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "Chess, Go, hex chess, and snake on non-standard board topologies",
+  "private": true,
+  "type": "module",
+  "license": "ISC",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
     "semantic-release": "^25.0.7",
     "typescript": "^5.9.3",
