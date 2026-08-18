@@ -619,11 +619,28 @@ export function initPanControls(): void {
   let dragStartPanX = 0;
   let dragStartPanY = 0;
 
+  // Pinch zoom: two pointers on the container step the discrete zoom around
+  // their midpoint. The reference distance rebases after each step, so one
+  // continuous pinch can cross several levels. Works regardless of
+  // pannability or selection - a two-finger gesture is unambiguous.
+  const pinchPointers = new Map<number, { x: number; y: number }>();
+  let pinchRefDist: number | null = null;
+  const PINCH_STEP_RATIO = 1.2;
+
   // Pointer events cover mouse and touch with one path; #board-container sets
   // touch-action: none so the browser hands us the gesture instead of
   // scrolling. Taps still arrive as plain clicks on the cells.
   containerEl.addEventListener('pointerdown', (e) => {
     dragDistance = 0;
+    pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinchPointers.size === 2) {
+      isPanning = false;
+      dragDistance = 100; // the eventual release must not click a cell
+      const [a, b] = [...pinchPointers.values()];
+      pinchRefDist = Math.hypot(a.x - b.x, a.y - b.y);
+      e.preventDefault();
+      return;
+    }
     if (!isPannable) return;
     // Lock the board while a piece/cell is selected so a drag doesn't misfire.
     if (currentView().selectionActive?.()) return;
@@ -637,6 +654,25 @@ export function initPanControls(): void {
 
   let panFrameId: number | null = null;
   document.addEventListener('pointermove', (e) => {
+    const pt = pinchPointers.get(e.pointerId);
+    if (pt) {
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+    }
+    if (pinchPointers.size === 2 && pinchRefDist !== null) {
+      const [a, b] = [...pinchPointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (dist > pinchRefDist * PINCH_STEP_RATIO || dist < pinchRefDist / PINCH_STEP_RATIO) {
+        const rect = containerEl.getBoundingClientRect();
+        zoomStep(
+          dist > pinchRefDist ? 1 : -1,
+          (a.x + b.x) / 2 - rect.left,
+          (a.y + b.y) / 2 - rect.top,
+        );
+        pinchRefDist = dist;
+      }
+      return;
+    }
     if (!isPanning) return;
     const dx = e.clientX - dragStartX;
     const dy = e.clientY - dragStartY;
@@ -652,7 +688,9 @@ export function initPanControls(): void {
     }
   });
 
-  const endPan = () => {
+  const endPan = (e: PointerEvent) => {
+    pinchPointers.delete(e.pointerId);
+    if (pinchPointers.size < 2) pinchRefDist = null;
     isPanning = false;
     suppressHoverSync = false;
   };
