@@ -7,7 +7,7 @@
 import { Color } from './engine/core';
 import { currentTopology } from './state';
 import {
-  ChessState, ChessBoard, CHESS_SIZE, PIECE_SYMBOLS, chessModule,
+  ChessState, ChessBoard, CHESS_SIZE, PIECE_SYMBOLS, chessModule, contextOf,
   initialChessState, applyChessMove,
   isLegalChessMove as coreIsLegal,
   getLegalDestinations as coreLegalDests,
@@ -65,11 +65,11 @@ export function isInCheck(color: Color): boolean {
 }
 
 export function isLegalChessMove(fromRow: number, fromCol: number, toRow: number, toCol: number): boolean {
-  return coreIsLegal(state.board, state.topo, [fromRow, fromCol], [toRow, toCol]);
+  return coreIsLegal(state.board, state.topo, [fromRow, fromCol], [toRow, toCol], contextOf(state));
 }
 
 export function getLegalDestinations(fromRow: number, fromCol: number): Set<string> {
-  return coreLegalDests(state.board, state.topo, [fromRow, fromCol]);
+  return coreLegalDests(state.board, state.topo, [fromRow, fromCol], contextOf(state));
 }
 
 export function clickChessSquare(row: number, col: number): void {
@@ -83,7 +83,7 @@ export function clickChessSquare(row: number, col: number): void {
 
     if (fromRow === row && fromCol === col) {
       selectedSquare = null;
-    } else if (coreIsLegal(state.board, state.topo, [fromRow, fromCol], [row, col])) {
+    } else if (coreIsLegal(state.board, state.topo, [fromRow, fromCol], [row, col], contextOf(state))) {
       state = applyChessMove(state, { from: [fromRow, fromCol], to: [row, col] }).state;
       selectedSquare = null;
       sync();
