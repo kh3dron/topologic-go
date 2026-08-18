@@ -30,6 +30,7 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 ```
 
 - No test framework, no linter. Verification = typecheck + census script + driving the UI with Playwright (see `workflows.md`)
+- CI (`.github/workflows/ci.yml`) runs on PRs and pushes to `main`: `tsc --noEmit`, census script, `vite build`, then `scripts/smoke-ui.mjs` (headless-Chromium smoke over `dist/`)
 - Pushes to `main` cut a semantic release (conventional commits) and deploy to GitHub Pages (`.github/workflows/static.yml`)
 
 ## Pages

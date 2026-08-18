@@ -1,0 +1,49 @@
+# PR / main checks: strict typecheck, headless engine census, production build,
+# and a headless-Chromium UI smoke over the built dist/ (scripts/smoke-ui.mjs).
+# Deployment stays in static.yml; this workflow never publishes anything.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Engine census + serializer round-trip
+        run: npx --yes tsx scripts/census.ts
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: UI smoke (headless Chromium over dist/)
+        run: node scripts/smoke-ui.mjs
