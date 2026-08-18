@@ -154,6 +154,13 @@ button:active,
 
 .action-btn:disabled { opacity: 0.5; cursor: default; }
 
+/* Keyboard cursor: highlights every displayed copy of the cursor's cell */
+.kb-cursor {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 2;
+}
+
 /* Go board-size picker (offline playground only; a new game starts on change) */
 #size-control {
   display: none;

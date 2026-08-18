@@ -53,6 +53,9 @@ export interface GameView {
   family: 'square-grid' | 'custom';
   usesTopology: boolean;
   showsPassButton: boolean;
+  // Turn-based square-grid games opt into the shared keyboard cursor
+  // (render.ts): arrows move, Enter/Space activates, Escape hides.
+  keyboardCursor?: boolean;
   cellBase: number;   // base cell px (pre-zoom)
   size(): number;     // current board size for square-grid (Go's is configurable); 0 for custom
 

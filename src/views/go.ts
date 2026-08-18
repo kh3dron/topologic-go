@@ -27,6 +27,7 @@ export const goView: GameView = {
   family: 'square-grid',
   usesTopology: true,
   showsPassButton: true,
+  keyboardCursor: true,
   cellBase: GO_CELL,
   size: () => goSize,
 

@@ -8,8 +8,9 @@ import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSn
 import { armHistory, clearHistory, restoreSavedGame, undoMove } from './history';
 import { readVariantParams, variantSearch } from './routes';
 import {
-  fitZoomToContainer, initPanControls, renderBoard, requestPanReset, resetZoom, setShowBoundaries,
-  startSliding, stopSliding, updateModeDescription, updateStatus, zoomStep
+  activateKbCursor, clearKbCursor, fitZoomToContainer, initPanControls, moveKbCursor, renderBoard,
+  requestPanReset, resetZoom, setShowBoundaries, startSliding, stopSliding, updateModeDescription,
+  updateStatus, zoomStep
 } from './render';
 import { mountVersionBadge } from './version';
 import { initSound } from './sound';
@@ -49,6 +50,29 @@ document.getElementById('show-boundaries')!.addEventListener('change', (e) => {
 document.getElementById('zoom-in')!.addEventListener('click', () => zoomStep(1));
 document.getElementById('zoom-out')!.addEventListener('click', () => zoomStep(-1));
 document.getElementById('zoom-level')!.addEventListener('click', resetZoom);
+
+// Keyboard board cursor (both modes; online move gating lives in the
+// wrappers). Skipped while a control has focus so buttons and links keep
+// their native Enter/Space behaviour.
+window.addEventListener('keydown', (e) => {
+  if (!viewFor(currentGame).keyboardCursor) return;
+  const focused = document.activeElement;
+  if (
+    focused instanceof HTMLElement &&
+    ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'A'].includes(focused.tagName)
+  ) return;
+  switch (e.key) {
+    case 'ArrowUp': moveKbCursor(-1, 0); break;
+    case 'ArrowDown': moveKbCursor(1, 0); break;
+    case 'ArrowLeft': moveKbCursor(0, -1); break;
+    case 'ArrowRight': moveKbCursor(0, 1); break;
+    case 'Enter':
+    case ' ': activateKbCursor(); break;
+    case 'Escape': clearKbCursor(); break;
+    default: return;
+  }
+  e.preventDefault();
+});
 
 // Debug hook for automated browser tests (both modes).
 (window as unknown as Record<string, unknown>).__topo = {

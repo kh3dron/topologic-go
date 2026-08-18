@@ -17,6 +17,7 @@ export const chessView: GameView = {
   family: 'square-grid',
   usesTopology: true,
   showsPassButton: false,
+  keyboardCursor: true,
   cellBase: CHESS_CELL,
   size: () => CHESS_SIZE,
 

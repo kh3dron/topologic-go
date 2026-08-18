@@ -158,6 +158,7 @@ export function renderBoard(): void {
   boardEl.style.height = '';
   boardEl.style.display = '';
   boardEl.className = `${view.id}-board`;
+  cursorEls = new Map();
 
   if (view.family === 'custom') {
     tilesX = 1;
@@ -192,6 +193,7 @@ export function renderBoard(): void {
   }
   updateBoardPosition();
   updateSeamLegend();
+  applyKbCursor();
 }
 
 function renderTessellated(boardEl: HTMLElement, containerEl: HTMLElement): void {
@@ -230,7 +232,7 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
         continue;
       }
       const [row, col] = p;
-      boardEl.appendChild(view.createCell!(row, col, {
+      const cellEl = view.createCell!(row, col, {
         light: (R + C) % 2 === 0,
         walls: {
           top: !currentTopology.project(R - 1, C, size),
@@ -238,9 +240,59 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
           left: !currentTopology.project(R, C - 1, size),
           right: !currentTopology.project(R, C + 1, size),
         },
-      }, deps));
+      }, deps);
+      boardEl.appendChild(cellEl);
+      const key = `${row},${col}`;
+      const list = cursorEls.get(key);
+      if (list) list.push(cellEl);
+      else cursorEls.set(key, [cellEl]);
     }
   }
+}
+
+// ==================== KEYBOARD CURSOR ====================
+// Canonical-cell cursor for keyboard play on square-grid games. An arrow key
+// steps the cursor one plane cell and project() maps the step, so the cursor
+// travels through gluings exactly like a Go liberty; a wall swallows the step.
+// Every displayed copy of the cursor's cell is highlighted, and activation
+// clicks the cell's element so it rides the exact pointer code path.
+let kbCursor: [number, number] | null = null;
+let cursorEls = new Map<string, HTMLElement[]>(); // canonical "r,c" -> elements, rebuilt per render
+
+function applyKbCursor(): void {
+  for (const el of document.querySelectorAll('#board .kb-cursor')) el.classList.remove('kb-cursor');
+  if (!kbCursor) return;
+  const size = boardSize();
+  if (kbCursor[0] >= size || kbCursor[1] >= size) {
+    kbCursor = null; // stale cursor from a larger board (Go size switch)
+    return;
+  }
+  const els = cursorEls.get(`${kbCursor[0]},${kbCursor[1]}`);
+  if (els) for (const el of els) el.classList.add('kb-cursor');
+}
+
+export function moveKbCursor(dr: number, dc: number): void {
+  if (!kbCursor) {
+    const mid = Math.floor(boardSize() / 2);
+    kbCursor = [mid, mid]; // first press reveals the cursor without moving it
+  } else {
+    const p = currentTopology.project(kbCursor[0] + dr, kbCursor[1] + dc, boardSize());
+    if (p) kbCursor = p;
+  }
+  applyKbCursor();
+}
+
+export function activateKbCursor(): void {
+  if (!kbCursor) {
+    moveKbCursor(0, 0);
+    return;
+  }
+  cursorEls.get(`${kbCursor[0]},${kbCursor[1]}`)?.[0]?.click();
+}
+
+export function clearKbCursor(): void {
+  kbCursor = null;
+  applyKbCursor();
 }
 
 // ==================== TOPOLOGY OVERLAY ====================
