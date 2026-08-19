@@ -14,18 +14,33 @@ if (!URL || !ANON || !SVC) { console.error('missing env'); process.exit(2); }
 const results = [];
 const ok = (name, pass, detail = '') => results.push([name, pass, detail]);
 
+// Cloudflare fronts the API, and its edge occasionally answers with a
+// transient HTML error page where JSON belongs; retry those once instead of
+// crashing the run. An empty body (204) is not an error and never retried.
+async function jfetch(url, opts, tries = 2) {
+  for (let i = 1; ; i++) {
+    const r = await fetch(url, opts);
+    const text = await r.text();
+    try {
+      return { status: r.status, body: text ? JSON.parse(text) : null };
+    } catch {
+      if (i >= tries) return { status: r.status, body: null };
+      await new Promise((res) => setTimeout(res, 1500));
+    }
+  }
+}
+
 async function adminCreateUser(email, password, meta) {
-  const r = await fetch(`${URL}/auth/v1/admin/users`, {
+  const { body } = await jfetch(`${URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers: { apikey: SVC, Authorization: `Bearer ${SVC}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, email_confirm: true, user_metadata: meta ?? {} }),
   });
-  const j = await r.json();
-  return j.id;
+  return body?.id;
 }
 // Authenticated PostgREST call with a user token (RLS applies).
-async function rest(path, token, opts = {}) {
-  const r = await fetch(`${URL}/rest/v1/${path}`, {
+function rest(path, token, opts = {}) {
+  return jfetch(`${URL}/rest/v1/${path}`, {
     method: opts.method ?? 'GET',
     headers: {
       apikey: ANON, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json',
@@ -33,30 +48,28 @@ async function rest(path, token, opts = {}) {
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
-  return { status: r.status, body: await r.json().catch(() => null) };
 }
 async function svcSelect(path) {
-  const r = await fetch(`${URL}/rest/v1/${path}`, {
+  const { body } = await jfetch(`${URL}/rest/v1/${path}`, {
     headers: { apikey: SVC, Authorization: `Bearer ${SVC}` },
   });
-  return r.json();
+  return body ?? [];
 }
 async function signIn(email, password) {
-  const r = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
+  const { body } = await jfetch(`${URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: ANON, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  const j = await r.json();
-  return j.access_token;
+  return body?.access_token;
 }
 async function fn(name, token, body) {
-  const r = await fetch(`${URL}/functions/v1/${name}`, {
+  const r = await jfetch(`${URL}/functions/v1/${name}`, {
     method: 'POST',
     headers: { apikey: ANON, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return { status: r.status, body: await r.json().catch(() => ({})) };
+  return { status: r.status, body: r.body ?? {} };
 }
 async function adminDeleteUser(id) {
   await fetch(`${URL}/auth/v1/admin/users/${id}`, {
