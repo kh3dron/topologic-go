@@ -1,6 +1,6 @@
 # Online play
 
-Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLOYMENT.md`. Since 2026-07-28 the backend is SELF-HOSTED: the same Supabase services run in Docker on `lawrence` behind Caddy at `https://games-api.kh3dron.net` (`../selfhost/README.md`). The hosted-project provisioning notes in `../supabase/README.md` are legacy.
+Server-authoritative multiplayer on Supabase. Full design rationale in `../DEPLOYMENT.md`. Since 2026-07-28 the backend is SELF-HOSTED: the same Supabase services run in Docker (on `huey` since 2026-08) behind a Cloudflare Tunnel at `https://games-api.kh3dron.net` (`../selfhost/README.md`). The hosted-project provisioning notes in `../supabase/README.md` are legacy.
 
 ## Shape
 

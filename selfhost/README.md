@@ -6,6 +6,16 @@ reference compose (`supabase/supabase` docker directory, fetched 2026-07-28).
 The frontend keeps `@supabase/supabase-js` unchanged; only `VITE_SUPABASE_URL`
 and `VITE_SUPABASE_ANON_KEY` differ.
 
+> **STATUS 2026-08-19: stack host MOVED to `huey`** (Linux server on the
+> tailnet). The same compose stack + `.env` run from the repo checkout at
+> `/home/tristan/Documents/Github/topologic-go` on huey; docker is
+> systemd-enabled and every container restarts `unless-stopped`, so unattended
+> reboots are covered without LaunchDaemons. cloudflared moved with it (same
+> tunnel + hostname, zero DNS changes). lawrence's containers are stopped and
+> stale. Deploying engine/function changes = `git pull` on huey +
+> `docker compose restart functions`. References to lawrence below are
+> historical; the procedures themselves are unchanged.
+>
 > **STATUS 2026-07-31: Cloudflare Tunnel cutover COMPLETE + verified.** The
 > registrar nameservers were moved to the cloudflare pair, the CF zone is
 > `active`, Universal SSL issued, and the public path works end-to-end:
