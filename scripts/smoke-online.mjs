@@ -219,6 +219,15 @@ try {
     && accepted.body.game?.draw_offer === null,
     `offer=${offer2.status} accept=${accepted.status} winner=${accepted.body.game?.winner}`);
 
+  // ==================== ratings (Elo trigger on active -> done) ====================
+  // Both users started this run at 1200. The resign gave A a win (+16/-16);
+  // the agreed draw then moved a point back to the lower-rated B. Deltas are
+  // zero-sum, so the pair always sums to 2400.
+  const ratingOf = async (id) => (await svcSelect(`profiles?id=eq.${id}&select=rating`))[0]?.rating;
+  const [rA, rB] = [await ratingOf(aId), await ratingOf(bId)];
+  ok('resign updated ratings (winner up, zero-sum)', rA > 1200 && rA + rB === 2400, `A=${rA} B=${rB}`);
+  ok('agreed draw rated (favorite gave up a point)', rA === 1215 && rB === 1185, `A=${rA} B=${rB}`);
+
   // ==================== registration usernames ====================
   cId = await adminCreateUser(emailC, pw, { username: usernameC });
   const tokC = await signIn(emailC, pw);
