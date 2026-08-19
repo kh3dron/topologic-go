@@ -10,6 +10,7 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Windmill — copies rotate 90 degrees around shared corners (wallpaper group p4, orbifold 442; quotient S²(4,4,2)). Orbifold quirk: cells at the rotation corners are adjacent to themselves, so corner points have only 2 distinct liberties in Go
 - Pillowcase — side-by-side copies rotate 180 degrees, rows wrap (wallpaper group p2, orbifold 2222; quotient is the pillowcase S²(2,2,2,2)). Cone-point cells on the middle row of the side edges are self-adjacent
 - Pivot — each side edge glues to itself rotated 180 degrees, rows are walls (frieze group p2, orbifold 22∞). The pillowcase's walled sibling, as the cylinder is to the torus. On odd boards the side-edge midpoint cells are self-adjacent
+- Open Pillowcase — side edges rotate 180 onto themselves (as in Pivot), rows reflect at top/bottom (as in Mirror) — wallpaper group pmg, orbifold 22*. The last wallpaper group with the square board as fundamental domain via pure edge gluings. Quotient is a disk with two order-2 cone points and a mirror boundary: top/bottom rows self-adjacent, plus the side-edge midpoints on odd boards
 - Cylinder — columns wrap, rows are walls
 - Corridor — rows reflect at top/bottom (two facing mirrors), columns are walls
 - Mirror Box — all four edges reflect (wallpaper group pmm, orbifold *2222). Every perimeter cell is self-adjacent, corners doubly so
@@ -21,8 +22,8 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 ## Ideas / not yet implemented
 
 - Glide torus — rows wrap normally; crossing top/bottom shifts columns by k (screw dislocation). `project: [mod(r,n), mod(c + k*floor(r/n), n)]`. Caveat: the tessellated view needs an axis-aligned period of `n/gcd(k,n)` boards — fine for chess (n=8, k=4 gives period 2) but unusable for Go (n=19 is prime, so any shift gives period 19). Needs either a chess-only mode concept or a smarter renderer
-- Face windmill — p4 with rotation centers at cell centers instead of corners; the cone-point weirdness moves to mid-board
-- Open pillowcase — side edges rotate 180 onto themselves, rows reflect at top/bottom (wallpaper group pmg, orbifold 22*). The last wallpaper group with the square board as fundamental domain via pure edge gluings; cmm/p4m/p4g need triangular or kite-shaped domains
+- Face windmill — p4 with rotation centers at cell centers instead of corners. INFEASIBLE as a drop-in (checked 2026-08-19): a cell-centered p4 action on the square lattice has n²+2 cell orbits per board area (the two 4-fold-fixed cells and the 2-fold-swapped pair collapse), so the n×n board can never be a set of orbit representatives. Needs a different board size/shape concept
+- cmm / p4m / p4g — need triangular or kite-shaped fundamental domains; the square board cannot represent them via pure edge gluings (pmg, now implemented as Open Pillowcase, was the last one that could)
 - Half mirror — top edge reflects, bottom edge is a wall, columns wrap (frieze p11m, orbifold ∞*). Needs asymmetric per-edge treatments; same for the remaining friezes p2mg and p2mm
 - Double-wide fundamental domain — two boards side by side glued into any of the above; games with 2x material
 - Alice variants — two stacked boards; a piece/stone teleports to the other layer after each move (not a plane quotient; needs a layer dimension, but project() generalizes to (layer, r, c))
@@ -54,6 +55,7 @@ Terminology: a *degenerate* game is one decided without any meaningful play — 
 | Chess | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Chess | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | black wins at move 0 | 0 | Y | DEAD |
 | Chess | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 0 | Y | OK |
+| Chess | openpillowcase | pmg | 22* | disk with two cone points, mirror boundary | playable | 16 | Y | QUIRKS |
 | Chess | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Chess | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 16 | Y | QUIRKS |
 | Chess | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 28 | Y | QUIRKS |
@@ -67,6 +69,7 @@ Terminology: a *degenerate* game is one decided without any meaningful play — 
 | Go | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Go | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | playable | 2 | Y | QUIRKS |
 | Go | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 2 | Y | QUIRKS |
+| Go | openpillowcase | pmg | 22* | disk with two cone points, mirror boundary | playable | 40 | Y | QUIRKS |
 | Go | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Go | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 38 | Y | QUIRKS |
 | Go | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 72 | Y | QUIRKS |
@@ -92,6 +95,6 @@ The rules and the starting position are IDENTICAL on every topology. Some topolo
 
 - Chess setup and rules never vary by topology (see design principle above). If the side to move has no legal move at game start, the engine declares the result immediately
 - Chess promotion: pawns promote on landing on row 0 / 7 in every topology (on wrapping boards this is the row where they started facing)
-- Chess has no castling or en passant anywhere yet
+- Chess castling and en passant are implemented topology-generically (castle squares are canonical — the starting layout is the fundamental domain everywhere — while the out-of/through/into-check tests project through the topology; a castle is only offered where its target is not also a plain glued king step). The ep double-step window projects when it opens and closes after one ply
 - Go scoring flood-fills territory through the topology's adjacency, so territory counts are correct on all surfaces
 - Superko is positional and topology-independent

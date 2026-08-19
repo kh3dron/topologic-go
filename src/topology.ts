@@ -173,6 +173,29 @@ export const TOPOLOGIES: Topology[] = [
     },
   },
   {
+    id: 'openpillowcase',
+    name: 'Open Pillowcase',
+    chessDesc: 'Side edges glue to themselves rotated 180 degrees; rows reflect at top and bottom.',
+    goDesc: 'Side edges glue to themselves rotated 180 degrees; rows reflect at top and bottom.',
+    snakeDesc: 'Exit a side edge and you re-enter it upside down; the top and bottom are mirrors. No walls anywhere.',
+    article: 'The pillowcase with its wrap opened into mirrors: each side edge folds onto itself around its midpoint (as in Pivot) while the top and bottom edges reflect (as in Mirror) - the wallpaper group pmg, orbifold signature 22*. It is the last wallpaper group whose quotient fits the square board by pure edge gluings; the remaining groups (cmm, p4m, p4g) need triangular or kite-shaped fundamental domains. The quotient is a disk with two order-2 cone points and a mirror boundary: every top- and bottom-row cell touches its own reflection, and on odd boards the side-edge midpoint cells are additionally their own neighbors.',
+    links: [
+      { label: 'Wallpaper group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Wallpaper_group' },
+      { label: 'Orbifold notation (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Orbifold_notation' },
+    ],
+    formal: { group: 'pmg', orbifold: '22*', surface: 'disk with two cone points, mirror boundary', orientable: true },
+    spec: ['LEFT, RIGHT: ROTATE 180', 'TOP, BOTTOM: REFLECT'],
+    tessellated: true,
+    periodX: 2,
+    periodY: 2,
+    project(r, c, size) {
+      const m = mod(r, 2 * size);
+      const rr = m < size ? m : 2 * size - 1 - m;
+      const cc = mod(c, 2 * size);
+      return cc < size ? [rr, cc] : [size - 1 - rr, 2 * size - 1 - cc];
+    },
+  },
+  {
     id: 'cylinder',
     name: 'Cylinder',
     chessDesc: 'Left and right edges wrap; top and bottom are walls.',
