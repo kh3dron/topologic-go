@@ -128,6 +128,60 @@ try {
   ok('black legal move accepted', bMove.status === 200 && bMove.body.game?.ply === 2 && bMove.body.game?.turn === aId,
     `status=${bMove.status} ply=${bMove.body.game?.ply}`);
 
+  // ==================== chess specials: castling + en passant ====================
+  // The deployed engine must accept a castle, accept an en passant capture
+  // inside its one-ply window, and reject the same capture once the window
+  // has closed. A plays white (creator is seated white), B black.
+  const playout = async (id, tokWhite, tokBlack, seq) => {
+    let last = null;
+    for (let i = 0; i < seq.length; i++) {
+      last = await fn('submit-move', i % 2 === 0 ? tokWhite : tokBlack,
+        { game_id: id, expected_ply: i, move: { from: seq[i][0], to: seq[i][1] } });
+      if (last.status !== 200) return { failedAt: i, ...last };
+    }
+    return last;
+  };
+  const newChessGame = async () => {
+    const c = await fn('create-game', tokA, { variant: 'chess', topology: 'classic' });
+    const id = c.body.game?.id;
+    if (id) gameIds.push(id);
+    await fn('join-game', tokB, { game_id: id });
+    return id;
+  };
+
+  const castleId = await newChessGame();
+  const castled = await playout(castleId, tokA, tokB, [
+    [[7, 6], [5, 5]], [[0, 6], [2, 5]], // Nf3, Nf6
+    [[6, 6], [5, 6]], [[1, 6], [2, 6]], // g3, g6
+    [[7, 5], [6, 6]], [[0, 5], [1, 6]], // Bg2, Bg7
+    [[7, 4], [7, 6]],                   // O-O
+  ]);
+  const cb = castled.body?.game?.board_state?.board;
+  ok('castling accepted server-side', castled.status === 200
+    && cb?.[7]?.[6]?.type === 'king' && cb?.[7]?.[5]?.type === 'rook' && cb?.[7]?.[7] === null
+    && castled.body.game?.board_state?.castling?.whiteK === false,
+    `status=${castled.status} failedAt=${castled.failedAt ?? '-'}`);
+
+  const epId = await newChessGame();
+  const eped = await playout(epId, tokA, tokB, [
+    [[6, 4], [4, 4]], [[1, 0], [2, 0]], // e4, a6
+    [[4, 4], [3, 4]], [[1, 3], [3, 3]], // e5, d5 (double step past e5)
+    [[3, 4], [2, 3]],                   // exd6 en passant
+  ]);
+  const eb = eped.body?.game?.board_state?.board;
+  ok('en passant accepted inside its window', eped.status === 200
+    && eb?.[2]?.[3]?.type === 'pawn' && eb?.[2]?.[3]?.color === 'white' && eb?.[3]?.[3] === null,
+    `status=${eped.status} failedAt=${eped.failedAt ?? '-'}`);
+
+  const lateId = await newChessGame();
+  await playout(lateId, tokA, tokB, [
+    [[6, 4], [4, 4]], [[1, 0], [2, 0]], // e4, a6
+    [[4, 4], [3, 4]], [[1, 3], [3, 3]], // e5, d5
+    [[6, 0], [5, 0]], [[1, 7], [2, 7]], // a3, h6 (window closes)
+  ]);
+  const lateEp = await fn('submit-move', tokA, { game_id: lateId, expected_ply: 6, move: { from: [3, 4], to: [2, 3] } });
+  ok('en passant rejected after the window closes', lateEp.status === 422, `status=${lateEp.status}`);
+
   // ==================== registration usernames ====================
   cId = await adminCreateUser(emailC, pw, { username: usernameC });
   const tokC = await signIn(emailC, pw);
