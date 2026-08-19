@@ -2047,6 +2047,13 @@ body.challenge-page {
   margin-left: 10px;
 }
 
+#online-banner input[type='range'] {
+  width: 160px;
+  margin-left: 10px;
+  vertical-align: middle;
+  accent-color: var(--accent);
+}
+
 .lobby-form-row {
   display: flex;
   gap: 8px;

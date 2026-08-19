@@ -73,6 +73,16 @@ export async function fetchGame(gameId: string): Promise<GameRow | null> {
   return data;
 }
 
+// The full moves log of a game, replay-ordered. World-readable like games.
+export async function fetchMoves(gameId: string): Promise<{ ply: number; move: unknown }[]> {
+  const { data } = await requireClient()
+    .from('moves')
+    .select('ply, move')
+    .eq('game_id', gameId)
+    .order('ply', { ascending: true });
+  return data ?? [];
+}
+
 // Open games anyone may join — challenges (invited_player set) are excluded.
 export async function listOpenGames(): Promise<GameRow[]> {
   const { data } = await requireClient()
