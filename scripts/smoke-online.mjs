@@ -182,11 +182,52 @@ try {
   const lateEp = await fn('submit-move', tokA, { game_id: lateId, expected_ply: 6, move: { from: [3, 4], to: [2, 3] } });
   ok('en passant rejected after the window closes', lateEp.status === 422, `status=${lateEp.status}`);
 
+  // ==================== off-board actions: resign + draw offers ====================
+  // game-action(game_id, action). Resign works off turn; an offer is cleared
+  // by any applied move; accept ends the game as a draw with no on-board end.
+  const resignId = await newChessGame();
+  const offTurnResign = await fn('game-action', tokB, { game_id: resignId, action: 'resign' }); // white to move, black resigns
+  ok('resign accepted off turn', offTurnResign.status === 200
+    && offTurnResign.body.game?.status === 'done' && offTurnResign.body.game?.winner === aId
+    && offTurnResign.body.game?.turn === null,
+    `status=${offTurnResign.status} winner=${offTurnResign.body.game?.winner === aId ? 'A' : offTurnResign.body.game?.winner}`);
+
+  const resignDone = await fn('game-action', tokA, { game_id: resignId, action: 'resign' });
+  ok('action on a done game rejected', resignDone.status === 409, `status=${resignDone.status}`);
+
+  const drawId = await newChessGame();
+  const offer = await fn('game-action', tokA, { game_id: drawId, action: 'offer-draw' });
+  ok('draw offer lands', offer.status === 200 && offer.body.game?.draw_offer === aId, `status=${offer.status}`);
+
+  const reOffer = await fn('game-action', tokB, { game_id: drawId, action: 'offer-draw' });
+  ok('counter-offer rejected while one is pending', reOffer.status === 409, `status=${reOffer.status}`);
+
+  const selfAcceptDraw = await fn('game-action', tokA, { game_id: drawId, action: 'accept-draw' });
+  ok('offerer cannot accept own offer', selfAcceptDraw.status === 409, `status=${selfAcceptDraw.status}`);
+
+  const moveClears = await fn('submit-move', tokA, { game_id: drawId, expected_ply: 0, move: { from: [6, 4], to: [4, 4] } });
+  ok('applied move clears the pending offer', moveClears.status === 200 && moveClears.body.game?.draw_offer === null,
+    `status=${moveClears.status} draw_offer=${moveClears.body.game?.draw_offer}`);
+
+  const staleAccept = await fn('game-action', tokB, { game_id: drawId, action: 'accept-draw' });
+  ok('accept after the offer was cleared rejected', staleAccept.status === 409, `status=${staleAccept.status}`);
+
+  const offer2 = await fn('game-action', tokB, { game_id: drawId, action: 'offer-draw' });
+  const accepted = await fn('game-action', tokA, { game_id: drawId, action: 'accept-draw' });
+  ok('accepted draw ends the game', offer2.status === 200 && accepted.status === 200
+    && accepted.body.game?.status === 'done' && accepted.body.game?.winner === null
+    && accepted.body.game?.draw_offer === null,
+    `offer=${offer2.status} accept=${accepted.status} winner=${accepted.body.game?.winner}`);
+
   // ==================== registration usernames ====================
   cId = await adminCreateUser(emailC, pw, { username: usernameC });
   const tokC = await signIn(emailC, pw);
   const [profC] = await svcSelect(`profiles?id=eq.${cId}&select=username`);
   ok('signup: chosen username lands on profile', profC?.username === usernameC, `got=${profC?.username}`);
+
+  // C is not seated in A/B's game -> no off-board actions.
+  const outsiderResign = await fn('game-action', tokC, { game_id: gameId, action: 'resign' });
+  ok('non-seated player cannot resign a game', outsiderResign.status === 403, `status=${outsiderResign.status}`);
 
   // Same username again -> trigger must dodge the collision, not abort signup.
   dId = await adminCreateUser(emailD, pw, { username: usernameC });

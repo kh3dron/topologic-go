@@ -73,6 +73,7 @@ export type Database = {
           black_player: string | null
           board_state: Json
           created_at: string
+          draw_offer: string | null
           id: string
           invited_player: string | null
           ply: number
@@ -89,6 +90,7 @@ export type Database = {
           black_player?: string | null
           board_state: Json
           created_at?: string
+          draw_offer?: string | null
           id?: string
           invited_player?: string | null
           ply?: number
@@ -105,6 +107,7 @@ export type Database = {
           black_player?: string | null
           board_state?: Json
           created_at?: string
+          draw_offer?: string | null
           id?: string
           invited_player?: string | null
           ply?: number
@@ -121,6 +124,13 @@ export type Database = {
           {
             foreignKeyName: "games_black_player_fkey"
             columns: ["black_player"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_draw_offer_fkey"
+            columns: ["draw_offer"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

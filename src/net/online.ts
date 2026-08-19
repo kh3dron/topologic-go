@@ -9,7 +9,7 @@ import { viewFor } from '../views';
 import { renderBoard, updateStatus } from '../render';
 import { playStoneSound } from '../sound';
 import { currentUser } from './auth';
-import { fetchGame, joinGame, submitMove, subscribeGame, type GameRow } from './games';
+import { fetchGame, gameAction, joinGame, submitMove, subscribeGame, type GameAction, type GameRow } from './games';
 
 export interface OnlineHandle {
   game: GameRow;
@@ -88,6 +88,37 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
     return btn;
   }
 
+  // Submit an off-board action and paint the server's answer. A rejection is
+  // normally a race (a move or the other player's action landed first), so
+  // re-sync before surfacing the message.
+  function runAction(btn: HTMLButtonElement, action: GameAction): void {
+    btn.disabled = true;
+    gameAction(gameId, action)
+      .then((res) => applyServer(res.game))
+      .catch(async (err) => {
+        try { const g = await fetchGame(gameId); if (g) applyServer(g); } catch { /* keep current paint */ }
+        banner.append(` ${err instanceof Error ? err.message : String(err)}`);
+      });
+  }
+
+  const actionButton = (label: string, action: GameAction): HTMLButtonElement =>
+    bannerButton(label, (btn) => runAction(btn, action));
+
+  // Resigning is irreversible: the first click arms the button, the second
+  // resigns, and the button disarms itself if the second never comes.
+  function resignButton(): HTMLButtonElement {
+    const btn = bannerButton('Resign', () => {
+      if (btn.dataset.armed !== '1') {
+        btn.dataset.armed = '1';
+        btn.textContent = 'Confirm resign';
+        setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Resign'; }, 4000);
+        return;
+      }
+      runAction(btn, 'resign');
+    });
+    return btn;
+  }
+
   function updateBanner(g: GameRow): void {
     banner.replaceChildren();
     if (g.status === 'waiting') {
@@ -122,17 +153,36 @@ export async function enterOnlineGame(gameId: string): Promise<OnlineHandle> {
         banner.appendChild(a);
       }
     } else if (g.status === 'done') {
-      const outcome = g.winner === null ? 'Draw.'
-        : g.winner === myId ? 'You win.'
-        : myColor ? 'You lose.' : 'Game over.';
+      // A done game whose board shows no on-board end (mate / scored board)
+      // ended off-board: resignation when there is a winner, agreement when not.
+      const offBoard = !(g.board_state as { gameOver?: unknown } | null)?.gameOver;
+      const how = offBoard ? (g.winner === null ? ' by agreement' : ' by resignation') : '';
+      const outcome = g.winner === null ? `Draw${how}.`
+        : g.winner === myId ? `You win${how}.`
+        : myColor ? `You lose${how}.`
+        : 'Game over.';
       banner.textContent = `Game over — ${outcome}`;
       banner.className = 'online-banner done';
     } else {
-      const label = myColor
-        ? `You are ${myColor}. ${turnColor(g) === myColor ? 'Your move.' : 'Opponent’s move.'}`
-        : `Spectating — ${turnColor(g)} to move.`;
-      banner.textContent = label;
       banner.className = 'online-banner active';
+      banner.append(myColor
+        ? `You are ${myColor}. ${turnColor(g) === myColor ? 'Your move.' : 'Opponent’s move.'}`
+        : `Spectating — ${turnColor(g)} to move.`);
+      if (myColor) {
+        if (!g.draw_offer) {
+          banner.appendChild(actionButton('Offer draw', 'offer-draw'));
+        } else if (g.draw_offer === myId) {
+          banner.append(' Draw offered — waiting for your opponent.');
+          banner.appendChild(actionButton('Retract', 'decline-draw'));
+        } else {
+          banner.append(' Your opponent offers a draw.');
+          banner.appendChild(actionButton('Accept draw', 'accept-draw'));
+          banner.appendChild(actionButton('Decline', 'decline-draw'));
+        }
+        banner.appendChild(resignButton());
+      } else if (g.draw_offer) {
+        banner.append(' A draw has been offered.');
+      }
     }
   }
 

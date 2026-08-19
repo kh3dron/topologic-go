@@ -60,6 +60,14 @@ export function submitMove(gameId: string, expectedPly: number, move: unknown): 
   return invoke('submit-move', { game_id: gameId, expected_ply: expectedPly, move });
 }
 
+// Off-board actions on an active game (see supabase/functions/game-action):
+// resign works on or off turn; decline-draw doubles as the offerer's retract.
+export type GameAction = 'resign' | 'offer-draw' | 'accept-draw' | 'decline-draw';
+
+export function gameAction(gameId: string, action: GameAction): Promise<{ game: GameRow }> {
+  return invoke('game-action', { game_id: gameId, action });
+}
+
 export async function fetchGame(gameId: string): Promise<GameRow | null> {
   const { data } = await requireClient().from('games').select('*').eq('id', gameId).single();
   return data;
