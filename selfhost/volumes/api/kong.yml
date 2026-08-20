@@ -316,6 +316,20 @@ services:
           - /functions/v1/
     plugins:
       - name: cors
+      # Rate limit at the function boundary, per real client IP (restored from
+      # CF-Connecting-IP via KONG_REAL_IP_HEADER in docker-compose.yml - Kong
+      # otherwise sees only cloudflared's container IP and every client would
+      # share one bucket). 60/min sustains a move per second; local policy is
+      # exact enough on this single-node stack. fault_tolerant keeps the API
+      # up if the counter store ever errors.
+      - name: rate-limiting
+        config:
+          minute: 60
+          hour: 600
+          policy: local
+          limit_by: ip
+          fault_tolerant: true
+          error_message: 'rate limited: too many requests'
 
   ## OAuth 2.0 Authorization Server Metadata (RFC 8414)
   - name: well-known-oauth

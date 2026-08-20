@@ -106,6 +106,13 @@ deployed anywhere else.
   exposure because its JWT secret is a publicly known constant.
 - RLS + Edge Functions remain the security boundary, unchanged from the hosted
   design (`../DEPLOYMENT.md`). The anon key is public by design.
+- Rate limit: `/functions/v1/*` is capped at 60 requests/minute and 600/hour
+  per client IP (Kong `rate-limiting` plugin, `policy: local`, exact on this
+  single node). The real client IP is restored from `CF-Connecting-IP`
+  (`KONG_REAL_IP_HEADER`); without it every visitor would share cloudflared's
+  container IP and one bucket. 429 + `RateLimit-*` headers on breach. Apply
+  changes with `docker compose up -d kong` (env + kong.yml are both read at
+  container start).
 - SMTP is unconfigured: signups auto-confirm (`ENABLE_EMAIL_AUTOCONFIRM=true`),
   magic links fail until `SMTP_*` in `.env` are filled with a real provider and
   `docker compose up -d` re-applies env.
