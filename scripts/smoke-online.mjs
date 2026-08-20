@@ -17,10 +17,17 @@ const ok = (name, pass, detail = '') => results.push([name, pass, detail]);
 // Cloudflare fronts the API, and its edge occasionally answers with a
 // transient HTML error page where JSON belongs; retry those once instead of
 // crashing the run. An empty body (204) is not an error and never retried.
+// Kong rate-limits /functions/v1 per IP (120/min): this suite bursts, so a
+// 429 waits for the window and retries instead of failing the assertion.
 async function jfetch(url, opts, tries = 2) {
   for (let i = 1; ; i++) {
     const r = await fetch(url, opts);
     const text = await r.text();
+    if (r.status === 429 && i < tries + 3) {
+      const reset = Number(r.headers.get('ratelimit-reset')) || 15;
+      await new Promise((res) => setTimeout(res, (reset + 1) * 1000));
+      continue;
+    }
     try {
       return { status: r.status, body: text ? JSON.parse(text) : null };
     } catch {

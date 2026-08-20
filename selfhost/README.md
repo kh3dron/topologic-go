@@ -106,7 +106,7 @@ deployed anywhere else.
   exposure because its JWT secret is a publicly known constant.
 - RLS + Edge Functions remain the security boundary, unchanged from the hosted
   design (`../DEPLOYMENT.md`). The anon key is public by design.
-- Rate limit: `/functions/v1/*` is capped at 60 requests/minute and 600/hour
+- Rate limit: `/functions/v1/*` is capped at 120 requests/minute and 1200/hour
   per client IP (Kong `rate-limiting` plugin, `policy: local`, exact on this
   single node). The real client IP is restored from `CF-Connecting-IP`
   (`KONG_REAL_IP_HEADER`); without it every visitor would share cloudflared's
