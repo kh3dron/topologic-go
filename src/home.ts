@@ -16,6 +16,7 @@ import {
   type GameRow, type StatsGameRow,
 } from './net/games';
 import { ACHIEVEMENTS, achievementPoints, earnedAchievements, playerStats } from './net/achievements';
+import { disablePush, enablePush, pushState } from './net/push';
 import {
   acceptFriend, fetchProfiles, listFriendships, removeFriendship, requestFriend,
   subscribeSocial, type FriendEdge,
@@ -254,6 +255,39 @@ async function renderHub(me: Profile): Promise<void> {
     row.append(label, el('span', 'ach-points', got ? `${a.points} pts` : `+${a.points}`));
     achList.appendChild(row);
   }
+
+  // -------- notifications --------
+  // Per-move web push for this browser. Self-hosted VAPID; the state machine
+  // and subscription plumbing live in net/push.ts.
+  const noteSec = section('Notifications');
+  panel.appendChild(noteSec.root);
+  const noteMsg = el('p', 'auth-msg');
+  const noteBtn = el('button', 'lobby-btn');
+  const applyState = async (): Promise<void> => {
+    const state = await pushState();
+    noteBtn.style.display = state === 'on' || state === 'off' ? '' : 'none';
+    noteBtn.textContent = state === 'on' ? 'Disable move notifications' : 'Enable move notifications';
+    noteMsg.textContent = {
+      unsupported: 'This browser does not support push notifications.',
+      unconfigured: 'Push is not configured in this build.',
+      denied: 'Notifications are blocked for this site in the browser settings.',
+      off: 'Get a notification in this browser when it becomes your move in an online game.',
+      on: 'This browser gets a notification when it becomes your move.',
+    }[state];
+  };
+  noteBtn.addEventListener('click', async () => {
+    noteBtn.disabled = true;
+    try {
+      if ((await pushState()) === 'on') await disablePush();
+      else await enablePush(me.id);
+    } catch (err) {
+      noteMsg.textContent = err instanceof Error ? err.message : String(err);
+    }
+    noteBtn.disabled = false;
+    await applyState();
+  });
+  noteSec.body.append(noteBtn, noteMsg);
+  void applyState();
 }
 
 // ==================== BOOT ====================

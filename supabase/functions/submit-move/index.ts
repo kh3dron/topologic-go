@@ -6,6 +6,7 @@
 import { corsHeaders, json } from '../_shared/http.ts';
 import { requireUser, serviceClient } from '../_shared/supabase.ts';
 import { validateAndApply } from '../_shared/engine.ts';
+import { notifyPlayer } from '../_shared/webpush.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -50,6 +51,30 @@ Deno.serve(async (req) => {
 
     if (error) return json({ error: error.message }, 409);
     if (!data) return json({ error: 'stale write, refetch' }, 409);
+
+    // Per-move web push, best-effort (never blocks the result on failure;
+    // notifyPlayer is a no-op when VAPID keys are not configured). Notify
+    // whoever must act next; on game end, the non-mover.
+    const moverName = (await svc.from('profiles').select('username').eq('id', user.id).maybeSingle())
+      .data?.username ?? 'opponent';
+    const path = `play.html?online=${game_id}`;
+    if (status === 'active' && nextTurn) {
+      await notifyPlayer(svc, nextTurn, {
+        title: `Your move - ${game.variant}`,
+        body: `${moverName} moved`,
+        path,
+      });
+    } else if (status === 'done') {
+      const other = user.id === game.white_player ? game.black_player : game.white_player;
+      if (other) {
+        await notifyPlayer(svc, other, {
+          title: `Game over - ${game.variant}`,
+          body: winner === null ? `Draw against ${moverName}` : winner === user.id ? `${moverName} won` : 'You won',
+          path,
+        });
+      }
+    }
+
     return json({ game: data });
   } catch (e) {
     return json({ error: String(e instanceof Error ? e.message : e) }, 400);
