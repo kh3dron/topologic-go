@@ -113,9 +113,15 @@ deployed anywhere else.
   container IP and one bucket. 429 + `RateLimit-*` headers on breach. Apply
   changes with `docker compose up -d kong` (env + kong.yml are both read at
   container start).
-- SMTP is unconfigured: signups auto-confirm (`ENABLE_EMAIL_AUTOCONFIRM=true`),
-  magic links fail until `SMTP_*` in `.env` are filled with a real provider and
-  `docker compose up -d` re-applies env.
+- SMTP: configured via Amazon SES (2026-08-20, us-east-1) on the owner's AWS
+  account. Domain identity `kh3dron.net` (Easy DKIM + custom MAIL FROM
+  `ses.kh3dron.net`; 5 DNS records at Cloudflare), send-only IAM user
+  `topologic-go-ses-smtp`, production access GRANTED. Credentials live only in
+  huey's `.env` (`SMTP_*`); sender `noreply@kh3dron.net`. Magic links work
+  (verified end-to-end via GoTrue -> SES). Signups still auto-confirm
+  (`ENABLE_EMAIL_AUTOCONFIRM=true`) by deliberate choice — to require email
+  confirmation, set it `false` and `docker compose up -d auth` (DOCKET T-61,
+  left open). SES cost: $0.10 per 1,000 mails, no standing fees.
 
 ## 5.0 Data migration from the hosted project
 
