@@ -1,6 +1,6 @@
 import { Topology } from '../topology';
 import {
-  KOMI, starPoints, goBoard, goSize, goCurrentTurn, goGameOver, goCaptures, goLastMove,
+  starPoints, goBoard, goSize, goKomi, goCurrentTurn, goGameOver, goCaptures, goLastMove,
   canPlayGoNow, isValidGoMove, placeGoStone, scoreGo, resetGo, loadGoState, serializeGo, setGoOnline,
 } from '../go';
 import { CellOpts, GameView, InfoPanel, RenderDeps, capitalize } from './kit';
@@ -40,7 +40,7 @@ export const goView: GameView = {
     if (goGameOver) {
       const score = scoreGo();
       const result = score.winner === 'draw' ? 'Draw' : `${capitalize(score.winner)} wins`;
-      return `Black ${score.blackTotal} : White ${score.whiteTotal} (komi ${KOMI}) - ${result}`;
+      return `Black ${score.blackTotal} : White ${score.whiteTotal} (komi ${goKomi}) - ${result}`;
     }
     return `${capitalize(goCurrentTurn)}'s turn - B: ${goCaptures.black} W: ${goCaptures.white}`;
   },

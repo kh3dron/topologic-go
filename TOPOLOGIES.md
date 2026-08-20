@@ -29,8 +29,8 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Alice variants — two stacked boards; a piece/stone teleports to the other layer after each move (not a plane quotient; needs a layer dimension, but project() generalizes to (layer, r, c))
 - Hex Go on a torus — hexagonal adjacency with wrap; needs a hex grid renderer, logic already adjacency-agnostic
 - Hex chess on glued edges (hex torus / Klein / projective) — cross the topology idea with the Gliński `hexchess` geometry (see `src/hexchess.ts`). Caveat: the hexagon-shaped board does not tile by translation, so the fundamental domain is likely a rhombus of hexes rather than the playing board itself; the gluings and a hex-quotient renderer are the real work. Engine adjacency is already coordinate-based. Planned, deferred
-- Small boards — 9x9 / 13x13 Go, 5x5 mini chess; topology math is size-generic already
-- Asymmetric komi / handicap presets per topology (torus Go has no corners, so territory is much harder to make — komi should probably differ)
+- Small boards — 9x9 / 13x13 Go, 5x5 mini chess; topology math is size-generic already (Go 9/13/19 implemented)
+- Handicap presets per topology (per-topology komi is implemented — see rules notes below; stone handicaps are not)
 
 ## Beyond the plane: other geometries
 
@@ -98,3 +98,4 @@ The rules and the starting position are IDENTICAL on every topology. Some topolo
 - Chess castling and en passant are implemented topology-generically (castle squares are canonical — the starting layout is the fundamental domain everywhere — while the out-of/through/into-check tests project through the topology; a castle is only offered where its target is not also a plain glued king step). The ep double-step window projects when it opens and closes after one ply
 - Go scoring flood-fills territory through the topology's adjacency, so territory counts are correct on all surfaces
 - Superko is positional and topology-independent
+- Go komi is per-topology: 6.5 on surfaces with boundary (walls or mirrors), 7.5 on the five closed surfaces (torus, windmill, pillowcase, klein, projective), where corner and edge territory does not exist. The 7.5 value is PROVISIONAL, not measured — fair komi per topology remains the research item below. Komi is not a playability patch: it is a scoring compensation outside the rules of play, the standard knob Go itself uses for first-move advantage. Set per topology via `Topology.goKomi`, stored in the game state at creation, overridable via the `komi` new-game option

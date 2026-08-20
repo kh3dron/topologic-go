@@ -12,7 +12,15 @@ export type GoBoard = GoStone[][];
 
 export const GO_SIZES: readonly number[] = [9, 13, 19];
 export const GO_SIZE = 19;
-export const KOMI = 6.5;
+// Baseline komi for boards with a boundary. A topology can override via
+// Topology.goKomi (closed surfaces have no corner/edge territory, so the
+// registry assigns them a different provisional value); an explicit
+// options.komi at game creation overrides both.
+export const DEFAULT_KOMI = 6.5;
+
+export function defaultKomi(topo: Topology): number {
+  return topo.goKomi ?? DEFAULT_KOMI;
+}
 
 // Standard hoshi layout per supported size.
 const STAR_POINTS_BY_SIZE: Record<number, number[][]> = {
@@ -34,6 +42,7 @@ export type GoMove = { kind: 'place'; row: number; col: number } | { kind: 'pass
 export interface GoState {
   board: GoBoard;
   size: number;
+  komi: number;
   turn: Color;
   gameOver: boolean;
   passes: number;
@@ -169,6 +178,7 @@ export function applyGoPlace(state: GoState, row: number, col: number): GoState 
   return {
     board,
     size: state.size,
+    komi: state.komi,
     turn: opponent,
     gameOver: false,
     passes: 0,
@@ -194,11 +204,12 @@ export function applyGoPass(state: GoState): GoState {
   };
 }
 
-export function initialGoState(topo: Topology, size: number = GO_SIZE): GoState {
+export function initialGoState(topo: Topology, size: number = GO_SIZE, komi: number = defaultKomi(topo)): GoState {
   const board = createInitialGoBoard(size);
   return {
     board,
     size,
+    komi,
     turn: 'black',
     gameOver: false,
     passes: 0,
@@ -259,7 +270,7 @@ export function scoreGo(state: GoState): GoScore {
   }
 
   const blackTotal = territory.black + state.captures.black;
-  const whiteTotal = territory.white + state.captures.white + KOMI;
+  const whiteTotal = territory.white + state.captures.white + state.komi;
 
   return {
     blackTerritory: territory.black,
@@ -274,6 +285,7 @@ export function scoreGo(state: GoState): GoScore {
 interface GoSnapshot {
   board: GoBoard;
   size?: number; // absent on rows serialized before sizes were configurable
+  komi?: number; // absent on rows serialized before komi was configurable (all created at 6.5)
   turn: Color;
   gameOver: boolean;
   passes: number;
@@ -293,11 +305,17 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
   name: 'Go',
   boardFamily: 'square-grid',
   initialState: (topo, options) => {
-    const size = (options as { size?: unknown } | undefined)?.size ?? GO_SIZE;
+    const opts = options as { size?: unknown; komi?: unknown } | undefined;
+    const size = opts?.size ?? GO_SIZE;
     if (typeof size !== 'number' || !GO_SIZES.includes(size)) {
       throw new Error(`invalid board size: ${size}`);
     }
-    return initialGoState(topo, size);
+    const komi = opts?.komi ?? defaultKomi(topo);
+    if (typeof komi !== 'number' || !Number.isFinite(komi) ||
+        !Number.isInteger(komi * 2) || Math.abs(komi) > size * size) {
+      throw new Error(`invalid komi: ${komi}`);
+    }
+    return initialGoState(topo, size, komi);
   },
   isLegalMove: (state, move) => {
     if (state.gameOver) return false;
@@ -311,6 +329,7 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
   serialize: (state): GoSnapshot => ({
     board: state.board,
     size: state.size,
+    komi: state.komi,
     turn: state.turn,
     gameOver: state.gameOver,
     passes: state.passes,
@@ -324,6 +343,7 @@ export const goModule: GameModule<GoState, GoMove, Topology> = {
     return {
       board: d.board,
       size: d.size ?? d.board.length,
+      komi: d.komi ?? DEFAULT_KOMI,
       turn: d.turn,
       gameOver: d.gameOver,
       passes: d.passes,

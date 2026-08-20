@@ -5,14 +5,14 @@
 import { Color } from './engine/core';
 import { currentTopology } from './state';
 import {
-  GoState, GoBoard, GO_SIZE, GO_SIZES, KOMI, starPoints, goModule,
+  GoState, GoBoard, GO_SIZE, GO_SIZES, DEFAULT_KOMI, starPoints, goModule,
   initialGoState, isValidGoMove as coreValid,
   applyGoPlace, applyGoPass, scoreGo as coreScore, GoScore,
 } from './engine/games/go';
 import type { OnlineOpts } from './views/kit';
 import { playStoneSound } from './sound';
 
-export { GO_SIZE, GO_SIZES, KOMI, starPoints };
+export { GO_SIZE, GO_SIZES, DEFAULT_KOMI, starPoints };
 export type { GoStone, GoBoard, GoScore } from './engine/games/go';
 
 // Size used for the next new local game (the size picker writes it).
@@ -23,6 +23,7 @@ let state: GoState = initialGoState(currentTopology);
 // Live bindings read by render.ts.
 export let goBoard: GoBoard = state.board;
 export let goSize: number = state.size;
+export let goKomi: number = state.komi;
 export let goCurrentTurn: Color = state.turn;
 export let goGameOver: boolean = state.gameOver;
 export let goPasses: number = state.passes;
@@ -36,6 +37,7 @@ let onCommit: ((move: unknown) => void) | null = null;
 function sync(): void {
   goBoard = state.board;
   goSize = state.size;
+  goKomi = state.komi;
   goCurrentTurn = state.turn;
   goGameOver = state.gameOver;
   goPasses = state.passes;

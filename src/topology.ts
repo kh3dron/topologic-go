@@ -32,6 +32,12 @@ export interface Topology {
   // wrap period along each axis, in board-lengths; null = wall (no tiling on that axis)
   periodX: number | null;
   periodY: number | null;
+  // Default Go komi override. Set (7.5, provisional) on the five closed
+  // surfaces - torus, windmill, pillowcase, klein, projective - where no
+  // boundary exists and corner/edge territory disappears entirely. Unset =
+  // DEFAULT_KOMI (6.5). Unmeasured; fair values are an open research item
+  // (see TOPOLOGIES.md, future work).
+  goKomi?: number;
   project(row: number, col: number, size: number): [number, number] | null;
 }
 
@@ -76,6 +82,7 @@ export const TOPOLOGIES: Topology[] = [
     tessellated: true,
     periodX: 1,
     periodY: 1,
+    goKomi: 7.5,
     project(r, c, size) {
       return [mod(r, size), mod(c, size)];
     },
@@ -118,6 +125,7 @@ export const TOPOLOGIES: Topology[] = [
     tessellated: true,
     periodX: 2,
     periodY: 2,
+    goKomi: 7.5,
     project(r, c, size) {
       const u = mod(r, 2 * size);
       const v = mod(c, 2 * size);
@@ -143,6 +151,7 @@ export const TOPOLOGIES: Topology[] = [
     tessellated: true,
     periodX: 2,
     periodY: 1,
+    goKomi: 7.5,
     project(r, c, size) {
       const rr = mod(r, size);
       const cc = mod(c, 2 * size);
@@ -295,6 +304,7 @@ export const TOPOLOGIES: Topology[] = [
     tessellated: true,
     periodX: 2,
     periodY: 1,
+    goKomi: 7.5,
     project(r, c, size) {
       const flipped = mod(Math.floor(c / size), 2) === 1;
       return [mod(flipped ? size - 1 - r : r, size), mod(c, size)];
@@ -339,6 +349,7 @@ export const TOPOLOGIES: Topology[] = [
     tessellated: true,
     periodX: 2,
     periodY: 2,
+    goKomi: 7.5,
     project(r, c, size) {
       let rr = mod(r, size);
       let cc = mod(Math.floor(r / size), 2) === 1 ? size - 1 - c : c;
