@@ -3,6 +3,7 @@
 // run log through the shared engine), so everything here is world-readable
 // selects and the page works signed out.
 
+import './report';
 import { TOPOLOGIES } from './topology';
 import { hasSupabase } from './net/client';
 import { currentUser } from './net/auth';

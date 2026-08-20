@@ -1,3 +1,4 @@
+import './report';
 import { readVariantParams, variantSearch } from './routes';
 import { TOPOLOGY_MAP } from './topology';
 import { GAMES, usesTopology } from './engine';

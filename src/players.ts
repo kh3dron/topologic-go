@@ -4,6 +4,7 @@
 // are world-readable, so the page works signed out (challenging prompts
 // sign-in at the lobby).
 
+import './report';
 import { hasSupabase } from './net/client';
 import { currentUser } from './net/auth';
 import { listProfiles } from './net/social';

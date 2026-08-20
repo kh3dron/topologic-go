@@ -3,6 +3,7 @@
 // board. World-readable, no auth. Refreshes on the button and when the tab
 // regains focus.
 
+import './report';
 import { GAMES, usesTopology } from './engine';
 import { TOPOLOGY_MAP } from './topology';
 import { hasSupabase } from './net/client';

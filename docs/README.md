@@ -34,6 +34,7 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 - CI (`.github/workflows/ci.yml`) runs on PRs and pushes to `main`: `tsc --noEmit`, census script, `vite build`, then `scripts/smoke-ui.mjs` (headless-Chromium smoke over `dist/`)
 - Pushes to `main` cut a semantic release (conventional commits) and deploy to GitHub Pages by pushing `dist/` to the `gh-pages` branch (`.github/workflows/static.yml`; custom domain `games.kh3dron.net`)
 - PRs from this repo deploy live previews to `https://games.kh3dron.net/pr-preview/pr-<n>/` (`.github/workflows/pr-preview.yml`; commented on the PR, removed on close)
+- Error reporting: `src/report.ts` (imported by every page) POSTs window errors / unhandled rejections to the `report-error` function -> `client_errors` table. Self-hosted only, no trackers, no user identifiers; max 5 deduped reports per page load. Read: `select at, version, page, message from client_errors order by at desc` on huey. No visitor analytics by decision - usage derives from the games tables
 
 ## Pages
 

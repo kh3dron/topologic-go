@@ -4,6 +4,7 @@
 // auth changes, Realtime events on my games/friendships, and after every
 // action.
 
+import './report';
 import { GAMES, usesTopology } from './engine';
 import { TOPOLOGY_MAP } from './topology';
 import { hasSupabase } from './net/client';

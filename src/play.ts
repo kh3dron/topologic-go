@@ -1,3 +1,4 @@
+import './report';
 import { currentGame, currentTopology, setCurrentGame, setTopology } from './state';
 import { TOPOLOGY_MAP } from './topology';
 import { viewFor } from './views';

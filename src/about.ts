@@ -1,3 +1,4 @@
+import './report';
 import { TOPOLOGIES } from './topology';
 import { setTopology } from './state';
 import { CHESS_SIZE } from './chess';

@@ -1,3 +1,4 @@
+import './report';
 import { GameType } from './state';
 import { TOPOLOGIES, Topology } from './topology';
 import { GAMES, usesTopology } from './engine';
