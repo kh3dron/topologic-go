@@ -6,6 +6,7 @@ import { chessView } from './chess';
 import { goView } from './go';
 import { hexView } from './hexchess';
 import { hyperView } from './hyperchess';
+import { hyperGoView } from './hypergo';
 import { snakeView } from './snake';
 
 export const VIEWS = new Map<string, GameView>([
@@ -13,6 +14,7 @@ export const VIEWS = new Map<string, GameView>([
   [goView.id, goView],
   [hexView.id, hexView],
   [hyperView.id, hyperView],
+  [hyperGoView.id, hyperGoView],
   [snakeView.id, snakeView],
 ]);
 

@@ -61,6 +61,9 @@ export interface GameView {
 
   reset(): void;
   status(): string;
+  // Pass-move handler for games with showsPassButton; the shell's pass button
+  // dispatches through this instead of importing a specific game wrapper.
+  pass?(): void;
   // Text for the prominent score readout in the top bar (live-score games like
   // snake); undefined/null hides it.
   scoreHud?(): string | null;

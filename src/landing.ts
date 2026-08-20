@@ -63,10 +63,19 @@ for (const dim of [0, 1, 2]) {
   }
 }
 // Boards outside the topology family (hex, hyperbolic) describe their own card
-// via the module's catalog metadata.
+// via the module's catalog metadata. Games sharing a board name (hyperchess +
+// hypergo on the {4,6} patch) merge into ONE board entry with a game choice,
+// mirroring how each topology entry carries every square-grid game.
+const boardEntries = new Map<string, Entry>();
 for (const m of otherGames) {
   const board = m.catalog?.board ?? m.name;
-  entries.push({
+  const existing = boardEntries.get(board);
+  if (existing) {
+    existing.games.push({ id: m.id as GameType, name: m.name });
+    existing.search += ` ${m.name.toLowerCase()}`;
+    continue;
+  }
+  const entry: Entry = {
     id: m.id,
     name: board,
     group: m.catalog?.group ?? 'Other boards',
@@ -78,10 +87,19 @@ for (const m of otherGames) {
     search: `${board} ${m.name}`.toLowerCase(),
     badge: m.catalog?.badge ?? 'CUSTOM BOARD',
     preview: m.catalog?.preview,
-  });
+  };
+  boardEntries.set(board, entry);
+  entries.push(entry);
 }
 
 const entryById = new Map(entries.map(e => [e.id, e]));
+// Deep links address non-topology boards by game id (?g=hypergo); alias every
+// game on a merged board entry to that entry.
+for (const e of entries) {
+  for (const g of e.games) {
+    if (!entryById.has(g.id)) entryById.set(g.id, e);
+  }
+}
 
 // ==================== ELEMENTS ====================
 const listEl = document.getElementById('topo-list')!;

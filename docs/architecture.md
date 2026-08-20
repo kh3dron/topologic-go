@@ -4,9 +4,9 @@ Layered: pure engine at the bottom, DOM at the top. Dependencies point down only
 
 ```
 pages:      landing.ts   play.ts   game.ts   about.ts        (one per HTML entry)
-shell:      render.ts   preview.ts   routes.ts   version.ts   history.ts
-views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,snake}.ts  (VIEWS registry)
-wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  snake.ts  state.ts  (module-global live state)
+shell:      render.ts   preview.ts   routes.ts   version.ts   history.ts   report.ts
+views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,hypergo,snake}.ts  views/hyperdisk.ts  (VIEWS registry)
+wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  hypergo.ts  snake.ts  state.ts  (module-global live state)
 net:        net/{client,auth,games,online}.ts                 (optional Supabase)
 engine:     engine/core.ts  engine/index.ts  engine/games/*   (pure, DOM-free)
 math:       topology.ts  census.ts                            (pure, DOM-free)
@@ -40,6 +40,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - go: `getNeighbors()` projects the four plane neighbors; groups/liberties/capture/superko/scoring build on it; set-based so self-adjacent cells (orbifolds) work. Board size is per-game state (`GoState.size`, 9/13/19 from `GO_SIZES`, default 19): picked via `options: {size}` on `goModule.initialState`, carried in the snapshot (`deserialize` falls back to `board.length` for pre-size rows), star points per size via `starPoints(size)`. Komi is per-game state too (`GoState.komi`): default `Topology.goKomi ?? DEFAULT_KOMI` (6.5; the five closed surfaces set 7.5, provisional), overridable via `options: {komi}` (validated: finite half-integer, |komi| <= size²), carried in the snapshot (fallback 6.5 for pre-komi rows — every old game was created at 6.5)
   - hexchess: Glinski geometry, own coordinate system, no topology
   - hyperchess: chess on a 1352-cell patch of the {4,6} hyperbolic tiling (after Hawksley's "Non-Euclidean Chess, Part 2"); cells are Mobius transforms generated at module load, moves walk precomputed adjacency/diagonal/knight tables; pawns carry a parallel-transported heading
+  - hypergo: Go on the same {4,6} patch — untouched Go rules (capture/suicide/superko/two-pass/territory, komi 6.5 provisional) over `hyperNeighbors()` instead of `project()`; board serialized as one char per cell
   - snake: deterministic; RNG injected by the wrapper
 - `src/census.ts` — DOM-free, stateless classification of (game, topology): `variantVerdict`, `chessMoveZero`, `singularCellCount`, `verdict`. Shared by about page, landing badges, and `scripts/census.ts`
 - Stateful wrappers (`src/chess.ts`, `go.ts`, `hexchess.ts`, `snake.ts`)
@@ -49,7 +50,8 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/state.ts` — `currentGame` + `currentTopology` globals, mutated only via setters
 - `src/views/` — per-game view adapters (`GameView` in `kit.ts`), registry in `index.ts`
   - Encapsulate game-specific DOM: cell creation, status text, info panel copy, sizing (`size()` is a method so Go can report its per-game board size; others return a constant)
-  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan)
+  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan — the game-agnostic disk scaffolding lives in `views/hyperdisk.ts` (`createDiskRenderer`), hyperchess and hypergo each supply a `DiskPaint`)
+  - `pass?()` — pass-move hook; the shell's pass button dispatches through the active view (Go and hypergo implement it)
   - Direction: render.ts -> views -> wrappers; views never import render.ts
 - `src/render.ts` — the shell; all shared DOM
   - Immediate mode with an in-place fast path: `renderBoard()` reuses the existing grid DOM when its geometry (game, topology, size, zoom, tile counts, overlay) is unchanged — views implementing `GameView.updateCell` resync each cell's classes/content in place with guarded writes, listeners survive with their elements, and `gridCache` remembers each DOM index's canonical cell so the path does no `project()` calls. Any geometry change (zoom, resize, topology/game/size switch, boundaries toggle, pan reset) falls back to the full teardown + rebuild. Measured on Go 19x19 at 50% zoom: klein 63-106ms -> 16-34ms per move, windmill 72-111ms -> 19-35ms. NOTE: iterate a snapshot of `#board`'s children, never the live HTMLCollection — cell mutations invalidate its index cache and indexed access turns O(n^2)

@@ -41,7 +41,9 @@ Not every board on the site is a quotient of the Euclidean plane. These live out
 - Hexagonal chess (`hexchess`) — Gliński's game on the 91-cell hex board
 - Hyperbolic chess (`hyperchess`) — chess on a 1352-cell patch of the {4,6} tiling of the hyperbolic plane, following [Andrea Hawksley's "Non-Euclidean Chess, Part 2"](https://andreahawksley.com/non-euclidean-chess-part-2/). Six squares meet at every vertex, so the checkerboard colouring survives and Hawksley's "reasonable diagonal" (shares a vertex and a colour) gives bishops 8 straight rays; the two Euclidean knight paths (2+1 vs 1+2) split into 16 distinct jumps. Setup per the article: queens face off 7 cells apart along a central geodesic, back ranks and pawn lines run along horizontal geodesics, walls sit directly behind the armies, and the sides are equidistant curves. Findings so far, honestly reported: the pawn line diverges from the back rank so bishops start with open diagonals, the king starts with 7 flight squares, and the outermost files are cramped against the side walls (the h-pawn is born stuck)
 
-Further ideas in this family: Go on the {4,6} board (the adjacency tables already exist), Hawksley's pentagonal {5,4} variant (odd vertex degree kills the checkerboard — bishops need her Part-2 edge/vertex rule instead), spherical chess from Part 1.
+- Hyperbolic Go (`hypergo`) — Go on the same 1352-cell {4,6} patch: stones on cells, liberties along the tiling's edges, otherwise untouched rules (capture, suicide ban, positional superko, two passes, flood-fill territory, komi 6.5 provisional). The geometry changes the economics, not the rules: area inside a loop grows only linearly with its circumference, so territory walls cost far more per enclosed cell than on a flat board
+
+Further ideas in this family: Hawksley's pentagonal {5,4} variant (odd face degree kills the checkerboard — bishops need her Part-2 edge/vertex rule instead), spherical chess from Part 1.
 
 ## Census
 

@@ -2,7 +2,7 @@ import './report';
 import { currentGame, currentTopology, setCurrentGame, setTopology } from './state';
 import { TOPOLOGY_MAP } from './topology';
 import { viewFor } from './views';
-import { GO_SIZE, passGoTurn, setGoSize } from './go';
+import { GO_SIZE, setGoSize } from './go';
 import { clickHex, hexBoard, hexCurrentTurn, hexGameOver } from './hexchess';
 import { clickHyper, hyperBoard, hyperCurrentTurn, hyperGameOver, HYPER_CELL_COUNT } from './hyperchess';
 import { snakeBodySet, snakeHeadKey, snakeFood, snakeScore, snakeStatus, steerSnake, tickSnake } from './snake';
@@ -27,7 +27,7 @@ initSound();
 
 // ==================== CONTROLS COMMON TO BOTH MODES ====================
 document.getElementById('pass-btn')!.addEventListener('click', () => {
-  passGoTurn();
+  viewFor(currentGame).pass?.();
   updateStatus();
   renderBoard();
 });

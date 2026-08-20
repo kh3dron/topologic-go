@@ -8,6 +8,7 @@ import { chessModule } from './games/chess.ts';
 import { goModule } from './games/go.ts';
 import { hexModule } from './games/hexchess.ts';
 import { hyperModule } from './games/hyperchess.ts';
+import { hyperGoModule } from './games/hypergo.ts';
 import { snakeModule } from './games/snake.ts';
 
 export type AnyGameModule = GameModule<any, any, any>;
@@ -17,6 +18,7 @@ export const GAMES = new Map<string, AnyGameModule>([
   [goModule.id, goModule],
   [hexModule.id, hexModule],
   [hyperModule.id, hyperModule],
+  [hyperGoModule.id, hyperGoModule],
   [snakeModule.id, snakeModule],
 ]);
 
@@ -30,5 +32,5 @@ export function usesTopology(gameId: string): boolean {
   return GAMES.get(gameId)?.boardFamily === TOPOLOGY_FAMILY;
 }
 
-export { chessModule, goModule, hexModule, hyperModule, snakeModule };
+export { chessModule, goModule, hexModule, hyperModule, hyperGoModule, snakeModule };
 export * from './core.ts';
