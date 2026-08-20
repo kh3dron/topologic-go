@@ -19,7 +19,8 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `TOPOLOGIES` in `src/topology.ts`
   - One entry per topology: `project()` + metadata (descs per game, article, links, formal group/orbifold/surface/orientable, spec lines, periodX/periodY)
   - Everything downstream is derived by probing `project()`: adjacency, chess sliders, tessellated rendering, tile orientation labels (`tileOrientation`), seam arrows/colors (`seamColoring`), landing particle preview, census
-  - 13 entries: classic, torus, mirror, windmill, pillowcase, pivot, cylinder, corridor, mirrorbox, mobius, klein, mobiusmirror, projective
+  - 17 entries: classic, torus, mirror, windmill, pillowcase, pivot, hinge, openpillowcase, cylinder, corridor, halfmirror, mirrorbox, alcove, mobius, klein, mobiusmirror, projective — all seven frieze groups (cylinder, mobius, corridor, pivot, halfmirror, hinge, alcove) plus every wallpaper group with the square board as fundamental domain
+  - `extentX`/`extentY` (optional, board-lengths, default 1): valid plane extent on a wall (null-period) axis, for one-sided gluings whose glued copy sits between the board and the far wall (halfmirror's bottom mirror: extentY 2; alcove's right mirror: extentX 2). The renderer's tile counts and pan clamp honor it
 - `GAMES` in `src/engine/index.ts`
   - One `GameModule<S, M, B>` per game: `initialState / isLegalMove / applyMove / serialize / deserialize`
   - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'` and `'hyperbolic-46'` take none

@@ -218,8 +218,12 @@ function tileCounts(containerEl: HTMLElement): [number, number] {
   const containerW = containerEl.clientWidth || 800;
   const containerH = containerEl.clientHeight || 600;
   return [
-    currentTopology.periodX ? Math.ceil((containerW + currentTopology.periodX * board) / board) : 1,
-    currentTopology.periodY ? Math.ceil((containerH + currentTopology.periodY * board) / board) : 1,
+    currentTopology.periodX
+      ? Math.ceil((containerW + currentTopology.periodX * board) / board)
+      : currentTopology.extentX ?? 1,
+    currentTopology.periodY
+      ? Math.ceil((containerH + currentTopology.periodY * board) / board)
+      : currentTopology.extentY ?? 1,
   ];
 }
 
@@ -369,6 +373,18 @@ function seamType(a: ReturnType<typeof tileOrientation>, b: ReturnType<typeof ti
   return a.reflected !== b.reflected ? 'mirror' : 'rotation';
 }
 
+// Relative rotation between two tiles' D4 transforms. The keys hold each
+// tile's orthogonal plane->board matrix; trace(A^T B) is -2 exactly for a
+// half-turn and 0 for a quarter-turn, independent of either tile's own
+// orientation (sampling labels against the identity tile misreads e.g. the
+// windmill's rot90|rot180 seams as 180s).
+function seamAngle(a: ReturnType<typeof tileOrientation>, b: ReturnType<typeof tileOrientation>): '90' | '180' {
+  const av = a.key.split(',').map(Number);
+  const bv = b.key.split(',').map(Number);
+  const dot = av[0] * bv[0] + av[1] * bv[1] + av[2] * bv[2] + av[3] * bv[3];
+  return dot === -2 ? '180' : '90';
+}
+
 function createTopologyOverlay(): HTMLElement {
   const size = boardSize();
   const board = boardPx();
@@ -380,9 +396,6 @@ function createTopologyOverlay(): HTMLElement {
   overlay.style.gridTemplateRows = `repeat(${tilesY}, ${board}px)`;
   overlay.style.fontSize = `${Math.round(board * 0.25)}px`;
 
-  const o00 = tileOrientation(topo, 0, 0, size);
-  const vSeam = tilesX > 1 ? seamType(o00, tileOrientation(topo, 0, 1, size)) : null;
-  const hSeam = tilesY > 1 ? seamType(o00, tileOrientation(topo, 1, 0, size)) : null;
   const wallX = topo.periodX === null;
   const wallY = topo.periodY === null;
   const coloring = seamColoring(topo, size);
@@ -395,8 +408,15 @@ function createTopologyOverlay(): HTMLElement {
       tile.className = 'topo-tile';
       if (orient.reflected) tile.classList.add('reflected');
 
-      if (tileRow > 0 && hSeam) tile.classList.add(`seam-top-${hSeam}`);
-      if (tileCol > 0 && vSeam) tile.classList.add(`seam-left-${vSeam}`);
+      // Seam types are per-pair: on asymmetric tilings (Hinge) the seams
+      // alternate between mirror and rotation, so each is classified against
+      // its own neighbor rather than from one global sample.
+      if (tileRow > 0) {
+        tile.classList.add(`seam-top-${seamType(tileOrientation(topo, tileRow - 1, tileCol, size), orient)}`);
+      }
+      if (tileCol > 0) {
+        tile.classList.add(`seam-left-${seamType(tileOrientation(topo, tileRow, tileCol - 1, size), orient)}`);
+      }
       if (wallY && tileRow === 0) tile.classList.add('wall-top');
       if (wallY && tileRow === tilesY - 1) tile.classList.add('wall-bottom');
       if (wallX && tileCol === 0) tile.classList.add('wall-left');
@@ -525,17 +545,23 @@ function updateSeamLegend(): void {
 
   const size = boardSize();
   const topo = currentTopology;
-  const o00 = tileOrientation(topo, 0, 0, size);
   const seams = new Set<string>();
   let rotationAngle = '90';
-  for (const neighbor of [
-    tilesX > 1 ? tileOrientation(topo, 0, 1, size) : null,
-    tilesY > 1 ? tileOrientation(topo, 1, 0, size) : null,
-  ]) {
-    if (!neighbor) continue;
-    const type = seamType(o00, neighbor);
-    seams.add(type);
-    if (type === 'rotation' && neighbor.label === 'ROTATED 180') rotationAngle = '180';
+  // Scan every adjacent tile pair: asymmetric tilings (Hinge) have different
+  // seam types on different seams, so one sample per axis is not enough.
+  for (let tr = 0; tr < tilesY; tr++) {
+    for (let tc = 0; tc < tilesX; tc++) {
+      const o = tileOrientation(topo, tr, tc, size);
+      for (const nb of [
+        tc + 1 < tilesX ? tileOrientation(topo, tr, tc + 1, size) : null,
+        tr + 1 < tilesY ? tileOrientation(topo, tr + 1, tc, size) : null,
+      ]) {
+        if (!nb) continue;
+        const type = seamType(o, nb);
+        seams.add(type);
+        if (type === 'rotation' && seamAngle(o, nb) === '180') rotationAngle = '180';
+      }
+    }
   }
 
   const rows: [string, string][] = [];

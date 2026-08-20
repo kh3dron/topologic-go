@@ -32,6 +32,13 @@ export interface Topology {
   // wrap period along each axis, in board-lengths; null = wall (no tiling on that axis)
   periodX: number | null;
   periodY: number | null;
+  // valid plane extent on a wall (null-period) axis, in board-lengths
+  // (default 1): a one-sided gluing (Half Mirror's bottom mirror, Alcove's
+  // right mirror) puts real glued copies between the board and the far wall,
+  // so the renderer draws beyond the fundamental domain even though the axis
+  // does not tile periodically
+  extentX?: number;
+  extentY?: number;
   // Default Go komi override. Set (7.5, provisional) on the five closed
   // surfaces - torus, windmill, pillowcase, klein, projective - where no
   // boundary exists and corner/edge territory disappears entirely. Unset =
@@ -182,6 +189,30 @@ export const TOPOLOGIES: Topology[] = [
     },
   },
   {
+    id: 'hinge',
+    name: 'Hinge',
+    chessDesc: 'The left edge is a mirror; the right edge glues to itself rotated 180 degrees; top and bottom are walls.',
+    goDesc: 'The left edge is a mirror; the right edge glues to itself rotated 180 degrees; top and bottom are walls.',
+    snakeDesc: 'The left edge bounces you straight back at yourself; the right edge feeds you back in upside down; the top and bottom kill.',
+    article: 'A mirror on one side, a pivot on the other. Crossing the right edge re-enters the same edge rotated around its midpoint (as in Pivot), while the left edge reflects (as in Corridor). Composing the two isometries yields a glide reflection, so copies march along the strip in a four-step pattern - original, rotated, reflected, both - the frieze group p2mg. On odd boards the right-edge midpoint cell is its own neighbor; every left-edge cell touches its own reflection.',
+    links: [
+      { label: 'Frieze group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Frieze_group' },
+      { label: 'Orbifold notation (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Orbifold_notation' },
+    ],
+    formal: { group: 'p2mg (frieze)', orbifold: '2* inf', surface: 'strip folded at one pivot, one mirror side', orientable: true },
+    spec: ['LEFT: REFLECT', 'RIGHT: ROTATE 180', 'TOP, BOTTOM: WALL'],
+    tessellated: true,
+    periodX: 4,
+    periodY: null,
+    project(r, c, size) {
+      const k = Math.floor(c / (2 * size));
+      const rr = mod(k, 2) === 1 ? size - 1 - r : r;
+      if (rr < 0 || rr >= size) return null;
+      const cc = c - 2 * size * k;
+      return cc < size ? [rr, cc] : [size - 1 - rr, 2 * size - 1 - cc];
+    },
+  },
+  {
     id: 'openpillowcase',
     name: 'Open Pillowcase',
     chessDesc: 'Side edges glue to themselves rotated 180 degrees; rows reflect at top and bottom.',
@@ -247,6 +278,28 @@ export const TOPOLOGIES: Topology[] = [
     },
   },
   {
+    id: 'halfmirror',
+    name: 'Half Mirror',
+    chessDesc: 'Columns wrap; the bottom edge is a mirror behind white, the top edge a wall behind black.',
+    goDesc: 'Columns wrap; the bottom edge reflects, the top edge is a wall.',
+    snakeDesc: 'The sides wrap, the bottom edge is a mirror, the top edge is a lethal wall - one bounce, one boundary.',
+    article: 'Half of the Mirror mode: the bottom edge reflects while the top edge is an ordinary wall, and columns wrap - the frieze group p11m, translations plus a single mirror line along the strip. This is the first board on this site whose two chess armies live in different local geometry: white stands back-to-back with its own reflection while black backs onto a wall. Whether that asymmetry decides games is exactly the kind of question the census exists to ask.',
+    links: [
+      { label: 'Frieze group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Frieze_group' },
+      { label: 'Reflection symmetry (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Reflection_symmetry' },
+    ],
+    formal: { group: 'p11m (frieze)', orbifold: 'inf *', surface: 'annulus, one mirror + one wall boundary', orientable: true },
+    spec: ['LEFT <-> RIGHT: WRAP', 'BOTTOM: REFLECT', 'TOP: WALL'],
+    tessellated: true,
+    periodX: 1,
+    periodY: null,
+    extentY: 2,
+    project(r, c, size) {
+      if (r < 0 || r >= 2 * size) return null;
+      return [r < size ? r : 2 * size - 1 - r, mod(c, size)];
+    },
+  },
+  {
     id: 'mirrorbox',
     name: 'Mirror Box',
     chessDesc: 'All four edges are mirrors - the board sits inside a box of mirrors.',
@@ -266,6 +319,29 @@ export const TOPOLOGIES: Topology[] = [
       const mr = mod(r, 2 * size);
       const mc = mod(c, 2 * size);
       return [mr < size ? mr : 2 * size - 1 - mr, mc < size ? mc : 2 * size - 1 - mc];
+    },
+  },
+  {
+    id: 'alcove',
+    name: 'Alcove',
+    chessDesc: 'Top, bottom, and right edges are mirrors; the left edge is a wall.',
+    goDesc: 'Top, bottom, and right edges are mirrors; the left edge is a wall.',
+    snakeDesc: 'Three mirrors to bounce off; only the left edge kills.',
+    article: 'A mirror box with one side knocked out: the top, bottom, and right edges reflect while the left edge is a wall. The facing top and bottom mirrors alternate copies down an infinite strip (as in Corridor) and the right mirror seals it - the frieze group p2mm. With Hinge and Half Mirror this completes all seven frieze groups on the square board. The right column, top row, and bottom row each touch their own reflections, and the two right corners sit on two mirrors at once - doubly self-adjacent, like the Mirror Box corners.',
+    links: [
+      { label: 'Frieze group (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Frieze_group' },
+      { label: 'Orbifold notation (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Orbifold_notation' },
+    ],
+    formal: { group: 'p2mm (frieze)', orbifold: '*22 inf', surface: 'square, three mirror sides + one wall', orientable: true },
+    spec: ['TOP, BOTTOM, RIGHT: REFLECT', 'LEFT: WALL'],
+    tessellated: true,
+    periodX: null,
+    periodY: 2,
+    extentX: 2,
+    project(r, c, size) {
+      if (c < 0 || c >= 2 * size) return null;
+      const m = mod(r, 2 * size);
+      return [m < size ? m : 2 * size - 1 - m, c < size ? c : 2 * size - 1 - c];
     },
   },
   {

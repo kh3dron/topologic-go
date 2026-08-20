@@ -10,10 +10,13 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Windmill — copies rotate 90 degrees around shared corners (wallpaper group p4, orbifold 442; quotient S²(4,4,2)). Orbifold quirk: cells at the rotation corners are adjacent to themselves, so corner points have only 2 distinct liberties in Go
 - Pillowcase — side-by-side copies rotate 180 degrees, rows wrap (wallpaper group p2, orbifold 2222; quotient is the pillowcase S²(2,2,2,2)). Cone-point cells on the middle row of the side edges are self-adjacent
 - Pivot — each side edge glues to itself rotated 180 degrees, rows are walls (frieze group p2, orbifold 22∞). The pillowcase's walled sibling, as the cylinder is to the torus. On odd boards the side-edge midpoint cells are self-adjacent
+- Hinge — left edge is a mirror, right edge glues to itself rotated 180 (as in Pivot), rows are walls (frieze group p2mg, orbifold 2*∞). Mirror ∘ pivot = glide reflection, so strip copies cycle original / rotated / reflected / both. Left-column cells self-adjacent; on odd boards the right-edge midpoint too
 - Open Pillowcase — side edges rotate 180 onto themselves (as in Pivot), rows reflect at top/bottom (as in Mirror) — wallpaper group pmg, orbifold 22*. The last wallpaper group with the square board as fundamental domain via pure edge gluings. Quotient is a disk with two order-2 cone points and a mirror boundary: top/bottom rows self-adjacent, plus the side-edge midpoints on odd boards
 - Cylinder — columns wrap, rows are walls
 - Corridor — rows reflect at top/bottom (two facing mirrors), columns are walls
+- Half Mirror — columns wrap, the bottom edge reflects, the top edge is a wall (frieze group p11m, orbifold ∞*). The first board that treats the two chess armies differently: white backs onto its own reflection, black onto a wall
 - Mirror Box — all four edges reflect (wallpaper group pmm, orbifold *2222). Every perimeter cell is self-adjacent, corners doubly so
+- Alcove — top, bottom, and right edges reflect, the left edge is a wall (frieze group p2mm, orbifold *22∞). A mirror box with one side knocked out. With Hinge and Half Mirror this completes all seven frieze groups on the square board
 - Mobius — columns wrap with a vertical flip, rows are walls
 - Klein — columns glue with a vertical flip, rows wrap (Klein bottle)
 - Mobius Mirror — columns wrap with a vertical flip, rows reflect at top/bottom (wallpaper group cm, orbifold *x; quotient is a Mobius band with mirror boundary)
@@ -24,7 +27,6 @@ Every variant is the same game played on a quotient of the infinite plane: a sin
 - Glide torus — rows wrap normally; crossing top/bottom shifts columns by k (screw dislocation). `project: [mod(r,n), mod(c + k*floor(r/n), n)]`. Caveat: the tessellated view needs an axis-aligned period of `n/gcd(k,n)` boards — fine for chess (n=8, k=4 gives period 2) but unusable for Go (n=19 is prime, so any shift gives period 19). Needs either a chess-only mode concept or a smarter renderer
 - Face windmill — p4 with rotation centers at cell centers instead of corners. INFEASIBLE as a drop-in (checked 2026-08-19): a cell-centered p4 action on the square lattice has n²+2 cell orbits per board area (the two 4-fold-fixed cells and the 2-fold-swapped pair collapse), so the n×n board can never be a set of orbit representatives. Needs a different board size/shape concept
 - cmm / p4m / p4g — need triangular or kite-shaped fundamental domains; the square board cannot represent them via pure edge gluings (pmg, now implemented as Open Pillowcase, was the last one that could)
-- Half mirror — top edge reflects, bottom edge is a wall, columns wrap (frieze p11m, orbifold ∞*). Needs asymmetric per-edge treatments; same for the remaining friezes p2mg and p2mm
 - Double-wide fundamental domain — two boards side by side glued into any of the above; games with 2x material
 - Alice variants — two stacked boards; a piece/stone teleports to the other layer after each move (not a plane quotient; needs a layer dimension, but project() generalizes to (layer, r, c))
 - Hex Go on a torus — hexagonal adjacency with wrap; needs a hex grid renderer, logic already adjacency-agnostic
@@ -55,10 +57,13 @@ Terminology: a *degenerate* game is one decided without any meaningful play — 
 | Chess | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Chess | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | black wins at move 0 | 0 | Y | DEAD |
 | Chess | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 0 | Y | OK |
+| Chess | hinge | p2mg (frieze) | 2* inf | strip folded at one pivot, one mirror side | playable | 8 | Y | QUIRKS |
 | Chess | openpillowcase | pmg | 22* | disk with two cone points, mirror boundary | playable | 16 | Y | QUIRKS |
 | Chess | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Chess | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 16 | Y | QUIRKS |
+| Chess | halfmirror | p11m (frieze) | inf * | annulus, one mirror + one wall boundary | playable | 8 | Y | QUIRKS |
 | Chess | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 28 | Y | QUIRKS |
+| Chess | alcove | p2mm (frieze) | *22 inf | square, three mirror sides + one wall | playable | 22 | Y | QUIRKS |
 | Chess | mobius | p11g (frieze) | inf x | Mobius band with boundary | playable | 0 | N | QUIRKS |
 | Chess | klein | pg | xx | Klein bottle K2 | black wins at move 0 | 0 | N | DEAD |
 | Chess | mobiusmirror | cm | *x | Mobius band with mirror boundary | playable | 16 | N | QUIRKS |
@@ -69,10 +74,13 @@ Terminology: a *degenerate* game is one decided without any meaningful play — 
 | Go | windmill | p4 | 442 | sphere S2(4,4,2) | playable | 2 | Y | QUIRKS |
 | Go | pillowcase | p2 | 2222 | pillowcase S2(2,2,2,2) | playable | 2 | Y | QUIRKS |
 | Go | pivot | p2 (frieze) | 22 inf | strip folded at two pivots | playable | 2 | Y | QUIRKS |
+| Go | hinge | p2mg (frieze) | 2* inf | strip folded at one pivot, one mirror side | playable | 20 | Y | QUIRKS |
 | Go | openpillowcase | pmg | 22* | disk with two cone points, mirror boundary | playable | 40 | Y | QUIRKS |
 | Go | cylinder | p1 (frieze) | inf inf | annulus with boundary | playable | 0 | Y | OK |
 | Go | corridor | p1m1 (frieze) | *inf inf | strip between two mirrors | playable | 38 | Y | QUIRKS |
+| Go | halfmirror | p11m (frieze) | inf * | annulus, one mirror + one wall boundary | playable | 19 | Y | QUIRKS |
 | Go | mirrorbox | pmm | *2222 | square, all-mirror boundary | playable | 72 | Y | QUIRKS |
+| Go | alcove | p2mm (frieze) | *22 inf | square, three mirror sides + one wall | playable | 55 | Y | QUIRKS |
 | Go | mobius | p11g (frieze) | inf x | Mobius band with boundary | playable | 0 | N | QUIRKS |
 | Go | klein | pg | xx | Klein bottle K2 | playable | 0 | N | QUIRKS |
 | Go | mobiusmirror | cm | *x | Mobius band with mirror boundary | playable | 38 | N | QUIRKS |
