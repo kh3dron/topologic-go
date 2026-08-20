@@ -32,7 +32,8 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 
 - No test framework, no linter. Verification = typecheck + census script + driving the UI with Playwright (see `workflows.md`)
 - CI (`.github/workflows/ci.yml`) runs on PRs and pushes to `main`: `tsc --noEmit`, census script, `vite build`, then `scripts/smoke-ui.mjs` (headless-Chromium smoke over `dist/`)
-- Pushes to `main` cut a semantic release (conventional commits) and deploy to GitHub Pages (`.github/workflows/static.yml`)
+- Pushes to `main` cut a semantic release (conventional commits) and deploy to GitHub Pages by pushing `dist/` to the `gh-pages` branch (`.github/workflows/static.yml`; custom domain `games.kh3dron.net`)
+- PRs from this repo deploy live previews to `https://games.kh3dron.net/pr-preview/pr-<n>/` (`.github/workflows/pr-preview.yml`; commented on the PR, removed on close)
 
 ## Pages
 

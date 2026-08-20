@@ -1,5 +1,7 @@
 # Cuts a semantic release (tag + GitHub Release) from conventional commits,
-# then builds the Vite app and deploys it to GitHub Pages.
+# then builds the Vite app and deploys it to GitHub Pages by pushing dist/ to
+# the gh-pages branch (Pages source = gh-pages, switched from artifact deploys
+# so PR previews can live in pr-preview/ subfolders - see pr-preview.yml).
 name: Release and deploy to Pages
 
 on:
@@ -9,8 +11,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
@@ -46,9 +46,6 @@ jobs:
     # the app. A flaky release step must not block Pages deploys. Release failures
     # stay visible (red job) but non-blocking.
     if: always()
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,15 +69,17 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Add CNAME for the custom domain
+        run: echo 'games.kh3dron.net' > dist/CNAME
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # Upload dist folder (Vite output)
-          path: './dist'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          folder: dist
+          branch: gh-pages
+          clean: true
+          # PR previews (pr-preview.yml) live under pr-preview/ on the same
+          # branch; production deploys must not sweep them away.
+          clean-exclude: |
+            pr-preview/
+          force: false

@@ -12,7 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Deployment
 
-- Pushes to `main` auto-deploy to GitHub Pages via `.github/workflows/static.yml` (builds `dist/`, uploads as Pages artifact)
+- Pushes to `main` auto-deploy to GitHub Pages via `.github/workflows/static.yml` (builds `dist/`, pushes to the `gh-pages` branch; Pages source = `gh-pages`, custom domain `games.kh3dron.net` via a `CNAME` file the deploy writes)
+- PRs get live previews at `https://games.kh3dron.net/pr-preview/pr-<n>/` via `.github/workflows/pr-preview.yml` (same-repo PRs only; folder removed on close; prod deploys `clean-exclude` the `pr-preview/` umbrella)
 - `vite.config.ts` sets `base: './'` so assets resolve under the Pages subpath — keep relative paths
 - The online backend is self-hosted Supabase in Docker on `huey` (tailnet server; see `selfhost/README.md`); `supabase/` holds the migrations + Edge Functions it serves. Deploy backend changes: `git pull` in huey's checkout, `./scripts/apply-migrations.sh` for new migrations, `docker compose restart functions` for engine/function changes (all from `selfhost/`)
 

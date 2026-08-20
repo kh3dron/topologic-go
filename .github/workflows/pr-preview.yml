@@ -1,0 +1,87 @@
+# Live preview per PR: builds dist/ and pushes it to
+# gh-pages/pr-preview/pr-<number>/, served by the same Pages site as
+# production at https://games.kh3dron.net/pr-preview/pr-<number>/.
+# Production deploys (static.yml) exclude pr-preview/ from their clean, and
+# this workflow removes the folder when the PR closes.
+#
+# Same-repo PRs only: the deploy needs a write token, which fork PRs must
+# never get.
+name: PR preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ github.event.number }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Deploy preview to gh-pages/pr-preview
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages
+          target-folder: pr-preview/pr-${{ github.event.number }}
+          clean: true
+          force: false
+
+      - name: Comment preview URL on the PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.number }}" \
+            --repo "${{ github.repository }}" \
+            --edit-last --create-if-none \
+            --body "PREVIEW: https://games.kh3dron.net/pr-preview/pr-${{ github.event.number }}/ (commit ${{ github.event.pull_request.head.sha }}; redeployed on every push, removed on close)"
+
+  remove-preview:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+
+      - name: Remove the preview folder
+        run: |
+          rm -rf "pr-preview/pr-${{ github.event.number }}"
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Remove preview for PR #${{ github.event.number }}"
+            git push
+          else
+            echo "No preview folder to remove."
+          fi
