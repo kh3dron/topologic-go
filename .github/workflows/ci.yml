@@ -37,6 +37,9 @@ jobs:
       - name: Engine census + serializer round-trip
         run: npx --yes tsx scripts/census.ts
 
+      - name: Move-zero playability characterization
+        run: npx --yes tsx scripts/playability.ts
+
       - name: Build
         run: npm run build
 

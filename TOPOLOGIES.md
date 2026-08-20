@@ -92,12 +92,14 @@ Observations worth chasing: board-size parity matters (pillowcase and pivot have
 
 The rules and the starting position are IDENTICAL on every topology. Some topologies make the standard game degenerate — on the torus the back ranks are glued through the seam, the kings start adjacent, and white is checkmated at move zero (the engine detects and reports this at game start). **This is deliberate.** Do not add per-topology setup shifts, rule exceptions, or other one-off modifications to force a topology to be playable. Which topologies yield interesting games versus degenerate ones is itself the research question — patching the degenerate cases would destroy the object of study.
 
-## Future work: playability theory
+## Playability theory
 
-- Characterize mathematically which topologies give non-degenerate chess games from the standard setup. Conjectured shape: the game is degenerate iff the gluing maps a back rank into the attack range of the opposing army (e.g. any topology whose vertical gluing carries row 7 adjacent to row 0 without reflection). Torus, Klein, pillowcase, and projective all start decided; classic, cylinder, corridor, Mobius, mirror, windmill, pivot, mirror box, and Mobius mirror do not — prove the pattern
-- The adjudication of degenerate starts depends on the rule formalism, not just the topology. The torus start is a mutual-mate position (by symmetry, whoever is to move is checkmated). Orthodox check/checkmate semantics resolve simultaneity by turn order - the side to move loses, so white loses by moving first. Under shatranj-style king-capture semantics the side to move wins by capturing first (defense of the king is irrelevant when capture ends the game). Mutual check is an illegal position in orthodox chess and FIDE has no rule for it; these topologies manufacture it at move zero. Classification target: (topology x formalism) -> {white wins, black wins, playable}
-- Same question for Go: no Go topology is degenerate at move zero (the empty board is symmetric), but cone points and non-orientability change life-and-death shapes (e.g. the minimal living group near a self-adjacent corner). Quantify
-- Fair komi per topology, measured or derived
+RESOLVED for chess: see `docs/playability.md`. The move-zero characterization is proved and machine-checked in CI (`scripts/playability.ts`): the standard start is degenerate iff the vertical gluing is a wrap (straight or column-flipped) carrying the whole bottom edge onto the whole top edge — exactly torus, pillowcase, klein, projective. The naive "some back-rank cell adjacent to row 0" version is falsified by the windmill, whose corner gluing touches row 0 at one cell but produces only a mutual queen attack along rank 5, not a check. The formalism classification is also complete: orthodox semantics give the win to black (side to move is mated), king-capture semantics to white (side to move captures first) — the winner of a degenerate start is a property of the rule formalism, not the board.
+
+Still open (stated with what they need in `docs/playability.md` 5.0):
+
+- Go quantitative questions: minimal living groups near cone points and mirror rows; effects of non-orientability on life-and-death
+- Fair komi per topology, measured — needs self-play data; current per-topology values (`Topology.goKomi`) are provisional
 
 ## Notes on rules across topologies
 

@@ -14,6 +14,7 @@ Orientation for humans and agents. Read this first, then the file that matches y
 - `architecture.md` — module layers, registries, data flow, dependency rules
 - `workflows.md` — commands, verification recipes, how to add a topology or a game
 - `online.md` — online play: net layer, Supabase backend, smoke test
+- `playability.md` — the move-zero characterization theorem (proved + machine-checked by `scripts/playability.ts`), formalism dependence, open Go questions
 - `../TOPOLOGIES.md` — topology catalog, census table, math background, ideas
 - `../DEPLOYMENT.md` — online-play design doc (hosting, server-authoritative validation)
 - Backlog / to-dos: **DOCKET** (project `topologic-go`, web UI `http://lawrence:8080`) — not tracked in-repo
