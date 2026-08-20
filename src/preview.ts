@@ -15,7 +15,7 @@ import { HYPER_BASE_BOUNDARY, HYPER_INRADIUS, hyperCells, mobApply } from './eng
 import { PENTA_BASE_BOUNDARY, PENTA_INRADIUS, pentaCells } from './engine/games/pentachess';
 
 // Static preview drawings for non-topology boards; undefined = #TODO placeholder.
-export type StaticPreview = 'hex' | 'hyper' | 'penta';
+export type StaticPreview = 'hex' | 'hyper' | 'penta' | 'hextorus';
 
 const SIZE = 8;
 const PAD = 10;
@@ -289,6 +289,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     else if (staticBoard === 'hex') drawHexBoard();
     else if (staticBoard === 'hyper') drawDiskBoard(hyperCells(), HYPER_BASE_BOUNDARY, HYPER_INRADIUS);
     else if (staticBoard === 'penta') drawDiskBoard(pentaCells(), PENTA_BASE_BOUNDARY, PENTA_INRADIUS);
+    else if (staticBoard === 'hextorus') drawHexTorusBoard();
     else drawTodo();
   }
 
@@ -416,6 +417,56 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       ctx.fill();
       if (apparent > 2) ctx.stroke();
     }
+  }
+
+  // Static preview for the hex torus: the 11x11 axial rhombus and its eight
+  // echo copies, colours from the same 3-colouring the game view uses (its
+  // seam discontinuity included - that is the point).
+  function drawHexTorusBoard(): void {
+    if (cw === 0) resize();
+    if (cw === 0) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, cw, ch);
+
+    const R = 5;
+    const N = 11;
+    const wrapc = (v: number) => ((v + R) % N + N) % N - R;
+    // Fit the 3x3 quilt: axial pixel extents for s=1, then scale.
+    const cx1 = (q: number) => 1.5 * q;
+    const cy1 = (q: number, r: number) => Math.sqrt(3) * (r + q / 2);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const [q, r] of [[-R - N, -R - N], [R + N, R + N], [-R - N, R + N], [R + N, -R - N]]) {
+      const x = cx1(q), y = cy1(q, r);
+      minX = Math.min(minX, x - 1); maxX = Math.max(maxX, x + 1);
+      minY = Math.min(minY, y - 1); maxY = Math.max(maxY, y + 1);
+    }
+    const s = Math.min((cw - 2 * PAD) / (maxX - minX), (ch - 2 * PAD) / (maxY - minY));
+    const ox = cw / 2 - s * (minX + maxX) / 2;
+    const oy = ch / 2 - s * (minY + maxY) / 2;
+    const COLORS = ['#e8e8e8', '#b0b0b0', '#7d7d7d'];
+
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        for (let q0 = -R; q0 <= R; q0++) {
+          for (let r0 = -R; r0 <= R; r0++) {
+            const q = q0 + i * N, r = r0 + j * N;
+            const x = ox + s * cx1(q), y = oy + s * cy1(q, r);
+            ctx.beginPath();
+            for (let k = 0; k < 6; k++) {
+              const ang = (Math.PI / 3) * k;
+              const px = x + s * Math.cos(ang), py = y + s * Math.sin(ang);
+              if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            const ci = ((wrapc(r) - wrapc(q)) % 3 + 3) % 3;
+            ctx.globalAlpha = i === 0 && j === 0 ? 1 : 0.5;
+            ctx.fillStyle = COLORS[ci];
+            ctx.fill();
+          }
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   // Placeholder for boards whose preview drawing does not exist yet.

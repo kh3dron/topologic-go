@@ -39,7 +39,7 @@ export interface GameModule<S, M, B> {
   // be redundant there - every other list item is a board, not a game).
   // `preview` names the static preview drawing; boards without one get a
   // #TODO placeholder in the preview frame.
-  catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string; preview?: 'hex' | 'hyper' | 'penta' };
+  catalog?: { group: string; board: string; surface: string; spec: string[]; badge: string; preview?: 'hex' | 'hyper' | 'penta' | 'hextorus' };
   // `options` is a per-game bag of new-game settings (e.g. Go board size).
   // Modules that take options must validate them and throw on bad values,
   // since they arrive from the client via create-game.

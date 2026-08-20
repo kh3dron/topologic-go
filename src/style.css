@@ -629,6 +629,27 @@ button:active,
   fill: #111;
 }
 
+/* ==================== HEX TORUS (quilt of glued copies) ==================== */
+/* Echo copies of the fundamental domain: same content, dimmed so the
+   canonical rhombus reads at a glance. */
+.hex-echo { opacity: 0.62; }
+
+.hex-goban { fill: #d8b06a; }
+.hexcell:hover .hex-goban { stroke: #fff; stroke-width: 2; }
+
+.hexgo-stone { pointer-events: none; }
+.hexgo-stone.black { fill: #1c1c1e; stroke: rgba(0, 0, 0, 0.5); }
+.hexgo-stone.white { fill: #f2f2f0; stroke: rgba(0, 0, 0, 0.5); }
+
+.hexgo-last { fill: none; pointer-events: none; stroke-width: 2; }
+.hexgo-last.black { stroke: #f2f2f0; }
+.hexgo-last.white { stroke: #1c1c1e; }
+
+.hexgo-ghost { pointer-events: none; opacity: 0; }
+.hexgo-ghost.black { fill: rgba(28, 28, 30, 0.45); }
+.hexgo-ghost.white { fill: rgba(242, 242, 240, 0.55); }
+.hexcell:hover .hexgo-ghost { opacity: 1; }
+
 /* ==================== HYPERBOLIC CHESS ==================== */
 .hyper-canvas {
   display: block;

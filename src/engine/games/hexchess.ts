@@ -67,18 +67,20 @@ export function hexCellName(q: number, r: number): string {
 }
 
 // ==================== DIRECTIONS ====================
-const ROOK_DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, -1], [-1, 1]];
-const BISHOP_DIRS = [[1, 1], [-1, -1], [1, -2], [-1, 2], [2, -1], [-2, 1]];
-const KNIGHT_OFFSETS = [
+// Exported for the hex-torus variant (hextorus.ts), which plays Glinski's
+// rules on the completed bounding rhombus glued into a torus.
+export const ROOK_DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, -1], [-1, 1]];
+export const BISHOP_DIRS = [[1, 1], [-1, -1], [1, -2], [-1, 2], [2, -1], [-2, 1]];
+export const KNIGHT_OFFSETS = [
   [1, -3], [2, -3], [3, -2], [3, -1],
   [-1, 3], [-2, 3], [-3, 2], [-3, 1],
   [1, 2], [2, 1], [-1, -2], [-2, -1],
 ];
 
-function pawnForward(color: Color): number {
+export function pawnForward(color: Color): number {
   return color === 'white' ? -1 : 1;
 }
-function pawnCaptureDirs(color: Color): number[][] {
+export function pawnCaptureDirs(color: Color): number[][] {
   return color === 'white' ? [[1, -1], [-1, 0]] : [[1, 0], [-1, 1]];
 }
 
@@ -109,7 +111,7 @@ type HexCtx = Pick<HexState, 'board' | 'enPassant' | 'whitePawnStarts' | 'blackP
 
 // White starting cells in axial coords; algebraic name in comments. Black is
 // the vertical mirror (q, r) -> (q, -q-r), so the two kings face down file g.
-const WHITE_SETUP: [number, number, HexPieceType][] = [
+export const WHITE_SETUP: [number, number, HexPieceType][] = [
   [-3, 5, 'rook'],   // c1
   [3, 2, 'rook'],    // i1
   [-2, 5, 'knight'], // d1

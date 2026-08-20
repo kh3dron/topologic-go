@@ -8,6 +8,8 @@ import { hexView } from './hexchess';
 import { hyperView } from './hyperchess';
 import { hyperGoView } from './hypergo';
 import { pentaView } from './pentachess';
+import { hexTorusView } from './hextorus';
+import { hexTorusGoView } from './hextorusgo';
 import { snakeView } from './snake';
 
 export const VIEWS = new Map<string, GameView>([
@@ -17,6 +19,8 @@ export const VIEWS = new Map<string, GameView>([
   [hyperView.id, hyperView],
   [hyperGoView.id, hyperGoView],
   [pentaView.id, pentaView],
+  [hexTorusView.id, hexTorusView],
+  [hexTorusGoView.id, hexTorusGoView],
   [snakeView.id, snakeView],
 ]);
 
