@@ -5,8 +5,8 @@ Layered: pure engine at the bottom, DOM at the top. Dependencies point down only
 ```
 pages:      landing.ts   play.ts   game.ts   about.ts        (one per HTML entry)
 shell:      render.ts   preview.ts   routes.ts   version.ts   history.ts   report.ts
-views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,hypergo,snake}.ts  views/hyperdisk.ts  (VIEWS registry)
-wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  hypergo.ts  snake.ts  state.ts  (module-global live state)
+views:      views/kit.ts  views/{chess,go,hexchess,hyperchess,hypergo,pentachess,snake}.ts  views/hyperdisk.ts  (VIEWS registry)
+wrappers:   chess.ts  go.ts  hexchess.ts  hyperchess.ts  hypergo.ts  pentachess.ts  snake.ts  state.ts  (module-global live state)
 net:        net/{client,auth,games,online}.ts                 (optional Supabase)
 engine:     engine/core.ts  engine/index.ts  engine/games/*   (pure, DOM-free)
 math:       topology.ts  census.ts                            (pure, DOM-free)
@@ -23,7 +23,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - `extentX`/`extentY` (optional, board-lengths, default 1): valid plane extent on a wall (null-period) axis, for one-sided gluings whose glued copy sits between the board and the far wall (halfmirror's bottom mirror: extentY 2; alcove's right mirror: extentX 2). The renderer's tile counts and pan clamp honor it
 - `GAMES` in `src/engine/index.ts`
   - One `GameModule<S, M, B>` per game: `initialState / isLegalMove / applyMove / serialize / deserialize`
-  - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'` and `'hyperbolic-46'` take none
+  - `boardFamily` picks the board type: `'square-grid'` games receive a `Topology`; `'hex-glinski'`, `'hyperbolic-46'`, and `'hyperbolic-54'` take none
   - `usesTopology(gameId)` gates the topology picker and the `t=` URL param
   - `soloOnly` (snake) keeps a game off the online lobby
   - `catalog` (optional) describes the landing-picker board card for non-topology games (group, board name shown in the picker list, surface, spec chips, preview badge)
@@ -41,6 +41,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
   - hexchess: Glinski geometry, own coordinate system, no topology
   - hyperchess: chess on a 1352-cell patch of the {4,6} hyperbolic tiling (after Hawksley's "Non-Euclidean Chess, Part 2"); cells are Mobius transforms generated at module load, moves walk precomputed adjacency/diagonal/knight tables; pawns carry a parallel-transported heading
   - hypergo: Go on the same {4,6} patch — untouched Go rules (capture/suicide/superko/two-pass/territory, komi 6.5 provisional) over `hyperNeighbors()` instead of `project()`; board serialized as one char per cell
+  - pentachess: chess on a 3524-cell patch of the {5,4} tiling (family `hyperbolic-54`), completing Hawksley's conceptual pentagonal variant. A pentagon's opposite feature alternates kind (edge<->corner), so rook rays alternate edge/vertex crossings; bishops cross vertices only (unique opposite cell at a degree-4 vertex, colour-preserving — {5,4} is checkerboard-colourable); knights take the article's 10 edge-then-far-edge jumps; pawn headings alternate edge/corner; edge gluings are pi-rotations about edge midpoints (pentagons have no central symmetry, so translations cannot glue them)
   - snake: deterministic; RNG injected by the wrapper
 - `src/census.ts` — DOM-free, stateless classification of (game, topology): `variantVerdict`, `chessMoveZero`, `singularCellCount`, `verdict`. Shared by about page, landing badges, and `scripts/census.ts`
 - Stateful wrappers (`src/chess.ts`, `go.ts`, `hexchess.ts`, `snake.ts`)
@@ -50,7 +51,7 @@ Everything derives from two Maps; adding entries is the main extension mechanism
 - `src/state.ts` — `currentGame` + `currentTopology` globals, mutated only via setters
 - `src/views/` — per-game view adapters (`GameView` in `kit.ts`), registry in `index.ts`
   - Encapsulate game-specific DOM: cell creation, status text, info panel copy, sizing (`size()` is a method so Go can report its per-game board size; others return a constant)
-  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan — the game-agnostic disk scaffolding lives in `views/hyperdisk.ts` (`createDiskRenderer`), hyperchess and hypergo each supply a `DiskPaint`)
+  - `family: 'square-grid'` renders through the shared tessellated grid; `'custom'` renders itself via `renderCustom` (hex: SVG; hyperbolic: canvas Poincare disk with hyperbolic drag-to-pan — the game-agnostic disk scaffolding lives in `views/hyperdisk.ts` (`createDiskRenderer`, parameterized by a `DiskGeometry`); hyperchess, hypergo, and pentachess each supply a `DiskPaint`)
   - `pass?()` — pass-move hook; the shell's pass button dispatches through the active view (Go and hypergo implement it)
   - Direction: render.ts -> views -> wrappers; views never import render.ts
 - `src/render.ts` — the shell; all shared DOM

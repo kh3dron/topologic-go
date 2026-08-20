@@ -8,6 +8,7 @@ import { HYPER_CELL_COUNT } from '../hyperchess';
 import type { HyperCell, C } from '../hyperchess';
 import { GameView, InfoPanel, capitalize } from './kit';
 import { HYPER_CELL, createDiskRenderer } from './hyperdisk';
+import { HYPER46_GEOMETRY } from './hyperchess';
 
 const HOME: C = { re: 0, im: 0 }; // Go has no armies: start centred on the board
 
@@ -29,6 +30,7 @@ const HYPERGO_INFO: InfoPanel = {
 };
 
 const disk = createDiskRenderer<null>({
+  geometry: HYPER46_GEOMETRY,
   home: HOME,
 
   prepareDraw: () => null,

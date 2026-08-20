@@ -43,7 +43,9 @@ Not every board on the site is a quotient of the Euclidean plane. These live out
 
 - Hyperbolic Go (`hypergo`) — Go on the same 1352-cell {4,6} patch: stones on cells, liberties along the tiling's edges, otherwise untouched rules (capture, suicide ban, positional superko, two passes, flood-fill territory, komi 6.5 provisional). The geometry changes the economics, not the rules: area inside a loop grows only linearly with its circumference, so territory walls cost far more per enclosed cell than on a flat board
 
-Further ideas in this family: Hawksley's pentagonal {5,4} variant (odd face degree kills the checkerboard — bishops need her Part-2 edge/vertex rule instead), spherical chess from Part 1.
+- Pentagonal chess (`pentachess`) — chess on a 3524-cell patch of the {5,4} tiling (pentagons, four per vertex), completing the variant Hawksley's Part 2 sketches only conceptually. A pentagon has no opposite edge — the feature opposite an edge is a corner and vice versa — so the geodesic through a cell alternates edge and vertex crossings: rooks ride it starting across an edge, bishops cross vertices only (the across-a-vertex cell is unique at a degree-4 vertex) and keep their colour ({5,4} does checkerboard — every adjacency cycle is a 4-cycle, contra the old note here), knights take the article's verbatim 10 jumps (edge, then one of the two far edges), pawns carry their next crossing as a heading. Back ranks bend: no geodesic runs perpendicular to the spine through a spine cell, so each rank follows the two most-sideways rays, curling away from the enemy
+
+Further ideas in this family: spherical chess from Hawksley's Part 1.
 
 ## Census
 

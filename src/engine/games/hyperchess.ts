@@ -97,10 +97,12 @@ export function mobTranslation0(w: C): Mob {
   return { a: { re: s, im: 0 }, b: cScale(w, s) };
 }
 
-function rotAbout(p: C, theta: number): Mob {
+// Exported as mobRotAbout for sibling tilings (pentachess builds {5,4} with it).
+export function mobRotAbout(p: C, theta: number): Mob {
   const t = mobTranslation0(p);
   return mobMul(mobMul(t, rotation(theta)), mobInverse(t));
 }
+const rotAbout = mobRotAbout;
 
 // tanh(d/2) for the hyperbolic distance d between disk points: the Mobius ratio.
 export function mobDistRatio(z: C, w: C): number {
@@ -159,7 +161,11 @@ const U_MAX = (BLACK_Q_STEP + 0.5) * STEP;
 const SIDE_MAX = 4 * STEP + 0.5 * HYPER_INRADIUS;
 
 // Spine coordinates of a disk point via the hyperboloid model: u = position of
-// the perpendicular foot along the spine, v = distance to the spine.
+// the perpendicular foot along the spine, v = distance to the spine. Exported
+// as diskSpineCoords for sibling tilings; the spine is always the y-axis.
+export function diskSpineCoords(z: C): { u: number; v: number } {
+  return spineCoords(z);
+}
 function spineCoords(z: C): { u: number; v: number } {
   const den = 1 - cAbs2(z);
   const X = (2 * z.re) / den;

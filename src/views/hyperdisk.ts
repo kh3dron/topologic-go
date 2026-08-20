@@ -9,28 +9,43 @@
 // only ever armed by that instance's live canvas).
 
 import {
-  hyperCells, hyperNeighbors, HYPER_BASE_BOUNDARY,
-  HYPER_INRADIUS, HYPER_CIRCUMRADIUS,
   mobMul, mobInverse, mobApply, mobTranslation0, mobDistRatio,
 } from '../hyperchess';
-import type { HyperCell, Mob, C } from '../hyperchess';
+import type { Mob, C } from '../hyperchess';
 import { Extent, RenderDeps } from './kit';
 
 export const HYPER_CELL = 28; // zoom unit: cellPx / HYPER_CELL scales the disk
 const ORIGIN: C = { re: 0, im: 0 };
-const CELL_HIT_RATIO = Math.tanh(HYPER_CIRCUMRADIUS / 2) * 1.02;
 const MAX_PAN_RATIO = 0.99999; // ~ hyperbolic distance 12 from board centre
 const DRAG_CLICK_THRESHOLD = 5;
 
+// The board a disk renderer draws: any finite patch of a {p,q} tiling whose
+// cells carry a Mobius frame ({4,6} hyperchess/hypergo, {5,4} pentachess).
+export interface DiskCell {
+  id: number;
+  transform: Mob;
+  center: C;
+  light: boolean;
+}
+
+export interface DiskGeometry {
+  cells(): readonly DiskCell[];
+  neighbors(cell: number): readonly (number | null)[];
+  boundary: readonly C[]; // base-cell boundary polyline, edges in equal runs
+  inradius: number;
+  circumradius: number;
+}
+
 export interface DiskPaint<D> {
+  geometry: DiskGeometry;
   // Initial view centre (board coordinates); reset returns here.
   home: C;
   // Compute per-draw shared state once (selection, legal dests, ...).
   prepareDraw(): D;
   // Fill the current path (the cell polygon is already constructed).
-  fillCell(ctx: CanvasRenderingContext2D, cell: HyperCell, apparent: number, d: D): void;
+  fillCell(ctx: CanvasRenderingContext2D, cell: DiskCell, apparent: number, d: D): void;
   // Draw cell contents (pieces, stones, markers) on top of edges and walls.
-  drawContents(ctx: CanvasRenderingContext2D, cell: HyperCell, px: number, py: number, apparent: number, d: D): void;
+  drawContents(ctx: CanvasRenderingContext2D, cell: DiskCell, px: number, py: number, apparent: number, d: D): void;
   // Pointer feedback while not dragging.
   cursorFor(cell: number | null): string;
   onClick(cell: number, deps: RenderDeps): void;
@@ -42,6 +57,10 @@ export interface DiskRenderer {
 }
 
 export function createDiskRenderer<D>(paint: DiskPaint<D>): DiskRenderer {
+  const geo = paint.geometry;
+  const hitRatio = Math.tanh(geo.circumradius / 2) * 1.02;
+  const edgeCount = geo.neighbors(0).length;
+  const ptsPerEdge = geo.boundary.length / edgeCount;
   const homeView = (): Mob => mobInverse(mobTranslation0(paint.home));
 
   let viewT: Mob = homeView();
@@ -61,8 +80,8 @@ export function createDiskRenderer<D>(paint: DiskPaint<D>): DiskRenderer {
   function hitCell(z: C): number | null {
     const w = mobApply(mobInverse(viewT), z);
     let best: number | null = null;
-    let bestD = CELL_HIT_RATIO;
-    for (const cell of hyperCells()) {
+    let bestD = hitRatio;
+    for (const cell of geo.cells()) {
       const d = mobDistRatio(cell.center, w);
       if (d < bestD) {
         bestD = d;
@@ -147,15 +166,15 @@ export function createDiskRenderer<D>(paint: DiskPaint<D>): DiskRenderer {
 
         const d = paint.prepareDraw();
 
-        for (const cell of hyperCells()) {
+        for (const cell of geo.cells()) {
           const m = mobMul(viewT, cell.transform);
           const centre = mobApply(m, ORIGIN);
           // Conformal factor: hyperbolic length L at z spans ~ L*(1-|z|^2)/2
           // Euclidean units, so this is the cell's apparent inradius in px.
-          const apparent = HYPER_INRADIUS * ((1 - centre.re * centre.re - centre.im * centre.im) / 2) * diskR;
+          const apparent = geo.inradius * ((1 - centre.re * centre.re - centre.im * centre.im) / 2) * diskR;
           if (apparent < 0.75) continue;
 
-          const pts = HYPER_BASE_BOUNDARY.map(p => toScreen(mobApply(m, p)));
+          const pts = geo.boundary.map(p => toScreen(mobApply(m, p)));
           ctx.beginPath();
           ctx.moveTo(pts[0][0], pts[0][1]);
           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
@@ -168,13 +187,13 @@ export function createDiskRenderer<D>(paint: DiskPaint<D>): DiskRenderer {
           ctx.stroke();
 
           // Wall edges: the board ends here (thick ink, like the classic border).
-          const neighbors = hyperNeighbors(cell.id);
-          for (let e = 0; e < 4; e++) {
+          const neighbors = geo.neighbors(cell.id);
+          for (let e = 0; e < edgeCount; e++) {
             if (neighbors[e] !== null) continue;
             ctx.beginPath();
-            ctx.moveTo(pts[4 * e][0], pts[4 * e][1]);
-            for (let i = 1; i <= 4; i++) {
-              const p = pts[(4 * e + i) % pts.length];
+            ctx.moveTo(pts[ptsPerEdge * e][0], pts[ptsPerEdge * e][1]);
+            for (let i = 1; i <= ptsPerEdge; i++) {
+              const p = pts[(ptsPerEdge * e + i) % pts.length];
               ctx.lineTo(p[0], p[1]);
             }
             ctx.strokeStyle = '#17171a';

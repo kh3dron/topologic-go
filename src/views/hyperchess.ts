@@ -4,11 +4,12 @@ import {
   hyperBoard, hyperSelected, hyperCurrentTurn, hyperGameOver,
   hyperLegalDestinations, hyperCheckedKingCell, isHyperInCheck,
   clickHyper, resetHyper, loadHyperState, serializeHyper, setHyperOnline,
-  HYPER_VIEW_HOME, HYPER_CELL_COUNT,
+  hyperCells, hyperNeighbors, HYPER_BASE_BOUNDARY,
+  HYPER_VIEW_HOME, HYPER_CELL_COUNT, HYPER_INRADIUS, HYPER_CIRCUMRADIUS,
 } from '../hyperchess';
 import type { HyperCell } from '../hyperchess';
 import { GameView, InfoPanel, capitalize } from './kit';
-import { HYPER_CELL, createDiskRenderer } from './hyperdisk';
+import { DiskGeometry, HYPER_CELL, createDiskRenderer } from './hyperdisk';
 
 const HYPER_INFO: InfoPanel = {
   description: 'Chess on the {4,6} tiling of the hyperbolic plane - square cells, six around every vertex - after Andrea Hawksley\'s construction. Queens face off 7 cells apart along a central geodesic. Drag to pan the Poincare disk.',
@@ -35,7 +36,17 @@ interface ChessDraw {
   checked: number | null;
 }
 
+// The {4,6} board geometry, shared verbatim by the hypergo view.
+export const HYPER46_GEOMETRY: DiskGeometry = {
+  cells: hyperCells,
+  neighbors: hyperNeighbors,
+  boundary: HYPER_BASE_BOUNDARY,
+  inradius: HYPER_INRADIUS,
+  circumradius: HYPER_CIRCUMRADIUS,
+};
+
 const disk = createDiskRenderer<ChessDraw>({
+  geometry: HYPER46_GEOMETRY,
   home: HYPER_VIEW_HOME,
 
   prepareDraw: () => ({

@@ -12,9 +12,10 @@
 import { seamColor, seamColoring, Topology, tileOrientation } from './topology';
 import { allHexCells, hexColorIndex } from './engine/games/hexchess';
 import { HYPER_BASE_BOUNDARY, HYPER_INRADIUS, hyperCells, mobApply } from './engine/games/hyperchess';
+import { PENTA_BASE_BOUNDARY, PENTA_INRADIUS, pentaCells } from './engine/games/pentachess';
 
 // Static preview drawings for non-topology boards; undefined = #TODO placeholder.
-export type StaticPreview = 'hex' | 'hyper';
+export type StaticPreview = 'hex' | 'hyper' | 'penta';
 
 const SIZE = 8;
 const PAD = 10;
@@ -286,7 +287,8 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   function render(): void {
     if (topo) drawBoard();
     else if (staticBoard === 'hex') drawHexBoard();
-    else if (staticBoard === 'hyper') drawHyperBoard();
+    else if (staticBoard === 'hyper') drawDiskBoard(hyperCells(), HYPER_BASE_BOUNDARY, HYPER_INRADIUS);
+    else if (staticBoard === 'penta') drawDiskBoard(pentaCells(), PENTA_BASE_BOUNDARY, PENTA_INRADIUS);
     else drawTodo();
   }
 
@@ -372,7 +374,11 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
   // the crowding toward the horizon are real, not an artist's impression.
   // Cells whose apparent inradius falls under a pixel threshold are skipped;
   // the horizon fill stands in for the infinite remainder.
-  function drawHyperBoard(): void {
+  function drawDiskBoard(
+    cells: readonly { transform: unknown; light: boolean }[],
+    boundary: readonly { re: number; im: number }[],
+    inradius: number,
+  ): void {
     if (cw === 0) resize();
     if (cw === 0) return;
     ctx.fillStyle = BG;
@@ -392,14 +398,15 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
 
     ctx.strokeStyle = BG;
     ctx.lineWidth = 0.75;
-    for (const cell of hyperCells()) {
-      const centre = mobApply(cell.transform, { re: 0, im: 0 });
-      const apparent = HYPER_INRADIUS * ((1 - centre.re * centre.re - centre.im * centre.im) / 2) * diskR;
+    for (const cell of cells) {
+      const t = cell.transform as Parameters<typeof mobApply>[0];
+      const centre = mobApply(t, { re: 0, im: 0 });
+      const apparent = inradius * ((1 - centre.re * centre.re - centre.im * centre.im) / 2) * diskR;
       if (apparent < 0.6) continue;
 
       ctx.beginPath();
-      for (let i = 0; i < HYPER_BASE_BOUNDARY.length; i++) {
-        const z = mobApply(cell.transform, HYPER_BASE_BOUNDARY[i]);
+      for (let i = 0; i < boundary.length; i++) {
+        const z = mobApply(t, boundary[i]);
         const px = cx + z.re * diskR;
         const py = cy - z.im * diskR;
         if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
