@@ -52,3 +52,4 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 - `CLAUDE.md`'s architecture section predates the engine extraction: game rules now live in `src/engine/games/`, not in `src/chess.ts`/`src/go.ts` (those are stateful wrappers); the landing is a picker, not a card grid; `census.ts` is stateless now
 - `.claude/skills/verify/SKILL.md` may lag UI changes; the selectors in `workflows.md` here are the ones verified most recently
 - When these disagree, trust the code, then docs/, then CLAUDE.md
+
