@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topologic Games</title>
+  <meta property="og:site_name" content="Topologic Games">
+  <meta property="og:title" content="Topologic Games">
+  <meta property="og:description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <meta property="og:image" content="https://games.kh3dron.net/og.png">
+  <meta property="og:url" content="https://games.kh3dron.net/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <script type="module" crossorigin src="./assets/main-CYUnIpTZ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-CvLguTnR.js">
+  <link rel="modulepreload" crossorigin href="./assets/preload-helper-PPVm8Dsz.js">
+  <link rel="modulepreload" crossorigin href="./assets/go-C6H4HJ_Q.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-CbbHjkC7.js">
+  <link rel="modulepreload" crossorigin href="./assets/routes-C0uashBa.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-CQP3EuG3.css">
+</head>
+
+<body class="catalog-page picker-page">
+  <div id="catalog">
+    <header id="catalog-header">
+      <div class="catalog-title-row">
+        <h1>Topologic Games</h1>
+        <nav class="site-menu">
+          <a href="./home.html">Account</a>
+          <a id="move-alert" class="move-alert" href="./home.html" hidden></a>
+          <a href="./players.html">Players</a>
+          <a href="./watch.html">Watch</a>
+          <a href="./leaderboard.html">Scores</a>
+          <a href="./about.html">About</a>
+        </nav>
+      </div>
+      <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes behavior at the edges: wraps,
+        reflections, rotations - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
+    </header>
+
+    <div class="picker">
+      <aside class="picker-list">
+        <span class="step-label">1 &middot; Choose a board</span>
+        <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off"
+          spellcheck="false" aria-label="Search geometries">
+        <div id="topo-list"></div>
+        <p id="catalog-empty" hidden>No geometries match.</p>
+      </aside>
+
+      <section class="picker-detail">
+        <div class="preview-frame">
+          <canvas id="preview-canvas"></canvas>
+          <div class="preview-badge" id="preview-badge"></div>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-head">
+            <h2 id="detail-name"></h2>
+            <span id="detail-surface" class="detail-surface"></span>
+          </div>
+          <div id="detail-spec" class="detail-spec"></div>
+        </div>
+      </section>
+
+      <aside class="picker-start">
+        <div class="picker-step">
+          <span class="step-label">2 &middot; Choose a game</span>
+          <div id="game-options" class="game-options"></div>
+          <p id="verdict-note" class="verdict-note"></p>
+        </div>
+
+        <div class="picker-step">
+          <span class="step-label">3 &middot; Solo or online</span>
+          <div id="mode-toggle" class="segmented">
+            <button class="seg-btn active" data-mode="playground">Playground</button>
+            <button class="seg-btn" data-mode="challenge">Challenge</button>
+          </div>
+          <p id="mode-note"></p>
+        </div>
+
+        <a id="play-btn" class="play-btn" href="#">Play <span aria-hidden="true">&rarr;</span></a>
+      </aside>
+    </div>
+  </div>
+</body>
+
+</html>
