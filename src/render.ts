@@ -148,7 +148,20 @@ export function fitZoomToContainer(): void {
 }
 
 // ==================== BOARD RENDERING ====================
+// Listeners run after every board render (full rebuild or in-place update);
+// the 3D surface view repaints its texture from here.
+const renderListeners: (() => void)[] = [];
+
+export function onBoardRendered(fn: () => void): void {
+  renderListeners.push(fn);
+}
+
 export function renderBoard(): void {
+  renderBoardDom();
+  for (const fn of renderListeners) fn();
+}
+
+function renderBoardDom(): void {
   const boardEl = document.getElementById('board')!;
   const containerEl = document.getElementById('board-container')!;
   const view = currentView();
@@ -330,6 +343,15 @@ function renderPlaneCells(boardEl: HTMLElement, tx: number, ty: number): void {
 // clicks the cell's element so it rides the exact pointer code path.
 let kbCursor: [number, number] | null = null;
 let cursorEls = new Map<string, HTMLElement[]>(); // canonical "r,c" -> elements, rebuilt per render
+
+// Clicks one displayed copy of canonical cell (row, col), riding the exact
+// pointer path of the DOM board (used by the 3D surface view).
+export function clickCanonicalCell(row: number, col: number): boolean {
+  const el = cursorEls.get(`${row},${col}`)?.[0];
+  if (!el) return false;
+  el.click();
+  return true;
+}
 
 function applyKbCursor(): void {
   for (const el of document.querySelectorAll('#board .kb-cursor')) el.classList.remove('kb-cursor');

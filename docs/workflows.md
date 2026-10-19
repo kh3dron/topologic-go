@@ -34,7 +34,7 @@ npm run dev -- --port 5199 --strictPort   # then drive with Playwright (below)
 
 ## Add a topology
 
-- One entry in `TOPOLOGIES` (`src/topology.ts`): `project()` + metadata. Everything else follows automatically (picker entry, preview animation, overlay, census, about page)
+- One entry in `TOPOLOGIES` (`src/topology.ts`): `project()` + metadata. Everything else follows automatically (picker entry, preview animation, 3D fold, overlay, census, about page). The 3D fold needs the edge pattern to match a family in `src/surface/plan.ts`; a new pattern renders flat with coloured seams until an embedding is added to `src/surface/embed.ts`
 - `project` must be constant on group orbits — reduce coordinates in a canonical order (e.g. undo column glide, then fold rows) and spot-check compositions at corners
 - `periodX`/`periodY`: wrap period in board-lengths; `null` = wall axis; a glide (wrap+flip) axis has period 2, a reflect (fold) axis period 2, plain wrap 1
 - Checklist:

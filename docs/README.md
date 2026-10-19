@@ -5,7 +5,7 @@ Orientation for humans and agents. Read this first, then the file that matches y
 ## What this project is
 
 - Browser games (chess, Go, hex chess, snake) played on non-standard board topologies (torus, Mobius, Klein bottle, ...)
-- Vanilla TypeScript + Vite, no framework; optional Supabase backend for online play (self-hosted in Docker since 2026-07-28, see `../selfhost/README.md`)
+- Vanilla TypeScript + Vite, no framework; three.js for the 3D surface views (lazy-loaded, `src/surface/`); optional Supabase backend for online play (self-hosted in Docker since 2026-07-28, see `../selfhost/README.md`)
 - Core idea: every square-grid variant is the same game on a quotient of the infinite plane, defined by one function `project(row, col, size) -> cell | null`
 - Research stance: rules are NEVER patched per topology; degenerate games (torus chess = mate at move 0) are findings, not bugs
 
@@ -38,8 +38,8 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 
 ## Pages
 
-- `index.html` — catalog landing: Mario-Kart-style picker (`src/landing.ts`)
-- `play.html` — the game UI: local hotseat, or online board via `?online=<gameId>` (`src/play.ts`)
+- `index.html` — catalog landing: board picker around a 3D stage that folds the board into its surface (`src/landing.ts`, `src/surface/`)
+- `play.html` — the game UI: local hotseat, or online board via `?online=<gameId>` (`src/play.ts`); square-grid topology games get a live, clickable 3D surface dock
 - `game.html` — online lobby: sign-in, create/join/directed challenge (`src/game.ts`)
 - `home.html` — account hub: profile, games, challenges, friends (`src/home.ts`)
 - `players.html` — all players with stats + challenge links (`src/players.ts`)

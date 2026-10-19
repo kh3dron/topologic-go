@@ -14,6 +14,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="description" content="Watch or play chess and Go on impossible boards.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/src/style.css">
 </head>
 
@@ -29,6 +32,10 @@
       <label id="boundary-control" class="checkbox-control">
         <input type="checkbox" id="show-boundaries">
         <span>Boundaries</span>
+      </label>
+      <label id="surface-control" class="checkbox-control">
+        <input type="checkbox" id="show-surface">
+        <span>3D surface</span>
       </label>
       <div id="size-control">
         <span class="size-label">Board</span>
@@ -56,6 +63,16 @@
         aria-label="Game board. Arrow keys move the cursor, Enter or Space selects, Escape hides the cursor.">
         <div id="board"></div>
       </div>
+      <section id="surface-dock" class="surface-dock" hidden>
+        <header class="surface-dock-head">
+          <span class="surface-dock-title">Surface</span>
+          <span id="surface-name" class="surface-dock-name"></span>
+          <button id="surface-fold" class="surface-dock-btn">Unfold</button>
+          <button id="surface-close" class="surface-dock-btn" aria-label="Hide 3D surface" title="Hide">&times;</button>
+        </header>
+        <canvas id="surface-live" aria-label="Current position on the glued surface. Drag to rotate, click a cell to play it."></canvas>
+        <footer class="surface-dock-foot">drag to rotate &middot; click to play</footer>
+      </section>
     </main>
     <aside id="info-panel">
       <details class="panel-section">

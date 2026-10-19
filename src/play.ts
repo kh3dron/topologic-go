@@ -14,6 +14,7 @@ import {
   updateStatus, zoomStep
 } from './render';
 import { mountVersionBadge } from './version';
+import type { LiveSurface } from './surface/live';
 import { initSound } from './sound';
 
 const onlineId = new URLSearchParams(window.location.search).get('online');
@@ -46,6 +47,64 @@ document.getElementById('slide-board')!.addEventListener('change', (e) => {
 
 document.getElementById('show-boundaries')!.addEventListener('change', (e) => {
   setShowBoundaries((e.target as HTMLInputElement).checked);
+});
+
+// ==================== 3D SURFACE DOCK ====================
+// Square-grid topology games get a live 3D view of the glued surface. Three.js
+// loads only when the dock is first shown. The on/off choice persists.
+const SURFACE_PREF = 'topologic.surface3d';
+const surfaceDock = document.getElementById('surface-dock')!;
+const surfaceToggle = document.getElementById('show-surface') as HTMLInputElement;
+let liveSurface: LiveSurface | null = null;
+let liveLoading = false;
+
+function surfacePref(): boolean {
+  try {
+    const v = localStorage.getItem(SURFACE_PREF);
+    if (v !== null) return v === '1';
+  } catch { /* storage blocked: fall through to the default */ }
+  return window.innerWidth > 900;
+}
+
+function setSurfacePref(on: boolean): void {
+  try { localStorage.setItem(SURFACE_PREF, on ? '1' : '0'); } catch { /* ignore */ }
+}
+
+function surfaceEligible(): boolean {
+  const view = viewFor(currentGame);
+  return view.usesTopology && view.family === 'square-grid';
+}
+
+function syncSurfaceDock(): void {
+  const eligible = surfaceEligible();
+  document.getElementById('surface-control')!.classList.toggle('visible', eligible);
+  const show = eligible && surfaceToggle.checked;
+  surfaceDock.hidden = !show;
+  if (!show) return;
+  if (liveSurface) { liveSurface.refresh(); return; }
+  if (liveLoading) return;
+  liveLoading = true;
+  import('./surface/live').then(({ mountLiveSurface }) => {
+    liveSurface = mountLiveSurface(
+      document.getElementById('surface-live') as HTMLCanvasElement,
+      document.getElementById('surface-name')!,
+      document.getElementById('surface-fold') as HTMLButtonElement,
+    );
+  }).catch(() => {
+    surfaceDock.hidden = true;
+    document.getElementById('surface-control')!.classList.remove('visible');
+  });
+}
+
+surfaceToggle.checked = surfacePref();
+surfaceToggle.addEventListener('change', () => {
+  setSurfacePref(surfaceToggle.checked);
+  syncSurfaceDock();
+});
+document.getElementById('surface-close')!.addEventListener('click', () => {
+  surfaceToggle.checked = false;
+  setSurfacePref(false);
+  syncSurfaceDock();
 });
 
 document.getElementById('zoom-in')!.addEventListener('click', () => zoomStep(1));
@@ -231,6 +290,7 @@ function syncViewControls(): void {
     slideCheckbox.checked = false;
     stopSliding();
   }
+  syncSurfaceDock();
 }
 
 function updateUrl(): void {

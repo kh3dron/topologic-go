@@ -19,15 +19,16 @@ export type StaticPreview = 'hex' | 'hyper' | 'penta' | 'hextorus';
 
 const SIZE = 8;
 const PAD = 10;
+const FILL = 0.68;     // board fraction of the shorter canvas side
 const MID = Math.floor(SIZE / 2);
 
-const LIGHT = '#1c1c1c';
-const DARK = '#171717';
-const BG = '#141414';
-const HEX_COLORS = ['#e8e8e8', '#b0b0b0', '#7d7d7d'];   // Glinski 3-colouring
-const HYPER_LIGHT = '#e8e8e8';
-const HYPER_DARK = '#7d7d7d';
-const HYPER_HORIZON = '#1f1f1f';                        // disk interior behind sub-pixel cells
+const LIGHT = '#1b2130';
+const DARK = '#141925';
+const BG = '#0e121b';
+const HEX_COLORS = ['#e8dcc6', '#c4a27f', '#8f6a4c'];   // Glinski 3-colouring
+const HYPER_LIGHT = '#e8dcc6';
+const HYPER_DARK = '#9c7656';
+const HYPER_HORIZON = '#1b2130';                        // disk interior behind sub-pixel cells
 const BOUNCE = '#d9d9d9';
 const DOOMED = '#757575';
 
@@ -166,6 +167,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
 
   let cw = 0;
   let ch = 0;
+  const pad = () => Math.max(PAD, (Math.min(cw, ch) * (1 - FILL)) / 2);
 
   function resize(): void {
     const rect = canvas.getBoundingClientRect();
@@ -184,7 +186,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, cw, ch);
 
-    const boardPx = Math.min(cw, ch) - 2 * PAD;
+    const boardPx = Math.min(cw, ch) - 2 * pad();
     const cell = boardPx / SIZE;
     const ox = (cw - boardPx) / 2;
     const oy = (ch - boardPx) / 2;
@@ -346,7 +348,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       minX = Math.min(minX, x - 1); maxX = Math.max(maxX, x + 1);
       minY = Math.min(minY, y - halfH); maxY = Math.max(maxY, y + halfH);
     }
-    const scale = Math.min((cw - 2 * PAD) / (maxX - minX), (ch - 2 * PAD) / (maxY - minY));
+    const scale = Math.min((cw - 2 * pad()) / (maxX - minX), (ch - 2 * pad()) / (maxY - minY));
     const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
 
     ctx.lineWidth = Math.max(1, scale * 0.06);
@@ -385,7 +387,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, cw, ch);
 
-    const diskR = (Math.min(cw, ch) - 2 * PAD) / 2;
+    const diskR = (Math.min(cw, ch) - 2 * pad()) / 2;
     const cx = cw / 2;
     const cy = ch / 2;
 
@@ -440,7 +442,7 @@ export function createPreview(canvas: HTMLCanvasElement): Preview {
       minX = Math.min(minX, x - 1); maxX = Math.max(maxX, x + 1);
       minY = Math.min(minY, y - 1); maxY = Math.max(maxY, y + 1);
     }
-    const s = Math.min((cw - 2 * PAD) / (maxX - minX), (ch - 2 * PAD) / (maxY - minY));
+    const s = Math.min((cw - 2 * pad()) / (maxX - minX), (ch - 2 * pad()) / (maxY - minY));
     const ox = cw / 2 - s * (minX + maxX) / 2;
     const oy = ch / 2 - s * (minY + maxY) / 2;
     const COLORS = ['#e8e8e8', '#b0b0b0', '#7d7d7d'];

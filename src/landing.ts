@@ -4,6 +4,8 @@ import { TOPOLOGIES, Topology } from './topology';
 import { GAMES, usesTopology } from './engine';
 import { variantHref, variantSearch, PlayMode } from './routes';
 import { createPreview } from './preview';
+import type { Stage, StageBoard } from './surface/stage';
+import type { PaintKind } from './surface/boards';
 import { mountVersionBadge } from './version';
 
 mountVersionBadge();
@@ -27,6 +29,7 @@ interface Entry {
   spec: string[];
   search: string;
   badge: string;           // preview caption for boards without a topology
+  kicker: string;          // stage eyebrow: group + symmetry group
   preview?: 'hex' | 'hyper' | 'penta' | 'hextorus'; // static preview drawing; undefined = #TODO placeholder
 }
 
@@ -57,8 +60,11 @@ for (const dim of [0, 1, 2]) {
       topoId: topo.id,
       surface: topo.formal.surface,
       spec: topo.spec,
-      search: topo.name.toLowerCase(),
+      search: `${topo.name} ${topo.formal.surface} ${topo.formal.group}`.toLowerCase(),
       badge: '',
+      kicker: [DIM_GROUP[dim] === 'Bounded' ? 'Bounded' : `${DIM_GROUP[dim]} tiling`,
+        topo.formal.group !== '-' ? topo.formal.group : null,
+        topo.formal.orientable ? null : 'non-orientable'].filter(Boolean).join(' / '),
     });
   }
 }
@@ -86,6 +92,7 @@ for (const m of otherGames) {
     spec: m.catalog?.spec ?? [],
     search: `${board} ${m.name}`.toLowerCase(),
     badge: m.catalog?.badge ?? 'CUSTOM BOARD',
+    kicker: m.catalog?.group ?? 'Other boards',
     preview: m.catalog?.preview,
   };
   boardEntries.set(board, entry);
@@ -113,6 +120,12 @@ const verdictEl = document.getElementById('verdict-note')!;
 const playBtn = document.getElementById('play-btn') as HTMLAnchorElement;
 const modeNote = document.getElementById('mode-note')!;
 const badgeEl = document.getElementById('preview-badge')!;
+const kickerEl = document.getElementById('detail-kicker')!;
+const descEl = document.getElementById('detail-desc')!;
+const stageEl = document.getElementById('stage')!;
+const surfaceCanvas = document.getElementById('surface-canvas') as HTMLCanvasElement;
+const foldPlay = document.getElementById('fold-play') as HTMLButtonElement;
+const foldScrub = document.getElementById('fold-scrub') as HTMLInputElement;
 const preview = createPreview(document.getElementById('preview-canvas') as HTMLCanvasElement);
 
 // ==================== STATE ====================
@@ -122,6 +135,12 @@ let mode: PlayMode = 'playground';
 // Directed-challenge opponent (profile id), carried opaquely from the players
 // page into the lobby via the launch link.
 let opponent: string | null = null;
+
+type View = 'surface' | 'cover';
+let view: View = 'surface';
+let stage: Stage | null = null;
+let surfaceKit: typeof import('./surface/boards') | null = null;
+let stageFailed = false;
 
 const itemEls = new Map<string, HTMLButtonElement>();
 const groupEls = new Map<string, HTMLElement>();
@@ -139,12 +158,12 @@ for (const e of entries) {
 function buildList(): void {
   for (const group of groupOrder) {
     const groupEl = document.createElement('div');
-    groupEl.className = 'topo-group collapsed';
-    collapsedState.set(group, true);
+    groupEl.className = 'topo-group';
+    collapsedState.set(group, false);
 
     const header = document.createElement('button');
     header.className = 'topo-group-header';
-    header.setAttribute('aria-expanded', 'false');
+    header.setAttribute('aria-expanded', 'true');
     header.innerHTML =
       '<span class="topo-group-caret" aria-hidden="true">&#9656;</span>' +
       `<span class="topo-group-name">${group}</span>` +
@@ -158,7 +177,10 @@ function buildList(): void {
       const item = document.createElement('button');
       item.className = 'topo-item';
       item.dataset.id = e.id;
-      item.innerHTML = `<span class="topo-item-name">${e.name}</span>`;
+      item.innerHTML =
+        `<span class="topo-thumb" aria-hidden="true">${thumbGlyph(e)}</span>` +
+        `<span class="topo-item-text"><span class="topo-item-name">${e.name}</span>` +
+        `<span class="topo-item-sub">${e.surface}</span></span>`;
       item.addEventListener('click', () => select(e.id));
       itemsEl.appendChild(item);
       itemEls.set(e.id, item);
@@ -197,11 +219,13 @@ function select(id: string): void {
   nameEl.textContent = entry.name;
   surfaceEl.textContent = entry.surface;
   specEl.innerHTML = entry.spec.map(s => `<span class="spec-chip">${s}</span>`).join('');
+  kickerEl.textContent = entry.kicker;
   const caption = preview.setBoard(entry.topo, entry.preview);
-  badgeEl.textContent = entry.topo ? caption : entry.badge;
+  coverCaption = entry.topo ? caption : entry.badge;
 
   buildGameOptions(entry);
   updateLaunch();
+  refreshStage();
 }
 
 function buildGameOptions(entry: Entry): void {
@@ -216,6 +240,7 @@ function buildGameOptions(entry: Entry): void {
       for (const el of gameOptionsEl.querySelectorAll('.game-btn')) el.classList.remove('active');
       btn.classList.add('active');
       updateLaunch();
+      refreshStage();
     });
     gameOptionsEl.appendChild(btn);
   }
@@ -229,6 +254,8 @@ function updateLaunch(): void {
     + (withOpponent ? `&opponent=${opponent}` : '');
   playBtn.innerHTML = `Play ${gameName} <span aria-hidden="true">&rarr;</span>`;
 
+  descEl.textContent = describe(entry);
+
   if (selectedGame === 'snake') {
     verdictEl.textContent = 'Single-player - steer with arrow keys or WASD';
   } else if (!entry.topo) {
@@ -239,6 +266,127 @@ function updateLaunch(): void {
 
   history.replaceState(null, '', variantSearch(selectedGame, entry.topoId)
     + (opponent ? `&opponent=${opponent}` : ''));
+}
+
+// ==================== 3D STAGE ====================
+// The stage folds the selected board into its surface (src/surface/). Three.js
+// loads lazily so the picker is usable before the WebGL bundle arrives; the
+// flat particle preview stays available as the "Flat edges" view and is the
+// only view for boards that are not a square quotient.
+let coverCaption = '';
+
+function describe(entry: Entry): string {
+  if (!entry.topo) return entry.surface;
+  const t = entry.topo;
+  if (selectedGame === 'go') return t.goDesc;
+  if (selectedGame === 'snake') return t.snakeDesc;
+  return t.chessDesc;
+}
+
+function thumbGlyph(e: Entry): string {
+  if (e.topo) return '';
+  if (e.preview === 'hextorus') return '';
+  return e.group.toLowerCase().startsWith('hyper') ? '&#x2299;' : '&#x2B22;';
+}
+
+function stageBoardFor(entry: Entry): StageBoard | null {
+  if (!surfaceKit) return null;
+  const kind: PaintKind = selectedGame === 'go' ? 'go' : selectedGame === 'snake' ? 'snake' : 'chess';
+  if (entry.topo) return surfaceKit.catalogBoard(entry.topo, kind);
+  if (entry.preview === 'hextorus') return surfaceKit.hexTorusBoard();
+  return null;
+}
+
+function setView(next: View): void {
+  view = next;
+  refreshStage();
+}
+
+function refreshStage(): void {
+  const entry = entryById.get(selectedId)!;
+  const board = stageBoardFor(entry);
+  const has3d = !stageFailed && (entry.topo !== null || entry.preview === 'hextorus');
+  const show3d = has3d && view === 'surface' && stage !== null && board !== null;
+  stageEl.classList.toggle('is-3d', show3d);
+  stageEl.classList.toggle('no-3d', !has3d);
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('#view-toggle .seg-btn')) {
+    btn.classList.toggle('active', btn.dataset.view === (show3d || (has3d && view === 'surface') ? 'surface' : 'cover'));
+    if (btn.dataset.view === 'surface') btn.disabled = !has3d;
+  }
+  if (show3d && board) {
+    stage!.setBoard(board);
+    badgeEl.textContent = board.plan.name;
+  } else {
+    badgeEl.textContent = coverCaption;
+  }
+}
+
+function syncPlayButton(): void {
+  const on = stage?.playing() ?? true;
+  foldPlay.classList.toggle('paused', !on);
+  foldPlay.setAttribute('aria-label', on ? 'Pause fold animation' : 'Play fold animation');
+  foldPlay.title = on ? 'Pause' : 'Play';
+}
+
+async function mountStage(): Promise<void> {
+  try {
+    const probe = document.createElement('canvas');
+    if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('no WebGL');
+    const [stageMod, boards] = await Promise.all([import('./surface/stage'), import('./surface/boards')]);
+    surfaceKit = boards;
+    stage = stageMod.createStage(surfaceCanvas, {
+      onFold(t) { foldScrub.value = String(Math.round(t * 1000)); },
+    });
+    foldScrub.addEventListener('input', () => {
+      stage!.setPlaying(false);
+      stage!.setFold(Number(foldScrub.value) / 1000);
+      syncPlayButton();
+    });
+    foldPlay.addEventListener('click', () => {
+      const on = !stage!.playing();
+      stage!.setPlaying(on);
+      if (on) stage!.setFold(null);
+      syncPlayButton();
+    });
+    surfaceCanvas.addEventListener('pointerdown', () => stageEl.classList.add('touched'), { once: true });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      stage.setPlaying(false);
+      stage.setFold(1);
+      foldScrub.value = '1000';
+    }
+    refreshStage();
+    syncPlayButton();
+    void renderThumbs(stageMod, boards);
+  } catch {
+    stageFailed = true;
+    view = 'cover';
+    refreshStage();
+  }
+}
+
+// Tiny 3D icons for the board list, rendered once each on a hidden stage.
+async function renderThumbs(stageMod: typeof import('./surface/stage'), boards: typeof import('./surface/boards')): Promise<void> {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;left:-9999px;top:0;width:112px;height:112px;pointer-events:none';
+  document.body.appendChild(canvas);
+  const thumbStage = stageMod.createStage(canvas, { autoFold: false, comets: false, interactive: false, autoSpin: 0 });
+  const idle = () => new Promise<void>(res =>
+    ('requestIdleCallback' in window ? window.requestIdleCallback(() => res()) : setTimeout(res, 16)));
+  try {
+    for (const e of entries) {
+      const board = e.topo ? boards.catalogBoard(e.topo, 'chess') : e.preview === 'hextorus' ? boards.hexTorusBoard() : null;
+      if (!board) continue;
+      await idle();
+      thumbStage.setBoard(board);
+      thumbStage.renderNow();
+      const url = canvas.toDataURL('image/png');
+      const slot = itemEls.get(e.id)?.querySelector<HTMLElement>('.topo-thumb');
+      if (slot) slot.innerHTML = `<img src="${url}" alt="">`;
+    }
+  } finally {
+    thumbStage.destroy();
+    canvas.remove();
+  }
 }
 
 // ==================== SEARCH + COLLAPSE ====================
@@ -321,10 +469,14 @@ function boot(): void {
     btn.addEventListener('click', () => setMode(btn.dataset.mode as PlayMode));
   }
   searchInput.addEventListener('input', refreshList);
+  for (const btn of document.querySelectorAll<HTMLElement>('#view-toggle .seg-btn')) {
+    btn.addEventListener('click', () => setView(btn.dataset.view as View));
+  }
 
   setMode(params.get('mode') === 'challenge' ? 'challenge' : 'playground');
   select(startId);
   refreshList();
+  void mountStage();
 }
 
 boot();
