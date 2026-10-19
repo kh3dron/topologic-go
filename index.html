@@ -14,66 +14,89 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <script type="module" crossorigin src="./assets/main-Bgoaznid.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/version-W4hxfFJj.js">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <script type="module" crossorigin src="./assets/main-nmsh0gVK.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-D-QOpcZo.js">
   <link rel="modulepreload" crossorigin href="./assets/preload-helper-PPVm8Dsz.js">
-  <link rel="modulepreload" crossorigin href="./assets/go-dBGoqTVU.js">
-  <link rel="modulepreload" crossorigin href="./assets/index-DQv6FH8e.js">
-  <link rel="modulepreload" crossorigin href="./assets/routes-OKi6sny7.js">
-  <link rel="stylesheet" crossorigin href="./assets/version-524JXG6m.css">
+  <link rel="modulepreload" crossorigin href="./assets/go-BpPve6Kd.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-CH1dRQjg.js">
+  <link rel="modulepreload" crossorigin href="./assets/routes-9R5UzTTF.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-Z9bIGv3Z.css">
 </head>
 
 <body class="catalog-page picker-page">
   <div id="catalog">
-    <header id="catalog-header">
-      <div class="catalog-title-row">
-        <h1>Topologic Games</h1>
-        <nav class="site-menu">
-          <a href="./home.html">Account</a>
-          <a id="move-alert" class="move-alert" href="./home.html" hidden></a>
-          <a href="./players.html">Players</a>
-          <a href="./watch.html">Watch</a>
-          <a href="./leaderboard.html">Scores</a>
-          <a href="./about.html">About</a>
-        </nav>
-      </div>
-      <p id="catalog-blurb">Chess and Go on impossible boards. Each variant changes behavior at the edges: wraps,
-        reflections, rotations - and the whole game follows. <a href="./about.html">Read about the math</a>.</p>
+    <header class="site-header">
+      <a class="wordmark" href="./index.html" aria-label="Topologic Games home">
+        <img class="wordmark-mark" src="./favicon.svg" alt="" width="28" height="28">
+        <span>Topologic</span>
+      </a>
+      <nav class="site-menu">
+        <a id="move-alert" class="move-alert" href="./home.html" hidden></a>
+        <a href="./players.html">Players</a>
+        <a href="./watch.html">Watch</a>
+        <a href="./leaderboard.html">Scores</a>
+        <a href="./about.html">About</a>
+        <a class="site-menu-account" href="./home.html">Account</a>
+      </nav>
     </header>
+
+    <section class="hero">
+      <h1 class="hero-title">Chess and Go on <span class="hero-accent">impossible boards</span>.</h1>
+      <p id="catalog-blurb">Glue the edges of a board together and the board becomes a surface: a torus, a Klein bottle, a projective plane. The rules never change. Pick a surface, watch it fold, then play on it. <a href="./about.html">Read about the math</a>.</p>
+    </section>
 
     <div class="picker">
       <aside class="picker-list">
-        <span class="step-label">1 &middot; Choose a board</span>
-        <input id="catalog-search" type="search" placeholder="Search geometries..." autocomplete="off"
-          spellcheck="false" aria-label="Search geometries">
+        <span class="step-label"><b>1</b> Choose a board</span>
+        <input id="catalog-search" type="search" placeholder="Search surfaces" autocomplete="off"
+          spellcheck="false" aria-label="Search surfaces">
         <div id="topo-list"></div>
-        <p id="catalog-empty" hidden>No geometries match.</p>
+        <p id="catalog-empty" hidden>0 boards match.</p>
       </aside>
 
       <section class="picker-detail">
-        <div class="preview-frame">
-          <canvas id="preview-canvas"></canvas>
-          <div class="preview-badge" id="preview-badge"></div>
+        <div class="stage" id="stage">
+          <canvas id="surface-canvas" aria-label="3D view of the board folded into its surface"></canvas>
+          <canvas id="preview-canvas" aria-label="Flat view of the board and its glued edges"></canvas>
+          <div class="stage-head">
+            <span id="detail-kicker" class="stage-kicker"></span>
+            <h2 id="detail-name"></h2>
+            <span id="detail-surface" class="detail-surface"></span>
+            <span class="preview-badge" id="preview-badge"></span>
+          </div>
+          <div id="view-toggle" class="segmented view-toggle" role="group" aria-label="View">
+            <button class="seg-btn active" data-view="surface">3D surface</button>
+            <button class="seg-btn" data-view="cover">Flat edges</button>
+          </div>
+          <div class="stage-bar" id="stage-bar">
+            <button id="fold-play" class="fold-play" aria-label="Pause fold animation" title="Pause">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><rect class="ico-pause" x="3" y="2" width="3.5" height="12"/><rect class="ico-pause" x="9.5" y="2" width="3.5" height="12"/><path class="ico-play" d="M4 2 L14 8 L4 14 Z"/></svg>
+            </button>
+            <span class="fold-label">flat</span>
+            <input id="fold-scrub" type="range" min="0" max="1000" value="0" aria-label="Fold progress">
+            <span class="fold-label">glued</span>
+          </div>
+          <div class="stage-hint" id="stage-hint">drag to rotate</div>
         </div>
 
         <div class="detail-body">
-          <div class="detail-head">
-            <h2 id="detail-name"></h2>
-            <span id="detail-surface" class="detail-surface"></span>
-          </div>
+          <p id="detail-desc" class="detail-desc"></p>
           <div id="detail-spec" class="detail-spec"></div>
         </div>
       </section>
 
       <aside class="picker-start">
         <div class="picker-step">
-          <span class="step-label">2 &middot; Choose a game</span>
+          <span class="step-label"><b>2</b> Choose a game</span>
           <div id="game-options" class="game-options"></div>
           <p id="verdict-note" class="verdict-note"></p>
         </div>
 
         <div class="picker-step">
-          <span class="step-label">3 &middot; Solo or online</span>
+          <span class="step-label"><b>3</b> Solo or online</span>
           <div id="mode-toggle" class="segmented">
             <button class="seg-btn active" data-mode="playground">Playground</button>
             <button class="seg-btn" data-mode="challenge">Challenge</button>
@@ -84,6 +107,24 @@
         <a id="play-btn" class="play-btn" href="#">Play <span aria-hidden="true">&rarr;</span></a>
       </aside>
     </div>
+
+    <section class="how">
+      <div class="how-step">
+        <span class="how-num">01</span>
+        <h3>Glue the edges</h3>
+        <p>Each board says what happens when a piece walks off an edge: it wraps to the far side, comes back mirrored, turns a corner, or stops at a wall.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num">02</span>
+        <h3>Get a surface</h3>
+        <p>Matching colours on the edges are glued together. Fold the board until they meet and you get the surface the game is really played on.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num">03</span>
+        <h3>Same rules, new game</h3>
+        <p>Starting positions and rules are identical everywhere. Some surfaces produce sharp games; on the torus, chess is checkmate before the first move.</p>
+      </div>
+    </section>
   </div>
 </body>
 
