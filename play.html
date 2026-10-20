@@ -17,14 +17,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
-  <script type="module" crossorigin src="./assets/play-BhesJunT.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/version-D-QOpcZo.js">
+  <script type="module" crossorigin src="./assets/play-C-Wktu39.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-DxeepEjD.js">
   <link rel="modulepreload" crossorigin href="./assets/preload-helper-PPVm8Dsz.js">
-  <link rel="modulepreload" crossorigin href="./assets/go-BpPve6Kd.js">
-  <link rel="modulepreload" crossorigin href="./assets/go-BJrJEXsB.js">
-  <link rel="modulepreload" crossorigin href="./assets/index-CH1dRQjg.js">
-  <link rel="modulepreload" crossorigin href="./assets/routes-9R5UzTTF.js">
-  <link rel="stylesheet" crossorigin href="./assets/version-Z9bIGv3Z.css">
+  <link rel="modulepreload" crossorigin href="./assets/go-Be9AkQCU.js">
+  <link rel="modulepreload" crossorigin href="./assets/go-B2Nlka6d.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-D-X9Exbf.js">
+  <link rel="modulepreload" crossorigin href="./assets/routes-DVkOW-sC.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-Csr4GkBx.css">
 </head>
 
 <body>
@@ -42,7 +42,7 @@
       </label>
       <label id="surface-control" class="checkbox-control">
         <input type="checkbox" id="show-surface">
-        <span>3D surface</span>
+        <span>3D view</span>
       </label>
       <div id="size-control">
         <span class="size-label">Board</span>
@@ -72,13 +72,16 @@
       </div>
       <section id="surface-dock" class="surface-dock" hidden>
         <header class="surface-dock-head">
-          <span class="surface-dock-title">Surface</span>
+          <span class="surface-dock-title">3D</span>
           <span id="surface-name" class="surface-dock-name"></span>
-          <button id="surface-fold" class="surface-dock-btn">Unfold</button>
-          <button id="surface-close" class="surface-dock-btn" aria-label="Hide 3D surface" title="Hide">&times;</button>
+          <button id="surface-close" class="surface-dock-btn" aria-label="Hide 3D view" title="Hide">&times;</button>
         </header>
-        <canvas id="surface-live" aria-label="Current position on the glued surface. Drag to rotate, click a cell to play it."></canvas>
-        <footer class="surface-dock-foot">drag to rotate &middot; click to play</footer>
+        <canvas id="surface-live" aria-label="Current position in 3D. Drag to rotate, click a cell to play it."></canvas>
+        <div id="surface-views" class="segmented surface-views" role="group" aria-label="3D view">
+          <button class="seg-btn" data-view="board">Board</button>
+          <button class="seg-btn" data-view="tiling">Tiling</button>
+          <button class="seg-btn active" data-view="surface">Surface</button>
+        </div>
       </section>
     </main>
     <aside id="info-panel">

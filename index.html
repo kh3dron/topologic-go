@@ -17,13 +17,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
-  <script type="module" crossorigin src="./assets/main-nmsh0gVK.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/version-D-QOpcZo.js">
+  <script type="module" crossorigin src="./assets/main-BmvL17ut.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-DxeepEjD.js">
   <link rel="modulepreload" crossorigin href="./assets/preload-helper-PPVm8Dsz.js">
-  <link rel="modulepreload" crossorigin href="./assets/go-BpPve6Kd.js">
-  <link rel="modulepreload" crossorigin href="./assets/index-CH1dRQjg.js">
-  <link rel="modulepreload" crossorigin href="./assets/routes-9R5UzTTF.js">
-  <link rel="stylesheet" crossorigin href="./assets/version-Z9bIGv3Z.css">
+  <link rel="modulepreload" crossorigin href="./assets/go-Be9AkQCU.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-D-X9Exbf.js">
+  <link rel="modulepreload" crossorigin href="./assets/routes-DVkOW-sC.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-Csr4GkBx.css">
 </head>
 
 <body class="catalog-page picker-page">
@@ -45,7 +45,7 @@
 
     <section class="hero">
       <h1 class="hero-title">Chess and Go on <span class="hero-accent">impossible boards</span>.</h1>
-      <p id="catalog-blurb">Glue the edges of a board together and the board becomes a surface: a torus, a Klein bottle, a projective plane. The rules never change. Pick a surface, watch it fold, then play on it. <a href="./about.html">Read about the math</a>.</p>
+      <p id="catalog-blurb">Glue the edges of a board together and the board becomes a surface: a torus, a Klein bottle, a projective plane. The rules never change. Pick a board, compare its three views, then play. <a href="./about.html">Read about the math</a>.</p>
     </section>
 
     <div class="picker">
@@ -58,29 +58,28 @@
       </aside>
 
       <section class="picker-detail">
+        <div class="detail-head">
+          <span id="detail-kicker" class="stage-kicker"></span>
+          <h2 id="detail-name"></h2>
+          <span id="detail-surface" class="detail-surface"></span>
+        </div>
         <div class="stage" id="stage">
-          <canvas id="surface-canvas" aria-label="3D view of the board folded into its surface"></canvas>
+          <canvas id="surface-canvas" aria-label="3D view of the board"></canvas>
           <canvas id="preview-canvas" aria-label="Flat view of the board and its glued edges"></canvas>
-          <div class="stage-head">
-            <span id="detail-kicker" class="stage-kicker"></span>
-            <h2 id="detail-name"></h2>
-            <span id="detail-surface" class="detail-surface"></span>
-            <span class="preview-badge" id="preview-badge"></span>
-          </div>
-          <div id="view-toggle" class="segmented view-toggle" role="group" aria-label="View">
-            <button class="seg-btn active" data-view="surface">3D surface</button>
-            <button class="seg-btn" data-view="cover">Flat edges</button>
-          </div>
-          <div class="stage-bar" id="stage-bar">
-            <button id="fold-play" class="fold-play" aria-label="Pause fold animation" title="Pause">
-              <svg viewBox="0 0 16 16" aria-hidden="true"><rect class="ico-pause" x="3" y="2" width="3.5" height="12"/><rect class="ico-pause" x="9.5" y="2" width="3.5" height="12"/><path class="ico-play" d="M4 2 L14 8 L4 14 Z"/></svg>
-            </button>
-            <span class="fold-label">flat</span>
-            <input id="fold-scrub" type="range" min="0" max="1000" value="0" aria-label="Fold progress">
-            <span class="fold-label">glued</span>
-          </div>
+          <span class="preview-badge" id="preview-badge"></span>
           <div class="stage-hint" id="stage-hint">drag to rotate</div>
         </div>
+        <div class="view-bar" id="view-bar" hidden>
+          <button id="view-play" class="view-play" aria-label="Pause the tour of views" title="Pause tour">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect class="ico-pause" x="3" y="2" width="3.5" height="12"/><rect class="ico-pause" x="9.5" y="2" width="3.5" height="12"/><path class="ico-play" d="M4 2 L14 8 L4 14 Z"/></svg>
+          </button>
+          <div id="view-toggle" class="segmented view-toggle" role="group" aria-label="View">
+            <button class="seg-btn active" data-view="board"><b>1</b> Board</button>
+            <button class="seg-btn" data-view="tiling"><b>2</b> Tiling</button>
+            <button class="seg-btn" data-view="surface"><b>3</b> Surface</button>
+          </div>
+        </div>
+        <p id="view-desc" class="view-desc" hidden></p>
 
         <div class="detail-body">
           <p id="detail-desc" class="detail-desc"></p>
@@ -110,19 +109,19 @@
 
     <section class="how">
       <div class="how-step">
-        <span class="how-num">01</span>
-        <h3>Glue the edges</h3>
-        <p>Each board says what happens when a piece walks off an edge: it wraps to the far side, comes back mirrored, turns a corner, or stops at a wall.</p>
+        <span class="how-num">1 Board</span>
+        <h3>The board as played</h3>
+        <p>Each edge either glues to another edge (straight across, flipped, or turned a quarter), mirrors back onto itself, or is a wall. A piece crossing a glued edge reappears where it is glued.</p>
       </div>
       <div class="how-step">
-        <span class="how-num">02</span>
-        <h3>Get a surface</h3>
-        <p>Matching colours on the edges are glued together. Fold the board until they meet and you get the surface the game is really played on.</p>
+        <span class="how-num">2 Tiling</span>
+        <h3>The board among its copies</h3>
+        <p>Copies of the board laid edge to edge, each turned or mirrored the way the edges are glued. A straight move in the game is a straight line through the copies.</p>
       </div>
       <div class="how-step">
-        <span class="how-num">03</span>
-        <h3>Same rules, new game</h3>
-        <p>Starting positions and rules are identical everywhere. Some surfaces produce sharp games; on the torus, chess is checkmate before the first move.</p>
+        <span class="how-num">3 Surface</span>
+        <h3>The board folded shut</h3>
+        <p>Fold the board until glued edges meet: a torus, a Klein bottle, a projective plane. Rules and starting positions never change; on the torus, chess is checkmate before the first move.</p>
       </div>
     </section>
   </div>
