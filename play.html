@@ -35,7 +35,7 @@
       </label>
       <label id="surface-control" class="checkbox-control">
         <input type="checkbox" id="show-surface">
-        <span>3D surface</span>
+        <span>3D view</span>
       </label>
       <div id="size-control">
         <span class="size-label">Board</span>
@@ -65,13 +65,16 @@
       </div>
       <section id="surface-dock" class="surface-dock" hidden>
         <header class="surface-dock-head">
-          <span class="surface-dock-title">Surface</span>
+          <span class="surface-dock-title">3D</span>
           <span id="surface-name" class="surface-dock-name"></span>
-          <button id="surface-fold" class="surface-dock-btn">Unfold</button>
-          <button id="surface-close" class="surface-dock-btn" aria-label="Hide 3D surface" title="Hide">&times;</button>
+          <button id="surface-close" class="surface-dock-btn" aria-label="Hide 3D view" title="Hide">&times;</button>
         </header>
-        <canvas id="surface-live" aria-label="Current position on the glued surface. Drag to rotate, click a cell to play it."></canvas>
-        <footer class="surface-dock-foot">drag to rotate &middot; click to play</footer>
+        <canvas id="surface-live" aria-label="Current position in 3D. Drag to rotate, click a cell to play it."></canvas>
+        <div id="surface-views" class="segmented surface-views" role="group" aria-label="3D view">
+          <button class="seg-btn" data-view="board">Board</button>
+          <button class="seg-btn" data-view="tiling">Tiling</button>
+          <button class="seg-btn active" data-view="surface">Surface</button>
+        </div>
       </section>
     </main>
     <aside id="info-panel">

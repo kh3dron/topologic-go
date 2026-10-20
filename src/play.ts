@@ -88,7 +88,7 @@ function syncSurfaceDock(): void {
     liveSurface = mountLiveSurface(
       document.getElementById('surface-live') as HTMLCanvasElement,
       document.getElementById('surface-name')!,
-      document.getElementById('surface-fold') as HTMLButtonElement,
+      [...document.querySelectorAll<HTMLButtonElement>('#surface-views .seg-btn')],
     );
   }).catch(() => {
     surfaceDock.hidden = true;

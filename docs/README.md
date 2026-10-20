@@ -38,7 +38,7 @@ npx tsx scripts/census.ts   # headless engine census + serializer round-trip (ts
 
 ## Pages
 
-- `index.html` — catalog landing: board picker around a 3D stage that folds the board into its surface (`src/landing.ts`, `src/surface/`)
+- `index.html` — catalog landing: board picker around a 3D stage with three views of each board: Board, Tiling, Surface (`src/landing.ts`, `src/surface/`)
 - `play.html` — the game UI: local hotseat, or online board via `?online=<gameId>` (`src/play.ts`); square-grid topology games get a live, clickable 3D surface dock
 - `game.html` — online lobby: sign-in, create/join/directed challenge (`src/game.ts`)
 - `home.html` — account hub: profile, games, challenges, friends (`src/home.ts`)

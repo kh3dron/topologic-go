@@ -1,72 +1,10 @@
-// 2D paint for the board that gets wrapped onto the 3D surface: the board
-// itself (chess / Go / snake / hex rhombus) plus a coloured strip on every
-// edge. Glued edges carry the shared seam gradient, so matching colours meet
-// when the surface closes; mirrors are silver, walls dark.
+// 2D paint for the board that gets wrapped onto the 3D surface (chess / Go /
+// snake / hex rhombus), plus the sprites of the catalog's moving pieces.
 
-import { SEAM_SCHEME_COLORS, seamColoring, Topology } from '../topology';
-import type { ChessBoard } from '../engine/games/chess';
+import type { ChessBoard, PieceType } from '../engine/games/chess';
 import { PIECE_SYMBOLS } from '../engine/games/chess';
+import type { Color } from '../engine/core';
 import type { GoBoard } from '../engine/games/go';
-import { EDGES, EdgeName, PROBE, SurfacePlan } from './plan';
-
-export type RGB = [number, number, number];
-
-export const WALL_RGB: RGB = [0.16, 0.17, 0.2];
-export const MIRROR_RGB: RGB = [0.86, 0.9, 0.97];
-
-function hexRgb(hex: string): RGB {
-  return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255) as RGB;
-}
-
-function mixRgb(a: RGB, b: RGB, k: number): RGB {
-  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-}
-
-export function rgbCss(c: RGB): string {
-  return `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
-}
-
-function edgeCell(edge: EdgeName, i: number, n: number): [[number, number], [number, number]] {
-  switch (edge) {
-    case 'left': return [[i, 0], [i, -1]];
-    case 'right': return [[i, n - 1], [i, n]];
-    case 'top': return [[0, i], [-1, i]];
-    case 'bottom': return [[n - 1, i], [n, i]];
-  }
-}
-
-// Colour along an edge as a function of s in [0,1] (top->bottom for left /
-// right, left->right for top / bottom). Seam colours are sampled per probe
-// cell and interpolated between cell centres, so two glued points get the
-// same colour whatever the gluing's orientation.
-export type EdgeRamp = (s: number) => RGB;
-
-export function edgeRamps(topo: Topology, plan: SurfacePlan): Record<EdgeName, EdgeRamp> {
-  const n = PROBE;
-  const coloring = seamColoring(topo, n);
-  const out = {} as Record<EdgeName, EdgeRamp>;
-  for (const edge of EDGES) {
-    const kind = plan.edges[edge].kind;
-    if (kind === 'wall') { out[edge] = () => WALL_RGB; continue; }
-    if (kind === 'mirror') { out[edge] = () => MIRROR_RGB; continue; }
-    const samples: RGB[] = [];
-    for (let i = 0; i < n; i++) {
-      const [a, b] = edgeCell(edge, i, n);
-      const pa = topo.project(a[0], a[1], n);
-      const pb = topo.project(b[0], b[1], n);
-      const col = coloring.lookup(pa, pb);
-      if (!col) { samples.push(MIRROR_RGB); continue; }
-      const [c0, c1] = SEAM_SCHEME_COLORS[col.scheme % SEAM_SCHEME_COLORS.length];
-      samples.push(mixRgb(hexRgb(c0), hexRgb(c1), col.t));
-    }
-    out[edge] = (s: number) => {
-      const x = Math.min(n - 1, Math.max(0, s * n - 0.5));
-      const i = Math.min(n - 2, Math.floor(x));
-      return mixRgb(samples[i], samples[i + 1], x - i);
-    };
-  }
-  return out;
-}
 
 const GLYPH_FONT = '"Apple Symbols","Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans",serif';
 
@@ -103,25 +41,62 @@ export function paintChess(ctx: CanvasRenderingContext2D, px: number, p: ChessPa
     for (let c = 0; c < n; c++) {
       const piece = p.board[r][c];
       if (!piece) continue;
-      // VS15 forces text presentation (U+265F is also an emoji). White
-      // pieces: light silhouette under the outline glyph; black: dark
-      // silhouette with a light rim so they read on dark squares.
-      const solid = PIECE_SYMBOLS.black[piece.type] + '\uFE0E';
-      const x = (c + 0.5) * cell, y = (r + 0.54) * cell;
-      if (piece.color === 'white') {
-        ctx.fillStyle = '#fbf6ec';
-        ctx.fillText(solid, x, y);
-        ctx.fillStyle = '#1d1712';
-        ctx.fillText(PIECE_SYMBOLS.white[piece.type] + '\uFE0E', x, y);
-      } else {
-        ctx.lineWidth = cell * 0.035;
-        ctx.strokeStyle = 'rgba(243,234,219,0.85)';
-        ctx.strokeText(solid, x, y);
-        ctx.fillStyle = '#18120d';
-        ctx.fillText(solid, x, y);
-      }
+      drawPiece(ctx, piece.type, piece.color, (c + 0.5) * cell, (r + 0.54) * cell, cell);
     }
   }
+}
+
+// VS15 forces text presentation (U+265F is also an emoji). White pieces: light
+// silhouette under the outline glyph; black: dark silhouette with a light rim
+// so they read on dark squares. Font must already be set on ctx.
+function drawPiece(ctx: CanvasRenderingContext2D, type: PieceType, color: Color, x: number, y: number, cell: number): void {
+  const solid = PIECE_SYMBOLS.black[type] + '\uFE0E';
+  if (color === 'white') {
+    ctx.fillStyle = '#fbf6ec';
+    ctx.fillText(solid, x, y);
+    ctx.fillStyle = '#1d1712';
+    ctx.fillText(PIECE_SYMBOLS.white[type] + '\uFE0E', x, y);
+  } else {
+    ctx.lineWidth = cell * 0.035;
+    ctx.strokeStyle = 'rgba(243,234,219,0.85)';
+    ctx.strokeText(solid, x, y);
+    ctx.fillStyle = '#18120d';
+    ctx.fillText(solid, x, y);
+  }
+}
+
+// Transparent square sprite of one piece, for the catalog mover.
+export function pieceSprite(type: PieceType, color: Color, px = 160): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const ctx = c.getContext('2d')!;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${Math.round(px * 0.86)}px ${GLYPH_FONT}`;
+  ctx.lineJoin = 'round';
+  drawPiece(ctx, type, color, px / 2, px * 0.54, px);
+  return c;
+}
+
+// Snake segment sprite: rounded square, head lighter.
+export function snakeSprite(head: boolean, px = 96): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const ctx = c.getContext('2d')!;
+  const pad = px * 0.06, r = px * (head ? 0.3 : 0.18);
+  ctx.fillStyle = head ? '#b8f5c9' : '#4fbf78';
+  ctx.beginPath();
+  ctx.roundRect(pad, pad, px - 2 * pad, px - 2 * pad, r);
+  ctx.fill();
+  if (head) {
+    ctx.fillStyle = '#123322';
+    for (const ex of [0.36, 0.64]) {
+      ctx.beginPath();
+      ctx.arc(px * ex, px * 0.36, px * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  return c;
 }
 
 export function paintGo(ctx: CanvasRenderingContext2D, px: number, p: GoPaint): void {
@@ -178,7 +153,7 @@ export function paintSnake(ctx: CanvasRenderingContext2D, px: number, p: SnakePa
   const cell = px / n;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      ctx.fillStyle = (r + c) % 2 === 0 ? '#1f3b2c' : '#1a3226';
+      ctx.fillStyle = (r + c) % 2 === 0 ? '#2f5a43' : '#284e3a';
       ctx.fillRect(c * cell, r * cell, cell + 1, cell + 1);
     }
   }
@@ -220,23 +195,6 @@ export function paintHexRhombus(ctx: CanvasRenderingContext2D, px: number, n = 1
       ctx.strokeStyle = 'rgba(40,24,12,0.35)';
       ctx.lineWidth = px / 400;
       ctx.stroke();
-    }
-  }
-}
-
-// Edge strips over a painted board. Width is a fraction of the texture.
-export function paintEdgeStrips(ctx: CanvasRenderingContext2D, px: number, ramps: Record<EdgeName, EdgeRamp>, frac = 0.022): void {
-  const w = Math.max(2, px * frac);
-  const steps = 64;
-  for (const edge of EDGES) {
-    for (let k = 0; k < steps; k++) {
-      const s = (k + 0.5) / steps;
-      ctx.fillStyle = rgbCss(ramps[edge](s));
-      const a = (k / steps) * px, len = px / steps + 1;
-      if (edge === 'left') ctx.fillRect(0, a, w, len);
-      else if (edge === 'right') ctx.fillRect(px - w, a, w, len);
-      else if (edge === 'top') ctx.fillRect(a, 0, len, w);
-      else ctx.fillRect(a, px - w, len, w);
     }
   }
 }

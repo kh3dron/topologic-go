@@ -4,7 +4,7 @@ import { TOPOLOGIES, Topology } from './topology';
 import { GAMES, usesTopology } from './engine';
 import { variantHref, variantSearch, PlayMode } from './routes';
 import { createPreview } from './preview';
-import type { Stage, StageBoard } from './surface/stage';
+import type { Stage, StageBoard, View } from './surface/stage';
 import type { PaintKind } from './surface/boards';
 import { mountVersionBadge } from './version';
 
@@ -124,8 +124,8 @@ const kickerEl = document.getElementById('detail-kicker')!;
 const descEl = document.getElementById('detail-desc')!;
 const stageEl = document.getElementById('stage')!;
 const surfaceCanvas = document.getElementById('surface-canvas') as HTMLCanvasElement;
-const foldPlay = document.getElementById('fold-play') as HTMLButtonElement;
-const foldScrub = document.getElementById('fold-scrub') as HTMLInputElement;
+const viewPlay = document.getElementById('view-play') as HTMLButtonElement;
+const viewDescEl = document.getElementById('view-desc')!;
 const preview = createPreview(document.getElementById('preview-canvas') as HTMLCanvasElement);
 
 // ==================== STATE ====================
@@ -136,8 +136,6 @@ let mode: PlayMode = 'playground';
 // page into the lobby via the launch link.
 let opponent: string | null = null;
 
-type View = 'surface' | 'cover';
-let view: View = 'surface';
 let stage: Stage | null = null;
 let surfaceKit: typeof import('./surface/boards') | null = null;
 let stageFailed = false;
@@ -269,11 +267,14 @@ function updateLaunch(): void {
 }
 
 // ==================== 3D STAGE ====================
-// The stage folds the selected board into its surface (src/surface/). Three.js
-// loads lazily so the picker is usable before the WebGL bundle arrives; the
-// flat particle preview stays available as the "Flat edges" view and is the
-// only view for boards that are not a square quotient.
+// Three views of the selected board (src/surface/stage.ts): Board (as played),
+// Tiling (the board among its glued copies), Surface (folded so glued edges
+// meet). Autoplay tours them; a click on a view holds it. Three.js loads
+// lazily, so the picker works before the WebGL bundle arrives; the flat
+// particle preview is the fallback and the only view for boards that are not
+// a square quotient (hex chess, hyperbolic).
 let coverCaption = '';
+let currentPlanName = '';
 
 function describe(entry: Entry): string {
   if (!entry.topo) return entry.surface;
@@ -297,35 +298,54 @@ function stageBoardFor(entry: Entry): StageBoard | null {
   return null;
 }
 
-function setView(next: View): void {
-  view = next;
-  refreshStage();
+function viewText(v: View, board: StageBoard | null): string {
+  const kinds = board ? Object.values(board.plan.edges).map(e => e.kind) : [];
+  const glued = kinds.some(k => k !== 'wall' && k !== 'mirror');
+  const edged = kinds.some(k => k === 'wall' || k === 'mirror');
+  if (v === 'board') {
+    return glued
+      ? 'Board: the board as played. A piece that crosses a glued edge reappears where that edge is glued.'
+      : 'Board: the board as played. No edges are glued.';
+  }
+  if (v === 'tiling') {
+    return 'Tiling: copies of the board laid edge to edge, each turned or mirrored by its gluing. A piece leaving the board continues straight into the next copy.';
+  }
+  if (!glued) return 'Surface: no edges are glued, so the surface is the board itself.';
+  const name = currentPlanName.replace(/^(Torus|Cylinder|Pillowcase|Folded strip|Triangular pillow)/, m => m.toLowerCase());
+  return `Surface: the board folded until glued edges meet, a ${name}. ` +
+    (edged ? 'Only walls and mirrors remain as edges.' : 'No edges remain.');
+}
+
+function syncViewUi(v: View): void {
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('#view-toggle .seg-btn')) {
+    btn.classList.toggle('active', btn.dataset.view === v);
+  }
+  const entry = entryById.get(selectedId)!;
+  viewDescEl.textContent = viewText(v, stage ? stageBoardFor(entry) : null);
 }
 
 function refreshStage(): void {
   const entry = entryById.get(selectedId)!;
   const board = stageBoardFor(entry);
-  const has3d = !stageFailed && (entry.topo !== null || entry.preview === 'hextorus');
-  const show3d = has3d && view === 'surface' && stage !== null && board !== null;
-  stageEl.classList.toggle('is-3d', show3d);
-  stageEl.classList.toggle('no-3d', !has3d);
-  for (const btn of document.querySelectorAll<HTMLButtonElement>('#view-toggle .seg-btn')) {
-    btn.classList.toggle('active', btn.dataset.view === (show3d || (has3d && view === 'surface') ? 'surface' : 'cover'));
-    if (btn.dataset.view === 'surface') btn.disabled = !has3d;
-  }
-  if (show3d && board) {
+  const has3d = !stageFailed && stage !== null && board !== null;
+  stageEl.classList.toggle('is-3d', has3d);
+  document.getElementById('view-bar')!.hidden = !has3d;
+  viewDescEl.hidden = !has3d;
+  if (has3d && board) {
+    currentPlanName = board.plan.name;
     stage!.setBoard(board);
     badgeEl.textContent = board.plan.name;
+    syncViewUi(stage!.view());
   } else {
     badgeEl.textContent = coverCaption;
   }
 }
 
 function syncPlayButton(): void {
-  const on = stage?.playing() ?? true;
-  foldPlay.classList.toggle('paused', !on);
-  foldPlay.setAttribute('aria-label', on ? 'Pause fold animation' : 'Play fold animation');
-  foldPlay.title = on ? 'Pause' : 'Play';
+  const on = stage?.autoplaying() ?? true;
+  viewPlay.classList.toggle('paused', !on);
+  viewPlay.setAttribute('aria-label', on ? 'Pause the tour of views' : 'Resume the tour of views');
+  viewPlay.title = on ? 'Pause tour' : 'Resume tour';
 }
 
 async function mountStage(): Promise<void> {
@@ -334,32 +354,30 @@ async function mountStage(): Promise<void> {
     if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('no WebGL');
     const [stageMod, boards] = await Promise.all([import('./surface/stage'), import('./surface/boards')]);
     surfaceKit = boards;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     stage = stageMod.createStage(surfaceCanvas, {
-      onFold(t) { foldScrub.value = String(Math.round(t * 1000)); },
+      autoplay: !reduced,
+      initialView: reduced ? 'surface' : 'board',
+      autoSpin: reduced ? 0 : undefined,
+      onView: syncViewUi,
     });
-    foldScrub.addEventListener('input', () => {
-      stage!.setPlaying(false);
-      stage!.setFold(Number(foldScrub.value) / 1000);
-      syncPlayButton();
-    });
-    foldPlay.addEventListener('click', () => {
-      const on = !stage!.playing();
-      stage!.setPlaying(on);
-      if (on) stage!.setFold(null);
+    for (const btn of document.querySelectorAll<HTMLButtonElement>('#view-toggle .seg-btn')) {
+      btn.addEventListener('click', () => {
+        stage!.setAutoplay(false);
+        stage!.setView(btn.dataset.view as View);
+        syncPlayButton();
+      });
+    }
+    viewPlay.addEventListener('click', () => {
+      stage!.setAutoplay(!stage!.autoplaying());
       syncPlayButton();
     });
     surfaceCanvas.addEventListener('pointerdown', () => stageEl.classList.add('touched'), { once: true });
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      stage.setPlaying(false);
-      stage.setFold(1);
-      foldScrub.value = '1000';
-    }
     refreshStage();
     syncPlayButton();
     void renderThumbs(stageMod, boards);
   } catch {
     stageFailed = true;
-    view = 'cover';
     refreshStage();
   }
 }
@@ -369,7 +387,7 @@ async function renderThumbs(stageMod: typeof import('./surface/stage'), boards: 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:fixed;left:-9999px;top:0;width:112px;height:112px;pointer-events:none';
   document.body.appendChild(canvas);
-  const thumbStage = stageMod.createStage(canvas, { autoFold: false, comets: false, interactive: false, autoSpin: 0 });
+  const thumbStage = stageMod.createStage(canvas, { initialView: 'surface', interactive: false, autoSpin: 0 });
   const idle = () => new Promise<void>(res =>
     ('requestIdleCallback' in window ? window.requestIdleCallback(() => res()) : setTimeout(res, 16)));
   try {
@@ -377,7 +395,7 @@ async function renderThumbs(stageMod: typeof import('./surface/stage'), boards: 
       const board = e.topo ? boards.catalogBoard(e.topo, 'chess') : e.preview === 'hextorus' ? boards.hexTorusBoard() : null;
       if (!board) continue;
       await idle();
-      thumbStage.setBoard(board);
+      thumbStage.setBoard({ ...board, mover: undefined });
       thumbStage.renderNow();
       const url = canvas.toDataURL('image/png');
       const slot = itemEls.get(e.id)?.querySelector<HTMLElement>('.topo-thumb');
@@ -469,9 +487,6 @@ function boot(): void {
     btn.addEventListener('click', () => setMode(btn.dataset.mode as PlayMode));
   }
   searchInput.addEventListener('input', refreshList);
-  for (const btn of document.querySelectorAll<HTMLElement>('#view-toggle .seg-btn')) {
-    btn.addEventListener('click', () => setView(btn.dataset.view as View));
-  }
 
   setMode(params.get('mode') === 'challenge' ? 'challenge' : 'playground');
   select(startId);
