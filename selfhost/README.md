@@ -118,10 +118,9 @@ deployed anywhere else.
   `ses.kh3dron.net`; 5 DNS records at Cloudflare), send-only IAM user
   `topologic-go-ses-smtp`, production access GRANTED. Credentials live only in
   huey's `.env` (`SMTP_*`); sender `noreply@kh3dron.net`. Magic links work
-  (verified end-to-end via GoTrue -> SES). Signups still auto-confirm
-  (`ENABLE_EMAIL_AUTOCONFIRM=true`) by deliberate choice — to require email
-  confirmation, set it `false` and `docker compose up -d auth` (DOCKET T-61,
-  left open). SES cost: $0.10 per 1,000 mails, no standing fees.
+  (verified end-to-end via GoTrue -> SES). Signups require email
+  confirmation (`ENABLE_EMAIL_AUTOCONFIRM=false`; verified 2026-10-21 via the
+  SES mailbox simulator). SES cost: $0.10 per 1,000 mails, no standing fees.
 
 ## 5.0 Data migration from the hosted project
 
