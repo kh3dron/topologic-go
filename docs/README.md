@@ -17,9 +17,9 @@ Orientation for humans and agents. Read this first, then the file that matches y
 - `playability.md` — the move-zero characterization theorem (proved + machine-checked by `scripts/playability.ts`), formalism dependence, open Go questions
 - `../TOPOLOGIES.md` — topology catalog, census table, math background, ideas
 - `../DEPLOYMENT.md` — online-play design doc (hosting, server-authoritative validation)
-- Backlog / to-dos: **DOCKET** (project `topologic-go`, web UI `http://lawrence:8080`) — not tracked in-repo
+- Backlog / to-dos: **DOCKET** (project `topologic-go`, web UI `http://huey:8085`) — not tracked in-repo
 - `../supabase/README.md` — backend schema + functions layout
-- `../selfhost/README.md` — the self-hosted Supabase stack that serves production (Docker on `lawrence`)
+- `../selfhost/README.md` — the self-hosted Supabase stack that serves production (Docker on `huey` since 2026-08-19)
 
 ## Quick commands
 
