@@ -17,6 +17,9 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { Topology } from '../topology';
 import { embed, V3 } from './embed';
 import { EDGES, EdgeName, SurfacePlan } from './plan';
+import { PIECE_TYPES, pieceGeometry, pieceMaterial } from './pieces';
+import type { PieceType } from '../engine/games/chess';
+import type { Color } from '../engine/core';
 
 const GRID = 84;               // mesh resolution per side
 const EDGE_SEGS = 96;
@@ -26,6 +29,8 @@ const RINGS = 2;               // ghost tile rings in the tiling view
 const FIT_RADIUS = 1.45;
 const DECAL = 0.42;            // mover half-size, in cells
 const DECAL_SEGS = 4;
+const PIECE_CAP = 17;          // instances per (type, colour): 16 on the board + the mover
+const PIECE_SIZE = 0.92;       // piece scale, in cells
 
 export type View = 'board' | 'tiling' | 'surface';
 
@@ -35,8 +40,12 @@ const HOLD: Record<View, number> = { board: 2.4, tiling: 4, surface: 5 };
 const FOLD_SECONDS = 2.8;
 const FADE_SECONDS = 0.9;
 
+// A standing 3D piece; row / col are continuous, in cells of an n x n board.
+export interface PieceSpec { row: number; col: number; type: PieceType; color: Color; }
+
 export interface MoverSpec {
   sprites: HTMLCanvasElement[];   // [head, body]; body reused for every trailing segment
+  piece?: { type: PieceType; color: Color };   // chain 1 only: a standing 3D piece instead of a decal
   chain: number;                  // 1 = a single piece, >1 = a snake
   step: number;                   // seconds per cell
   pause: number;                  // seconds between straight runs (0 = continuous)
@@ -48,6 +57,8 @@ export interface StageBoard {
   topo: Topology | null;          // null: no tiling copies or mover (boards without project())
   paint(ctx: CanvasRenderingContext2D, px: number): void;
   mover?: MoverSpec;
+  // standing 3D pieces and the board size they are placed on; re-read on every repaint()
+  pieces?: { size: number; list(): PieceSpec[] };
 }
 
 export interface StageOptions {
@@ -267,6 +278,115 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
   let spriteTextures: THREE.CanvasTexture[] = [];
   let walker: Walker | null = null;
 
+  // ---- standing pieces: instanced per (type, colour); ghosts carry the tiling copies ----
+  const pieceGroup = new THREE.Group();
+  body.add(pieceGroup);
+  interface PieceBank { mesh: THREE.InstancedMesh; ghost: THREE.InstancedMesh; }
+  const pieceMats = { white: pieceMaterial('white', false), black: pieceMaterial('black', false) };
+  const ghostMats = { white: pieceMaterial('white', true), black: pieceMaterial('black', true) };
+  const banks = new Map<string, PieceBank>();
+  let ghostCap = 0;
+  let pieceList: PieceSpec[] = [];
+  const pickIndex = new Map<THREE.InstancedMesh, PieceSpec[]>();
+
+  function buildBanks(): void {
+    for (const b of banks.values()) { pieceGroup.remove(b.mesh, b.ghost); b.mesh.dispose(); b.ghost.dispose(); }
+    banks.clear();
+    pickIndex.clear();
+    ghostCap = Math.max(1, ghosts.length) * PIECE_CAP;
+    if (!board?.pieces) return;
+    for (const type of PIECE_TYPES) {
+      for (const color of ['white', 'black'] as Color[]) {
+        const mesh = new THREE.InstancedMesh(pieceGeometry(type), pieceMats[color], PIECE_CAP);
+        const ghost = new THREE.InstancedMesh(pieceGeometry(type), ghostMats[color], ghostCap);
+        mesh.frustumCulled = ghost.frustumCulled = false;
+        mesh.count = ghost.count = 0;
+        ghost.renderOrder = 1;
+        pieceGroup.add(mesh, ghost);
+        banks.set(`${type}:${color}`, { mesh, ghost });
+      }
+    }
+  }
+
+  const _m = new THREE.Matrix4();
+  const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _o = new THREE.Vector3();
+
+  // Matrix standing a piece at o with up = n, nose toward f (need not be unit or tangent).
+  function standMatrix(o: V3, n: V3, f: V3, s: number, mirror: boolean): THREE.Matrix4 {
+    _y.set(n[0], n[1], n[2]);
+    _x.set(f[0], f[1], f[2]);
+    _x.addScaledVector(_y, -_x.dot(_y));
+    if (_x.lengthSq() < 1e-12) _x.set(1, 0, 0).addScaledVector(_y, -_y.x);
+    _x.normalize();
+    _z.crossVectors(_x, _y);
+    if (mirror) _z.negate();
+    _o.set(o[0], o[1], o[2]);
+    _m.makeBasis(_x.multiplyScalar(s), _y.multiplyScalar(s), _z.multiplyScalar(s));
+    _m.setPosition(_o);
+    return _m;
+  }
+
+  function updatePieces(t: number): void {
+    const b = board!;
+    const src = b.pieces;
+    pieceGroup.visible = !!src;
+    if (!src) return;
+    const n = src.size;
+    const all = pieceList.slice();
+    const w = walker;
+    if (w && b.topo && b.mover?.piece) {
+      const [py, px] = chainPoint(w, 0, true);
+      const m = tileMap(b.topo, py, px);
+      if (m) all.push({ row: m.row * n / N, col: m.col * n / N, type: b.mover.piece.type, color: b.mover.piece.color });
+    }
+    for (const bank of banks.values()) { bank.mesh.count = 0; bank.ghost.count = 0; }
+    pickIndex.clear();
+    const go = ghostOpacity();
+    ghostMats.white.opacity = ghostMats.black.opacity = Math.min(1, go * 0.6);
+    const e = 0.004;
+    for (const pc of all) {
+      const bank = banks.get(`${pc.type}:${pc.color}`);
+      if (!bank || bank.mesh.count >= PIECE_CAP) continue;
+      const u = pc.col / n, v = pc.row / n;
+      const p = point(u, v, t);
+      const pu = point(u + e, v, t), pv = point(u, v + e, t);
+      const du: V3 = [pu[0] - p[0], pu[1] - p[1], pu[2] - p[2]];
+      const dv: V3 = [pv[0] - p[0], pv[1] - p[1], pv[2] - p[2]];
+      const nn: V3 = [dv[1] * du[2] - dv[2] * du[1], dv[2] * du[0] - dv[0] * du[2], dv[0] * du[1] - dv[1] * du[0]];
+      const nl = Math.hypot(nn[0], nn[1], nn[2]);
+      if (nl < 1e-12) continue;
+      nn[0] /= nl; nn[1] /= nl; nn[2] /= nl;
+      // local cell size: geometric mean of the two sides, capped so a piece
+      // never overhangs a squeezed cell by more than half
+      const lu = Math.hypot(du[0], du[1], du[2]) / e / n, lv = Math.hypot(dv[0], dv[1], dv[2]) / e / n;
+      const cell = Math.min(Math.sqrt(lu * lv), 1.5 * Math.min(lu, lv));
+      const sgn = pc.color === 'white' ? -1 : 1;     // white faces up the board (toward row 0)
+      const f: V3 = [dv[0] * sgn, dv[1] * sgn, dv[2] * sgn];
+      const k = bank.mesh.count++;
+      bank.mesh.setMatrixAt(k, standMatrix(p, nn, f, cell * PIECE_SIZE, false));
+      let list = pickIndex.get(bank.mesh);
+      if (!list) { list = []; pickIndex.set(bank.mesh, list); }
+      list.push(pc);
+      if (go <= 0.001) continue;
+      for (const g of ghosts) {
+        const [a, bb, c, d] = g.L;
+        const det = a * d - bb * c;
+        if (det === 0 || bank.ghost.count >= ghostCap) continue;
+        // plane delta = L^-1 * board delta (rows: dy, dx); board coords in N-cell units
+        const dr = pc.row * N / n - g.p0[0], dc = pc.col * N / n - g.p0[1];
+        const y = g.cy + (d * dr - bb * dc) / det, x = g.cx + (-c * dr + a * dc) / det;
+        const fy = (d * sgn) / det, fx = (-c * sgn) / det;      // image of the board's row direction
+        bank.ghost.setMatrixAt(bank.ghost.count++, standMatrix(
+          [(x / N - 0.5) * 2, 0, (y / N - 0.5) * 2], [0, 1, 0], [fx, 0, fy], (2 / n) * PIECE_SIZE, det < 0));
+      }
+    }
+    for (const bank of banks.values()) {
+      bank.mesh.instanceMatrix.needsUpdate = true;
+      bank.ghost.instanceMatrix.needsUpdate = true;
+      bank.ghost.visible = bank.ghost.count > 0;
+    }
+  }
+
   function makeDecal(tex: THREE.Texture, segs: number): Decal {
     const verts = (segs + 1) * (segs + 1);
     const pos = new Float32Array(verts * 3);
@@ -316,7 +436,7 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     });
-    for (let i = 0; i < spec.chain; i++) {
+    for (let i = 0; i < (spec.piece ? 0 : spec.chain); i++) {
       const tex = spriteTextures[Math.min(i, spriteTextures.length - 1)];
       baseDecals.push(makeDecal(tex, DECAL_SEGS));
       ghostDecals.push(ghosts.map(() => makeDecal(tex, 1)));
@@ -542,7 +662,7 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
   function updateMover(t: number): void {
     const b = board!;
     const w = walker;
-    if (!w || !b.topo || !b.mover) { moverGroup.visible = false; return; }
+    if (!w || !b.topo || !b.mover || b.mover.piece) { moverGroup.visible = false; return; }
     moverGroup.visible = true;
     const topo = b.topo;
     const lift = 0.012 / scale;
@@ -614,6 +734,7 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
     texCtx.clearRect(0, 0, TEX_PX, TEX_PX);
     board.paint(texCtx, TEX_PX);
     texture.needsUpdate = true;
+    pieceList = board.pieces?.list() ?? [];
   }
 
   function resize(): void {
@@ -650,6 +771,7 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
     updateEdges(fold);
     updateGhosts();
     updateMover(fold);
+    updatePieces(fold);
     renderer.render(scene, camera);
   }
 
@@ -694,6 +816,7 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
       board = next;
       buildGhosts(next.topo);
       buildMover(next);
+      buildBanks();
       if (!samePlan && autoplay) {
         // a new board restarts the tour from the plain board
         seqIdx = 0;
@@ -728,7 +851,10 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
       );
       scene.updateMatrixWorld();
       raycaster.setFromCamera(ndc, camera);
-      const hit = raycaster.intersectObjects([frontMesh, backMesh], false)[0];
+      const hit = raycaster.intersectObjects([frontMesh, backMesh, ...pickIndex.keys()], false)[0];
+      const stood = hit && hit.instanceId !== undefined
+        ? pickIndex.get(hit.object as THREE.InstancedMesh)?.[hit.instanceId] : undefined;
+      if (stood && board?.pieces) return [stood.col / board.pieces.size, stood.row / board.pieces.size];
       if (!hit?.uv) return null;
       return [hit.uv.x, 1 - hit.uv.y];
     },
@@ -744,6 +870,8 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
       document.removeEventListener('visibilitychange', onVis);
       geom.dispose();
       texture.dispose();
+      for (const b of banks.values()) { b.mesh.dispose(); b.ghost.dispose(); }
+      for (const m of [pieceMats.white, pieceMats.black, ghostMats.white, ghostMats.black]) m.dispose();
       for (const t of spriteTextures) t.dispose();
       envTex.dispose();
       pmrem.dispose();

@@ -12,6 +12,9 @@ function appVersion(): string {
 
 export default defineConfig({
   base: './',
+  server: {
+    allowedHosts: ['lawrence', '.local', '.ts.net'],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion()),
   },

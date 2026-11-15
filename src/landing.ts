@@ -255,9 +255,9 @@ function updateLaunch(): void {
   descEl.textContent = describe(entry);
 
   if (selectedGame === 'snake') {
-    verdictEl.textContent = 'Single-player - steer with arrow keys or WASD';
+    verdictEl.textContent = 'Single-player. Arrow keys or WASD.';
   } else if (!entry.topo) {
-    verdictEl.textContent = 'A different board, not a square topology';
+    verdictEl.textContent = 'Separate board geometry; not a quotient of the square board.';
   } else {
     verdictEl.textContent = '';
   }
@@ -304,16 +304,16 @@ function viewText(v: View, board: StageBoard | null): string {
   const edged = kinds.some(k => k === 'wall' || k === 'mirror');
   if (v === 'board') {
     return glued
-      ? 'Board: the board as played. A piece that crosses a glued edge reappears where that edge is glued.'
-      : 'Board: the board as played. No edges are glued.';
+      ? 'Board: the fundamental domain. A piece crossing an identified edge re-enters at the edge it is identified with.'
+      : 'Board: the fundamental domain. No edges are identified.';
   }
   if (v === 'tiling') {
-    return 'Tiling: copies of the board laid edge to edge, each turned or mirrored by its gluing. A piece leaving the board continues straight into the next copy.';
+    return 'Tiling: images of the board under its symmetry group, each translated, rotated, or reflected per its edge identification. A piece leaving the board continues straight into the adjacent copy.';
   }
-  if (!glued) return 'Surface: no edges are glued, so the surface is the board itself.';
+  if (!glued) return 'Surface: no edges are identified; the quotient is the board itself.';
   const name = currentPlanName.replace(/^(Torus|Cylinder|Pillowcase|Folded strip|Triangular pillow)/, m => m.toLowerCase());
-  return `Surface: the board folded until glued edges meet, a ${name}. ` +
-    (edged ? 'Only walls and mirrors remain as edges.' : 'No edges remain.');
+  return `Surface: the quotient with identified edges joined, a ${name}. ` +
+    (edged ? 'Walls and mirrors remain as boundary.' : 'No boundary remains.');
 }
 
 function syncViewUi(v: View): void {
@@ -437,8 +437,8 @@ function setMode(next: PlayMode): void {
     btn.classList.toggle('active', btn.dataset.mode === next);
   }
   modeNote.textContent = next === 'challenge'
-    ? 'Play a friend online - open a game, share the link, or challenge from your friends list.'
-    : 'Play both sides yourself in a stateless sandbox - no account needed.';
+    ? 'Online: open a game and share the link, or challenge a player from your friends list.'
+    : 'Local hotseat: both sides on one device. No account, no stored state.';
   updateLaunch();
 }
 

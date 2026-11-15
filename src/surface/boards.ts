@@ -4,10 +4,11 @@
 
 import { Topology, TOPOLOGY_MAP } from '../topology';
 import { createInitialChessBoard } from '../engine/games/chess';
+import type { ChessBoard } from '../engine/games/chess';
 import type { GoBoard } from '../engine/games/go';
 import { planSurface } from './plan';
 import { paintChess, paintGo, paintHexRhombus, paintSnake, pieceSprite, snakeSprite } from './texture';
-import type { MoverSpec, StageBoard } from './stage';
+import type { MoverSpec, PieceSpec, StageBoard } from './stage';
 
 // A 9x9 position whose groups straddle the board edges, so the fold visibly
 // reunites them.
@@ -37,7 +38,10 @@ let snakeSprites: HTMLCanvasElement[] | null = null;
 function moverFor(kind: PaintKind): MoverSpec | undefined {
   if (kind === 'chess') {
     rookSprite ??= pieceSprite('rook', 'white');
-    return { sprites: [rookSprite], chain: 1, step: 0.36, pause: 0.7, free: r => r >= 2 && r <= 5 };
+    return {
+      sprites: [rookSprite], piece: { type: 'rook', color: 'white' },
+      chain: 1, step: 0.36, pause: 0.7, free: r => r >= 2 && r <= 5,
+    };
   }
   if (kind === 'snake') {
     snakeSprites ??= [snakeSprite(true), snakeSprite(false)];
@@ -49,6 +53,15 @@ function moverFor(kind: PaintKind): MoverSpec | undefined {
   return undefined;
 }
 
+// Every piece of a position as a standing 3D piece at its cell centre.
+export function standingPieces(board: ChessBoard): PieceSpec[] {
+  const out: PieceSpec[] = [];
+  board.forEach((row, r) => row.forEach((p, c) => {
+    if (p) out.push({ row: r + 0.5, col: c + 0.5, type: p.type, color: p.color });
+  }));
+  return out;
+}
+
 export function catalogBoard(topo: Topology, kind: PaintKind): StageBoard {
   const plan = planSurface(topo);
   const chess = createInitialChessBoard();
@@ -56,8 +69,9 @@ export function catalogBoard(topo: Topology, kind: PaintKind): StageBoard {
   return {
     plan, topo,
     mover: moverFor(kind),
+    pieces: kind === 'chess' ? { size: chess.length, list: () => standingPieces(chess) } : undefined,
     paint(ctx, px) {
-      if (kind === 'chess') paintChess(ctx, px, { board: chess });
+      if (kind === 'chess') paintChess(ctx, px, { board: chess, standing: true });
       else if (kind === 'go') paintGo(ctx, px, { board: go });
       else if (kind === 'snake') paintSnake(ctx, px, { size: SNAKE_SIZE, body: [], food: SNAKE_FOOD });
       else paintHexRhombus(ctx, px);

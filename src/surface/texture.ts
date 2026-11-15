@@ -8,7 +8,10 @@ import type { GoBoard } from '../engine/games/go';
 
 const GLYPH_FONT = '"Apple Symbols","Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans",serif';
 
-export interface ChessPaint { board: ChessBoard; selected?: [number, number] | null; dests?: Set<string> | null; }
+export interface ChessPaint {
+  board: ChessBoard; selected?: [number, number] | null; dests?: Set<string> | null;
+  standing?: boolean;   // pieces are 3D meshes: paint a contact shadow per piece, no glyphs
+}
 export interface GoPaint { board: GoBoard; lastMove?: [number, number] | null; }
 
 export function paintChess(ctx: CanvasRenderingContext2D, px: number, p: ChessPaint): void {
@@ -32,6 +35,20 @@ export function paintChess(ctx: CanvasRenderingContext2D, px: number, p: ChessPa
       ctx.arc((c + 0.5) * cell, (r + 0.5) * cell, cell * 0.14, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+  if (p.standing) {
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (!p.board[r][c]) continue;
+        const x = (c + 0.5) * cell, y = (r + 0.5) * cell;
+        const g = ctx.createRadialGradient(x, y, cell * 0.2, x, y, cell * 0.48);
+        g.addColorStop(0, 'rgba(20,14,10,0.5)');
+        g.addColorStop(1, 'rgba(20,14,10,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(c * cell, r * cell, cell, cell);
+      }
+    }
+    return;
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

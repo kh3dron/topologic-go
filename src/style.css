@@ -13,9 +13,12 @@
   --line-strong: #363e50;
   --accent: #ff5a1f;
 
-  --font-mono: "JetBrains Mono", "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-display: "Space Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-ui: "Space Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Berkeley Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-ui: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --radius: 2px;
+  --radius-lg: 4px;
 }
 
 * {
@@ -26,6 +29,8 @@
 
 body {
   font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
   background: var(--paper);
   color: var(--ink);
   height: 100vh;
@@ -73,7 +78,7 @@ button,
   background: var(--panel-2);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   padding: 8px 12px;
   text-align: center;
@@ -264,7 +269,7 @@ button:active,
   font-size: 0.7rem;
   color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   display: none;
 }
 
@@ -287,7 +292,7 @@ button:active,
   font-family: var(--font-mono);
   font-size: 0.78rem;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 #zoom-level {
@@ -382,12 +387,12 @@ button:active,
 
 .snake-cell.snake-body::after {
   background: #3c9a5f;
-  border-radius: 3px;
+  border-radius: var(--radius);
 }
 
 .snake-cell.snake-head::after {
   background: #7be3a2;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 .snake-cell.snake-food::after {
@@ -834,7 +839,7 @@ button:active,
   font-size: 0.7rem;
   color: var(--ink-dim);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   border-bottom: 1px solid var(--line);
   padding-bottom: 6px;
   margin-bottom: 6px;
@@ -1124,7 +1129,7 @@ body.doc-page {
   font-size: 0.72rem;
   color: var(--ink-dim);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-decoration: none;
 }
 
@@ -1137,7 +1142,7 @@ body.doc-page {
   width: min(340px, calc(100% - 32px));
   display: flex;
   flex-direction: column;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--line-strong);
   background: #0d1118;
@@ -1159,7 +1164,7 @@ body.doc-page {
   font-size: 0.68rem;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
 }
 
 .surface-dock-name {
@@ -1176,7 +1181,7 @@ body.doc-page {
 .surface-dock-btn {
   padding: 4px 10px;
   font-size: 0.78rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 #surface-close {
@@ -1269,7 +1274,7 @@ body.catalog-page {
   font-size: 0.95rem;
   text-decoration: none;
   padding: 7px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 .site-menu a:hover {
@@ -1294,47 +1299,9 @@ body.catalog-page {
   filter: brightness(1.1);
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  align-items: end;
-  gap: 18px 56px;
-  padding: 40px 0 30px;
-}
-
-.hero-title {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(2rem, 3.8vw, 3.4rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  text-transform: none;
-  border: none;
-  padding: 0;
-  max-width: 15ch;
-  color: var(--ink);
-}
-
-.hero-accent {
-  color: var(--accent);
-}
-
-#catalog-blurb {
-  font-size: 1.04rem;
-  line-height: 1.55;
-  color: var(--ink-dim);
-  max-width: 62ch;
-}
-
-#catalog-blurb a {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 3px;
-}
-
 /* ---- picker grid ---- */
 .picker {
+  margin-top: 22px;
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr) 300px;
   grid-template-areas: "list stage start";
@@ -1352,7 +1319,7 @@ body.catalog-page {
   top: 18px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1367,11 +1334,10 @@ body.catalog-page {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
 }
 
 .step-label b {
@@ -1379,7 +1345,9 @@ body.catalog-page {
   place-items: center;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: var(--radius);
   background: var(--accent);
   color: #fff;
   font-weight: 700;
@@ -1392,7 +1360,7 @@ body.catalog-page {
   background: var(--paper);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 10px 12px;
   width: 100%;
 }
@@ -1433,7 +1401,7 @@ body.catalog-page {
   font-family: var(--font-mono);
   font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-align: left;
   cursor: pointer;
 }
@@ -1475,7 +1443,7 @@ body.catalog-page {
   width: 100%;
   padding: 6px 8px 6px 6px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--ink);
   font-family: var(--font-ui);
@@ -1506,7 +1474,7 @@ body.catalog-page {
   flex: none;
   width: 46px;
   height: 46px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: #0d1118;
   display: grid;
   place-items: center;
@@ -1568,7 +1536,7 @@ body.catalog-page {
   font-size: 0.7rem;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
 }
 
 #detail-name {
@@ -1590,7 +1558,7 @@ body.catalog-page {
   position: relative;
   height: min(56vh, 600px);
   min-height: 400px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--line);
   background:
@@ -1631,9 +1599,9 @@ body.catalog-page {
   font-size: 0.68rem;
   color: var(--ink);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--paper);
   border: 1px solid var(--line-strong);
   pointer-events: none;
@@ -1651,7 +1619,7 @@ body.catalog-page {
   font-size: 0.66rem;
   color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   pointer-events: none;
   display: none;
 }
@@ -1664,7 +1632,7 @@ body.catalog-page {
   display: inline-flex;
   padding: 3px;
   gap: 2px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--paper);
   border: 1px solid var(--line);
   width: fit-content;
@@ -1672,7 +1640,7 @@ body.catalog-page {
 
 .seg-btn {
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--ink-dim);
   padding: 7px 14px;
@@ -1733,7 +1701,7 @@ body.catalog-page {
   width: 40px;
   height: 40px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   display: grid;
   place-items: center;
 }
@@ -1783,7 +1751,7 @@ body.catalog-page {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: var(--radius);
   padding: 4px 10px;
 }
 
@@ -1818,7 +1786,7 @@ body.catalog-page {
   color: var(--ink);
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 12px 14px;
   cursor: pointer;
 }
@@ -1889,7 +1857,7 @@ body.catalog-page {
   font-weight: 600;
   color: #fff;
   background: var(--accent);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 15px 22px;
 }
 
@@ -1921,7 +1889,7 @@ body.catalog-page {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--accent);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
 }
 
 .how-step h3 {
@@ -1973,15 +1941,6 @@ body.catalog-page {
   .site-menu a {
     padding: 6px 10px;
     font-size: 0.9rem;
-  }
-
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 28px 0 22px;
-  }
-
-  #catalog-blurb {
-    font-size: 0.98rem;
   }
 
   .picker {
@@ -2609,7 +2568,7 @@ body.challenge-page {
 .hub-profile,
 .lobby-game,
 #online-banner {
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .challenge-card {
@@ -2625,9 +2584,9 @@ body.challenge-page {
 .challenge-secondary,
 .challenge-tag,
 .auth-tabs {
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .auth-tab {
-  border-radius: 8px;
+  border-radius: var(--radius);
 }

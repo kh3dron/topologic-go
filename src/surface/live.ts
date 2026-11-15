@@ -11,6 +11,7 @@ import { viewFor } from '../views';
 import { clickCanonicalCell, onBoardRendered } from '../render';
 import { createStage, Stage, StageBoard, View } from './stage';
 import { planSurface } from './plan';
+import { standingPieces } from './boards';
 import { paintChess, paintGo } from './texture';
 
 export interface LiveSurface {
@@ -54,6 +55,7 @@ export function mountLiveSurface(canvas: HTMLCanvasElement, nameEl: HTMLElement,
     const plan = planSurface(topo);
     return {
       plan, topo,
+      pieces: currentGame === 'chess' ? { size: chessBoard.length, list: () => standingPieces(chessBoard) } : undefined,
       paint(ctx, px) {
         if (currentGame === 'go') {
           paintGo(ctx, px, { board: goBoard, lastMove: goLastMove });
@@ -61,7 +63,7 @@ export function mountLiveSurface(canvas: HTMLCanvasElement, nameEl: HTMLElement,
           paintSnakeLive(ctx, px, viewFor('snake').size());
         } else {
           const dests = selectedSquare ? getLegalDestinations(selectedSquare[0], selectedSquare[1]) : null;
-          paintChess(ctx, px, { board: chessBoard, selected: selectedSquare, dests });
+          paintChess(ctx, px, { board: chessBoard, selected: selectedSquare, dests, standing: currentGame === 'chess' });
         }
       },
     };
