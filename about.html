@@ -14,14 +14,11 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="description" content="The math of chess and Go on quotients of the plane.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
-  <script type="module" crossorigin src="./assets/about-DQ2R9YlS.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/version-BB8iE8R8.js">
-  <link rel="modulepreload" crossorigin href="./assets/go--B8YsOY7.js">
-  <link rel="modulepreload" crossorigin href="./assets/go-qA7aMovi.js">
-  <link rel="stylesheet" crossorigin href="./assets/version-Csr4GkBx.css">
+  <script type="module" crossorigin src="./assets/about-BE1Lrpe4.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-BsT_d_Rn.js">
+  <link rel="modulepreload" crossorigin href="./assets/go-BMUVZEhV.js">
+  <link rel="modulepreload" crossorigin href="./assets/go-BLlXaDxi.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-B9LGueZL.css">
 </head>
 
 <body class="doc-page">
@@ -32,14 +29,14 @@
     </header>
 
     <section class="doc-section">
-      <h2>1.0 What this is</h2>
-      <p>Chess and Go, played on surfaces other than a bounded square. The rules of each game are untouched - what changes is what happens when a piece, a stone, or a line of sight crosses the edge of the board. Depending on the mode, edges wrap around, reflect like mirrors, rotate into an adjacent copy, or stay solid walls.</p>
+      <h2>1 What this is</h2>
+      <p>Chess and Go on surfaces other than a bounded square. The rules of each game are unchanged; the only variable is what happens when a piece, a stone, or a line of sight crosses the edge of the board. Per topology, each edge wraps, reflects, rotates into an adjacent copy, or is a wall.</p>
       <p>Mathematically, every mode is the same construction: the game is played on a quotient of the infinite plane. Pick a group of symmetries (translations, reflections, rotations, glides), tile the plane with copies of the board related by those symmetries, and identify all the copies. The board you see repeated in the play view is that tiling; the seams drawn between tiles show which symmetry glues them together.</p>
-      <p>In the engine this is literally one function per mode: <code>project(row, col)</code> maps any coordinate of the infinite plane back onto the canonical board. Adjacency, move generation, capture logic, scoring, and the tiled rendering are all derived from it.</p>
+      <p>In the engine this is one function per topology: <code>project(row, col)</code> maps any coordinate of the infinite plane back onto the canonical board. Adjacency, move generation, capture logic, scoring, and the tiled rendering are all derived from it.</p>
     </section>
 
     <section class="doc-section">
-      <h2>2.0 Reading the board</h2>
+      <h2>2 Reading the board</h2>
       <p>Enable BOUNDARIES in the sidebar to see the structure of the tiling:</p>
       <ul>
         <li>dashed seam - pure translation: the board repeats (wrap)</li>
@@ -52,14 +49,14 @@
     </section>
 
     <section class="doc-section">
-      <h2>3.0 Census</h2>
+      <h2>3 Census</h2>
       <p>Every (game, topology) pair. GROUP and ORBIFOLD give the symmetry group of the tiling in IUC and Conway orbifold notation; SURFACE is the quotient you are actually playing on. MOVE-0 is evaluated by the engine: it sets up the standard position on that topology and checks whether the side to move has a legal move. SING. CELLS counts cells that are adjacent to themselves (cone points and mirror-boundary cells), computed from the projection map. VERDICT is derived, never assigned: DEAD if the game is decided at move zero, QUIRKS if singular cells exist or the surface is non-orientable, OK otherwise.</p>
-      <p>Degenerate games are kept exactly as they fall - see the design principle in the repository docs. Which topologies produce interesting games is this project's open research question; this table is the raw data.</p>
+      <p>Degenerate games are kept as they fall; no per-topology setup shifts or rule exceptions. Which topologies produce interesting games is this project's open research question; this table is the raw data.</p>
       <table id="census-table"></table>
     </section>
 
     <section class="doc-section">
-      <h2>4.0 The topologies</h2>
+      <h2>4 The topologies</h2>
       <div id="catalog"></div>
     </section>
 

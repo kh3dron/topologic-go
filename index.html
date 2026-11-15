@@ -7,23 +7,20 @@
   <title>Topologic Games</title>
   <meta property="og:site_name" content="Topologic Games">
   <meta property="og:title" content="Topologic Games">
-  <meta property="og:description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <meta property="og:description" content="Chess and Go on quotient surfaces: torus, Mobius band, Klein bottle, projective plane. Rules and starting positions are fixed; only the edge identifications change.">
   <meta property="og:image" content="https://games.kh3dron.net/og.png">
   <meta property="og:url" content="https://games.kh3dron.net/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="description" content="Chess and Go on impossible boards - torus, Mobius, Klein bottle. Only the edges change; the whole game follows.">
+  <meta name="description" content="Chess and Go on quotient surfaces: torus, Mobius band, Klein bottle, projective plane. Rules and starting positions are fixed; only the edge identifications change.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
-  <script type="module" crossorigin src="./assets/main-BNR7pdX_.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/version-BB8iE8R8.js">
+  <script type="module" crossorigin src="./assets/main-_bsyxmbZ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/version-BsT_d_Rn.js">
   <link rel="modulepreload" crossorigin href="./assets/preload-helper-PPVm8Dsz.js">
-  <link rel="modulepreload" crossorigin href="./assets/go--B8YsOY7.js">
-  <link rel="modulepreload" crossorigin href="./assets/index-GvSsLRVI.js">
-  <link rel="modulepreload" crossorigin href="./assets/routes-BT1-DwjV.js">
-  <link rel="stylesheet" crossorigin href="./assets/version-Csr4GkBx.css">
+  <link rel="modulepreload" crossorigin href="./assets/go-BMUVZEhV.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-CNyWBGwX.js">
+  <link rel="modulepreload" crossorigin href="./assets/routes-2HQtT3Eh.js">
+  <link rel="stylesheet" crossorigin href="./assets/version-B9LGueZL.css">
 </head>
 
 <body class="catalog-page picker-page">
@@ -31,7 +28,7 @@
     <header class="site-header">
       <a class="wordmark" href="./index.html" aria-label="Topologic Games home">
         <img class="wordmark-mark" src="./favicon.svg" alt="" width="28" height="28">
-        <span>Topologic</span>
+        <span>Topologic Games</span>
       </a>
       <nav class="site-menu">
         <a id="move-alert" class="move-alert" href="./home.html" hidden></a>
@@ -43,14 +40,10 @@
       </nav>
     </header>
 
-    <section class="hero">
-      <h1 class="hero-title">Chess and Go on <span class="hero-accent">impossible boards</span>.</h1>
-      <p id="catalog-blurb">Glue the edges of a board together and the board becomes a surface: a torus, a Klein bottle, a projective plane. The rules never change. Pick a board, compare its three views, then play. <a href="./about.html">Read about the math</a>.</p>
-    </section>
 
     <div class="picker">
       <aside class="picker-list">
-        <span class="step-label"><b>1</b> Choose a board</span>
+        <span class="step-label"><b>1</b> Board</span>
         <input id="catalog-search" type="search" placeholder="Search surfaces" autocomplete="off"
           spellcheck="false" aria-label="Search surfaces">
         <div id="topo-list"></div>
@@ -89,13 +82,13 @@
 
       <aside class="picker-start">
         <div class="picker-step">
-          <span class="step-label"><b>2</b> Choose a game</span>
+          <span class="step-label"><b>2</b> Game</span>
           <div id="game-options" class="game-options"></div>
           <p id="verdict-note" class="verdict-note"></p>
         </div>
 
         <div class="picker-step">
-          <span class="step-label"><b>3</b> Solo or online</span>
+          <span class="step-label"><b>3</b> Local or online</span>
           <div id="mode-toggle" class="segmented">
             <button class="seg-btn active" data-mode="playground">Playground</button>
             <button class="seg-btn" data-mode="challenge">Challenge</button>
@@ -110,18 +103,18 @@
     <section class="how">
       <div class="how-step">
         <span class="how-num">1 Board</span>
-        <h3>The board as played</h3>
-        <p>Each edge either glues to another edge (straight across, flipped, or turned a quarter), mirrors back onto itself, or is a wall. A piece crossing a glued edge reappears where it is glued.</p>
+        <h3>Fundamental domain</h3>
+        <p>One copy of the board. Each edge is identified with another edge (by translation, glide reflection, or quarter turn), reflects onto itself, or is a wall. A piece crossing an identified edge re-enters at its image.</p>
       </div>
       <div class="how-step">
         <span class="how-num">2 Tiling</span>
-        <h3>The board among its copies</h3>
-        <p>Copies of the board laid edge to edge, each turned or mirrored the way the edges are glued. A straight move in the game is a straight line through the copies.</p>
+        <h3>Tiling of the plane</h3>
+        <p>The plane tiled by images of the board under its symmetry group; each copy is translated, rotated, or reflected per its edge identification. A line of movement is a straight line in the plane, projected back onto the board.</p>
       </div>
       <div class="how-step">
         <span class="how-num">3 Surface</span>
-        <h3>The board folded shut</h3>
-        <p>Fold the board until glued edges meet: a torus, a Klein bottle, a projective plane. Rules and starting positions never change; on the torus, chess is checkmate before the first move.</p>
+        <h3>Quotient surface</h3>
+        <p>The board with identified edges joined: a torus, a Klein bottle, a projective plane. No per-surface rule changes or setup shifts; degenerate outcomes are reported as they fall. Torus chess is checkmate at move zero.</p>
       </div>
     </section>
   </div>
